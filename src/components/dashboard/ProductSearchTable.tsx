@@ -99,16 +99,13 @@ const dateFilterOptions = [
   { value: 'nextMonth', label: 'Próximo mês' },
 ];
 
-type ParticleColorType = 'default' | 'destructive' | 'warning';
-
 const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean, isExploding?: boolean): { styleString: string; particleColorClass: string } => {
   let baseStyle = 'transition-colors duration-150 ease-in-out relative';
-  let particleColorClass = 'bg-primary'; // Default particle color
+  let particleColorClass = 'bg-primary'; 
 
   if (isExploding) {
-    // Determine particle color based on original row state
     if (!isValid(parseISO(validade))) {
-      particleColorClass = 'bg-muted'; // Default for invalid date
+      particleColorClass = 'bg-muted';
     } else {
       const productDateStartOfDay = startOfDay(parseISO(validade));
       const todayDate = startOfDay(new Date());
@@ -117,7 +114,7 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
       } else if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
         particleColorClass = 'bg-orange-400 dark:bg-orange-500';
       } else {
-         particleColorClass = 'bg-primary'; // Or a more neutral default like 'bg-foreground' or 'bg-card'
+         particleColorClass = 'bg-card'; // Default for normal rows, particles will be visible against table background
       }
     }
     return { styleString: `${baseStyle} bg-transparent`, particleColorClass };
@@ -135,22 +132,21 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
   const todayDate = startOfDay(new Date());
 
   if (isPast(productDateStartOfDay) && !isToday(productDateStartOfDay)) {
-    particleColorClass = 'bg-red-500 dark:bg-red-600';
-    return { styleString: `${baseStyle} bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40`, particleColorClass };
+    return { styleString: `${baseStyle} bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40`, particleColorClass: 'bg-red-500 dark:bg-red-600' };
   }
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
-    particleColorClass = 'bg-orange-400 dark:bg-orange-500';
-    return { styleString: `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`, particleColorClass };
+    return { styleString: `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`, particleColorClass: 'bg-orange-400 dark:bg-orange-500' };
   }
-  return { styleString: baseStyle, particleColorClass };
+  return { styleString: baseStyle, particleColorClass: 'bg-primary' }; // Default particle color for normal rows
 };
 
 
 const resequenceProducts = (products: Product[]): Product[] => {
   return products.map((product, index) => ({
     ...product,
-    id: (index + 1).toString(),
-    isExploding: product.isExploding
+    id: (index + 1).toString(), // This ID is for display and sorting if 'id' column is used
+                                // Keep the original product.originalId if it exists for stable React keys
+    isExploding: product.isExploding 
   }));
 };
 
@@ -167,9 +163,21 @@ const initialNewProductFormData: Omit<Product, 'id' | 'isExploding'> = {
 type SortableKey = keyof Omit<Product, 'isExploding'>;
 
 const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; particleColorClass: string; }) => {
-  const numParticles = 20;
-  const animationDuration = 1; // Slowed down particle animation
+  const numParticles = 30; 
+  const animationDuration = 1.5; 
   const onCompleteCalledRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (containerRef.current) {
+      setDimensions({
+        width: containerRef.current.offsetWidth,
+        height: containerRef.current.offsetHeight,
+      });
+    }
+  }, []);
+
 
   const handleAnimationComplete = () => {
     if (!onCompleteCalledRef.current) {
@@ -180,27 +188,36 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
 
   return (
     <motion.div
-      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      ref={containerRef}
+      className="absolute inset-0 pointer-events-none" // Removed overflow-hidden
     >
-      {Array.from({ length: numParticles }).map((_, i) => (
-        <motion.div
-          key={i}
-          className={`absolute w-2 h-2 rounded-full ${particleColorClass}`}
-          initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-          animate={{
-            x: (Math.random() - 0.5) * 150, // Increased spread
-            y: (Math.random() - 0.7) * 120, // Bias towards upward, increased spread
-            scale: 0,
-            opacity: 0,
-          }}
-          transition={{
-            duration: animationDuration,
-            delay: Math.random() * 0.3,
-            ease: "easeOut",
-          }}
-          onAnimationComplete={i === numParticles - 1 ? handleAnimationComplete : undefined}
-        />
-      ))}
+      {dimensions.width > 0 && Array.from({ length: numParticles }).map((_, i) => {
+        const initialX = Math.random() * dimensions.width - dimensions.width / 2;
+        const initialY = Math.random() * dimensions.height - dimensions.height / 2;
+        return (
+          <motion.div
+            key={i}
+            className={`absolute w-1.5 h-1.5 rounded-full ${particleColorClass}`}
+            style={{ 
+              top: `calc(50% + ${initialY}px)`, // Position relative to center
+              left: `calc(50% + ${initialX}px)`,
+             }}
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{
+              x: (Math.random() * 100 + 50) * (Math.random() < 0.5 ? 1 : 0.8), // More rightward, slightly varied
+              y: -(Math.random() * 80 + 60), // Strongly upward
+              scale: 0,
+              opacity: 0,
+            }}
+            transition={{
+              duration: animationDuration * (0.7 + Math.random() * 0.6), // Varied duration
+              delay: Math.random() * 0.2,
+              ease: "circOut",
+            }}
+            onAnimationComplete={i === numParticles - 1 ? handleAnimationComplete : undefined}
+          />
+        );
+      })}
     </motion.div>
   );
 };
@@ -210,7 +227,12 @@ export function ProductSearchTable() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
-  const [clientSideProducts, setClientSideProducts] = useState<Product[]>(resequenceProducts(mockProducts));
+  
+  // Ensure each product has a truly unique, stable key for React/Framer Motion
+  const [clientSideProducts, setClientSideProducts] = useState<Product[]>(() => 
+    mockProducts.map((p, index) => ({ ...p, originalId: p.id, id: (index + 1).toString() }))
+  );
+
 
   const [sortBy, setSortBy] = useState<SortableKey | 'none'>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -220,16 +242,16 @@ export function ProductSearchTable() {
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editFormData, setEditFormData] = useState<Omit<Product, 'id' | 'isExploding'>>({ ...initialNewProductFormData });
+  const [editFormData, setEditFormData] = useState<Omit<Product, 'id' | 'isExploding' | 'originalId'>>({ ...initialNewProductFormData });
 
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]); // Stores originalId
   const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const [activePopoverProductId, setActivePopoverProductId] = useState<string | null>(null);
+  const [activePopoverProductId, setActivePopoverProductId] = useState<string | null>(null); // Stores originalId
 
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
-  const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id' | 'isExploding'>>({ ...initialNewProductFormData });
+  const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id' | 'isExploding' | 'originalId'>>({ ...initialNewProductFormData });
 
   const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
   const longPressHeaderTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -237,28 +259,26 @@ export function ProductSearchTable() {
   const validadeHeaderRef = useRef<HTMLTableCellElement>(null);
 
 
-  const finalizeDeleteProduct = (productId: string) => {
+  const finalizeDeleteProduct = (productOriginalId: string) => {
     setClientSideProducts(prevProducts => {
-      const productsAfterExplosion = prevProducts.filter(p => p.id !== productId);
-      return resequenceProducts(productsAfterExplosion);
-    });
+        const productsAfterExplosion = prevProducts.filter(p => p.originalId !== productOriginalId);
+        const resequenced = resequenceProducts(productsAfterExplosion);
+        
+        // If no exploding items remain and no items are selected, deactivate selection mode
+        const stillExplodingCount = resequenced.filter(p => p.isExploding).length;
+        const currentSelectedCount = selectedProductIds.filter(id => id !== productOriginalId).length;
 
-    setSelectedProductIds(prevSelectedIds => {
-      const newSelectedIds = prevSelectedIds.filter(id => id !== productId);
-      if (newSelectedIds.length === 0 && isSelectionModeActive) {
-        // Only deactivate selection mode if no other exploding items might still be selected.
-        // This check might need to be more robust if multiple items explode sequentially.
-        const stillExplodingCount = clientSideProducts.filter(p => p.isExploding && p.id !== productId).length;
-        if (stillExplodingCount === 0) {
+        if (stillExplodingCount === 0 && currentSelectedCount === 0 && isSelectionModeActive) {
             setIsSelectionModeActive(false);
         }
-      }
-      return newSelectedIds;
+        return resequenced;
     });
+
+    setSelectedProductIds(prevSelectedIds => prevSelectedIds.filter(id => id !== productOriginalId));
   };
 
 
-  const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
+  const handleRowInteractionStart = (productOriginalId: string, clientX: number, clientY: number) => {
     pointerDownPositionRef.current = { x: clientX, y: clientY };
 
     if (isSelectionModeActive) {
@@ -276,7 +296,7 @@ export function ProductSearchTable() {
       if (pointerDownPositionRef.current) {
         setIsSelectionModeActive(true);
         setSelectedProductIds((prevSelected) =>
-          prevSelected.includes(productId) ? prevSelected : [...prevSelected, productId]
+          prevSelected.includes(productOriginalId) ? prevSelected : [...prevSelected, productOriginalId]
         );
         setActivePopoverProductId(null);
         pointerDownPositionRef.current = null;
@@ -295,7 +315,7 @@ export function ProductSearchTable() {
          const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
          const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
          if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
-            handleToggleSelectProduct(product.id);
+            handleToggleSelectProduct(product.originalId!);
          }
       }
     } else if (isSelectionModeActive && pointerDownPositionRef.current) {
@@ -303,11 +323,11 @@ export function ProductSearchTable() {
       const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? clientY));
       if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
         if (!isClickOnCheckboxCell) {
-          handleToggleSelectProduct(product.id);
+          handleToggleSelectProduct(product.originalId!);
         }
       }
     } else if (isSelectionModeActive && !pointerDownPositionRef.current && !isClickOnCheckboxCell) {
-      handleToggleSelectProduct(product.id);
+      handleToggleSelectProduct(product.originalId!);
     }
 
     if (pointerDownPositionRef.current) {
@@ -398,16 +418,16 @@ export function ProductSearchTable() {
   };
 
   const handleDeleteSingleProduct = () => {
-    if (selectedProduct) {
+    if (selectedProduct && selectedProduct.originalId) {
       setClientSideProducts(prevProducts =>
         prevProducts.map(p =>
-          p.id === selectedProduct.id ? { ...p, isExploding: true } : p
+          p.originalId === selectedProduct.originalId ? { ...p, isExploding: true } : p
         )
       );
       toast({ title: "Produto excluído", description: `${selectedProduct.produto} será removido.` });
       setIsDeleteDialogOpen(false);
-      if (isSelectionModeActive && selectedProductIds.includes(selectedProduct.id)) {
-        setSelectedProductIds(ids => ids.filter(id => id !== selectedProduct.id));
+      if (isSelectionModeActive && selectedProductIds.includes(selectedProduct.originalId)) {
+        setSelectedProductIds(ids => ids.filter(id => id !== selectedProduct.originalId));
       }
       setSelectedProduct(null);
     }
@@ -419,11 +439,14 @@ export function ProductSearchTable() {
   };
 
   const handleSaveEdit = () => {
-    if (editingProduct) {
-      let updatedProducts = clientSideProducts.map(p =>
-        p.id === editingProduct.id ? { ...editingProduct, ...editFormData, isExploding: p.isExploding } : p
+    if (editingProduct && editingProduct.originalId) {
+      setClientSideProducts(prevProducts => 
+        resequenceProducts(
+            prevProducts.map(p =>
+            p.originalId === editingProduct.originalId ? { ...p, ...editFormData, isExploding: p.isExploding } : p
+            )
+        )
       );
-      setClientSideProducts(updatedProducts);
       toast({ title: "Produto atualizado", description: `${editFormData.produto} foi atualizado com sucesso.` });
       setIsEditDialogOpen(false);
       setEditingProduct(null);
@@ -436,7 +459,7 @@ export function ProductSearchTable() {
 
     if (normalizedSearch) {
       productsToFilter = productsToFilter.filter(product =>
-        product.isExploding ||
+        product.isExploding || // Keep exploding products in view regardless of search
         Object.values(product).some(value =>
           normalizeString(String(value)).includes(normalizedSearch)
         )
@@ -445,7 +468,7 @@ export function ProductSearchTable() {
 
     if (selectedDateFilter !== 'all') {
       productsToFilter = productsToFilter.filter(product => {
-        if (product.isExploding) return true;
+        if (product.isExploding) return true; // Keep exploding products
         const productDate = parseISO(product.validade);
         if (!isValid(productDate)) return false;
         const productDateStartOfDay = startOfDay(productDate);
@@ -466,9 +489,7 @@ export function ProductSearchTable() {
         }
       });
     }
-
-    // Separate exploding products to keep them at the end of the list during animation,
-    // but only those that match current filters.
+    
     const displayableProducts = productsToFilter.filter(p => !p.isExploding);
     const explodingProductsInCurrentFilter = productsToFilter.filter(p => p.isExploding);
 
@@ -490,11 +511,12 @@ export function ProductSearchTable() {
             comparison = 1;
           }
         } else if (sortBy === 'id' || sortBy === 'unidade') {
+          // Sorting by displayed 'id' which is a string after resequencing
           const numA = parseInt(valA as string, 10);
           const numB = parseInt(valB as string, 10);
           if (!isNaN(numA) && !isNaN(numB)) {
             comparison = numA - numB;
-          } else {
+          } else { // Fallback for non-numeric IDs or other cases
             comparison = normalizeString(valA as string).localeCompare(normalizeString(valB as string));
           }
         } else {
@@ -503,21 +525,23 @@ export function ProductSearchTable() {
         return sortDirection === 'asc' ? comparison : -comparison;
       });
     }
+    // Exploding products are kept, but not sorted with displayable ones.
+    // Their visual position is handled by AnimatePresence and their key.
     return [...displayableProducts, ...explodingProductsInCurrentFilter];
   }, [searchTerm, clientSideProducts, selectedDateFilter, sortBy, sortDirection]);
 
-  const handleToggleSelectProduct = (productId: string) => {
+  const handleToggleSelectProduct = (productOriginalId: string) => {
     setSelectedProductIds((prevSelected) =>
-      prevSelected.includes(productId)
-        ? prevSelected.filter((id) => id !== productId)
-        : [...prevSelected, productId]
+      prevSelected.includes(productOriginalId)
+        ? prevSelected.filter((id) => id !== productOriginalId)
+        : [...prevSelected, productOriginalId]
     );
   };
 
   const handleSelectAll = (isChecked: boolean | 'indeterminate') => {
     const visibleProductsNotExploding = filteredProducts.filter(p => !p.isExploding);
     if (isChecked === true) {
-      setSelectedProductIds(visibleProductsNotExploding.map((p) => p.id));
+      setSelectedProductIds(visibleProductsNotExploding.map((p) => p.originalId!));
     } else {
       setSelectedProductIds([]);
     }
@@ -534,13 +558,11 @@ export function ProductSearchTable() {
   const handleDeleteSelected = () => {
     setClientSideProducts(prevProducts =>
       prevProducts.map(p =>
-        selectedProductIds.includes(p.id) ? { ...p, isExploding: true } : p
+        selectedProductIds.includes(p.originalId!) ? { ...p, isExploding: true } : p
       )
     );
     toast({ title: `${selectedProductIds.length} produto(s) marcado(s) para exclusão.` });
     setIsDeleteSelectedConfirmOpen(false);
-    // Do not clear selectedProductIds here, let finalizeDeleteProduct handle it per item
-    // Do not setIsSelectionModeActive(false) here either.
   };
 
   const cancelSelectionMode = () => {
@@ -562,11 +584,15 @@ export function ProductSearchTable() {
       });
       return;
     }
-    const newProductData: Omit<Product, 'id' | 'isExploding'> = { ...newProductFormData };
-    // Add new product with a temporary ID or let resequence handle it.
-    // Ensure isExploding is false.
+    const newOriginalId = Date.now().toString(); // Simple unique ID generation
+    const newProductData: Product = { 
+        ...newProductFormData, 
+        id: '', // Will be set by resequenceProducts
+        originalId: newOriginalId,
+        isExploding: false 
+    };
     setClientSideProducts(prevProducts =>
-        resequenceProducts([...prevProducts, { ...newProductData, id: '', isExploding: false }])
+        resequenceProducts([...prevProducts, newProductData])
     );
 
     toast({ title: "Produto Adicionado", description: `${newProductFormData.produto} foi adicionado com sucesso.` });
@@ -575,8 +601,8 @@ export function ProductSearchTable() {
   };
 
   const productsForDisplay = useMemo(() => filteredProducts.filter(p => !p.isExploding), [filteredProducts]);
-  const allFilteredSelected = productsForDisplay.length > 0 && productsForDisplay.every(p => selectedProductIds.includes(p.id));
-  const someFilteredSelected = productsForDisplay.length > 0 && selectedProductIds.some(id => productsForDisplay.find(p => p.id === id));
+  const allFilteredSelected = productsForDisplay.length > 0 && productsForDisplay.every(p => selectedProductIds.includes(p.originalId!));
+  const someFilteredSelected = productsForDisplay.length > 0 && selectedProductIds.some(id => productsForDisplay.find(p => p.originalId === id));
 
   const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
 
@@ -595,16 +621,15 @@ export function ProductSearchTable() {
 
 
   useEffect(() => {
-     // Check if selection mode should be deactivated
     if (isSelectionModeActive) {
         const activeSelectionsExist = selectedProductIds.some(id =>
-            clientSideProducts.find(p => p.id === id && !p.isExploding)
+            clientSideProducts.find(p => p.originalId === id && !p.isExploding)
         );
         const anyProductIsExploding = clientSideProducts.some(p => p.isExploding);
 
         if (!activeSelectionsExist && !anyProductIsExploding) {
             setIsSelectionModeActive(false);
-            setSelectedProductIds([]); // Clear selection if mode is exited
+            setSelectedProductIds([]); 
         }
     }
 
@@ -753,13 +778,12 @@ export function ProductSearchTable() {
                     {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
                     <Popover open={isAddActionPopoverOpen && !isSelectionModeActive} onOpenChange={setIsAddActionPopoverOpen}>
                        <PopoverTrigger asChild>
-                         {/* This span can be an invisible trigger area if Popover needs an explicit one, or remove if Popover anchors to parent TableHead */}
                          <span className="absolute inset-0" />
                        </PopoverTrigger>
                        <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]"
-                         anchorRef={validadeHeaderRef} // Explicitly anchor to the Validade header ref
+                         anchorRef={validadeHeaderRef} 
                          onOpenAutoFocus={(e) => e.preventDefault()}
-                         onClick={(e) => e.stopPropagation()} // Prevent click from bubbling to TableHead
+                         onClick={(e) => e.stopPropagation()} 
                        >
                         <Button
                           variant="ghost"
@@ -778,21 +802,23 @@ export function ProductSearchTable() {
                   </TableHead>
                 </ShadTableRow>
               </TableHeader>
-              <MotionTableBody layout>
+              <MotionTableBody> {/* Removed layout from TableBody, relying on row layout */}
                 <AnimatePresence initial={false}>
                   {filteredProducts.map((product) => {
-                    const { styleString, particleColorClass } = getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive, product.isExploding);
+                    const { styleString, particleColorClass } = getRowStyling(product.validade, selectedProductIds.includes(product.originalId!), isSelectionModeActive, product.isExploding);
+                    const currentProductKey = product.originalId || product.id; // Prioritize originalId for key
+
                     return (
                       <Popover
-                        key={product.id} // Crucial for AnimatePresence and layout animations
-                        open={activePopoverProductId === product.id && !isSelectionModeActive && !product.isExploding}
+                        key={currentProductKey} // Use stable originalId for Popover key
+                        open={activePopoverProductId === currentProductKey && !isSelectionModeActive && !product.isExploding}
                         onOpenChange={(isOpen) => {
                           if (isSelectionModeActive || product.isExploding) return;
                           if (isOpen) {
                             setSelectedProduct(product);
-                            setActivePopoverProductId(product.id);
+                            setActivePopoverProductId(currentProductKey);
                           } else {
-                            if (activePopoverProductId === product.id) {
+                            if (activePopoverProductId === currentProductKey) {
                               setActivePopoverProductId(null);
                             }
                           }
@@ -800,16 +826,17 @@ export function ProductSearchTable() {
                       >
                         <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
                           <MotionTableRow
-                            layout // Enables animation when sorting/reordering
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }} // Default exit, particle rows handle their own
-                            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30  }}
+                            key={currentProductKey} // CRITICAL: Use stable originalId for MotionTableRow key
+                            layout // Enable layout animation for reordering
+                            initial={{ opacity: 1 }} // Keep initial simple, AnimatePresence handles enter
+                            animate={{ opacity: 1 }}
+                            exit={product.isExploding ? undefined : { opacity: 0, height: 0, transition: {duration: 0.2} }} // Default exit for non-exploding
+                            transition={{ duration: 0.3, type: "spring", stiffness: 260, damping: 25  }}
                             className={styleString}
-                            data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
+                            data-state={selectedProductIds.includes(currentProductKey) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
                               if (product.isExploding) return;
-                               handleRowInteractionStart(product.id, e.clientX, e.clientY);
+                               handleRowInteractionStart(currentProductKey, e.clientX, e.clientY);
                             }}
                             onPointerUp={(e: PointerEvent<HTMLTableRowElement>) => {
                               if (product.isExploding) return;
@@ -829,7 +856,7 @@ export function ProductSearchTable() {
                             onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
                               if (product.isExploding) return;
                               if (e.touches.length === 1) {
-                                  handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY);
+                                  handleRowInteractionStart(currentProductKey, e.touches[0].clientX, e.touches[0].clientY);
                               }
                             }}
                             onTouchEnd={(e: TouchEvent<HTMLTableRowElement>) => {
@@ -854,9 +881,9 @@ export function ProductSearchTable() {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 h-[57px] relative">
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]">
                                 <Particle
-                                  onComplete={() => finalizeDeleteProduct(product.id)}
+                                  onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
                                 />
                               </TableCell>
@@ -866,8 +893,8 @@ export function ProductSearchTable() {
                                   <TableCell data-is-checkbox-cell="true" className="py-0 px-2" onClick={(e) => e.stopPropagation()}>
                                     <Checkbox
                                         aria-label={`Selecionar produto ${product.produto}`}
-                                        checked={selectedProductIds.includes(product.id)}
-                                        onCheckedChange={() => handleToggleSelectProduct(product.id)}
+                                        checked={selectedProductIds.includes(currentProductKey)}
+                                        onCheckedChange={() => handleToggleSelectProduct(currentProductKey)}
                                       />
                                   </TableCell>
                                 )}
