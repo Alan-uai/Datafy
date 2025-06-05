@@ -140,8 +140,8 @@ export function ProductSearchTable() {
     <Card className="shadow-xl">
       <CardHeader>
         <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="relative">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="relative sm:col-span-2">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
