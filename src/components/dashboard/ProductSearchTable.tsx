@@ -154,68 +154,82 @@ export function ProductSearchTable() {
 
 
   const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
-    if (isSelectionModeActive) return; // Don't start new long press if already in selection mode
+    pointerDownPositionRef.current = { x: clientX, y: clientY };
+
+    if (isSelectionModeActive) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      return; 
+    }
 
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
     }
-    pointerDownPositionRef.current = { x: clientX, y: clientY };
     longPressTimerRef.current = setTimeout(() => {
-      setIsSelectionModeActive(true);
-      setSelectedProductIds((prevSelected) =>
-        prevSelected.includes(productId) ? prevSelected : [...prevSelected, productId]
-      );
+      if (pointerDownPositionRef.current) { 
+        setIsSelectionModeActive(true);
+        setSelectedProductIds((prevSelected) =>
+          prevSelected.includes(productId) ? prevSelected : [...prevSelected, productId]
+        );
+        setActivePopoverProductId(null); 
+        pointerDownPositionRef.current = null; // Interaction handled by long press, prevent mouseUp toggle
+      }
       longPressTimerRef.current = null;
-      pointerDownPositionRef.current = null; 
-      setActivePopoverProductId(null); // Close any open popover
     }, LONG_PRESS_DURATION);
   };
-
+  
   const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number, target: EventTarget | null) => {
     const isClickOnCheckboxCell = target instanceof HTMLElement && !!target.closest('[data-is-checkbox-cell="true"]');
-    const wasTimerActive = !!longPressTimerRef.current;
-
-    if (wasTimerActive) { // Timer was running, so it's a short click/tap attempt
-      clearTimeout(longPressTimerRef.current!);
+  
+    if (longPressTimerRef.current) { // Timer was active, meaning it's a short click before long press triggered
+      clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
-
-      if (isSelectionModeActive) {
-        // In selection mode, short click on row (not checkbox cell) toggles selection
+      // If short click & in selection mode & not on checkbox cell -> toggle selection
+      // This case is less common as starting interaction while timer is running and in selection mode is tricky
+      if (isSelectionModeActive && !isClickOnCheckboxCell && pointerDownPositionRef.current) {
+         const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
+         const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
+         if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+            handleToggleSelectProduct(product.id);
+         }
+      }
+      // If !isSelectionModeActive, short click opens Popover (handled by PopoverTrigger)
+    } else if (isSelectionModeActive && pointerDownPositionRef.current) {
+      // In selection mode, and timer was NOT active (either it fired, or we started interaction in selection mode)
+      // AND pointerDownPositionRef is not null (meaning it wasn't a long press that just completed and handled it)
+      const dx = Math.abs(clientX - (pointerDownPositionRef.current?.x ?? clientX));
+      const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? clientY));
+      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // It was a click-like release
         if (!isClickOnCheckboxCell) {
           handleToggleSelectProduct(product.id);
         }
-        // If it was on checkbox cell, checkbox's onCheckedChange handles it.
-      } else {
-        // Not in selection mode, short click. PopoverTrigger (TableRow) handles opening popover.
-        // This function's job here is mainly to clear the timer.
-        // Popover state is managed by activePopoverProductId and Popover's onOpenChange.
       }
-    } else if (isSelectionModeActive) { // Long press already completed OR in selection mode and it was a drag-release
-        const dx = Math.abs(clientX - (pointerDownPositionRef.current?.x ?? 0));
-        const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? 0));
-        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // It was a click-like release
-          if (!isClickOnCheckboxCell) {
-            handleToggleSelectProduct(product.id);
-          }
-        }
     }
-    // If !isSelectionModeActive and !wasTimerActive:
-    // Means a long press just successfully completed (timer fired setting selection mode via its callback).
-    // Product was selected in the timer callback.
-
-    pointerDownPositionRef.current = null;
+    // If pointerDownPositionRef.current is null here, it means either:
+    // 1. A long press just completed and set it to null (handled).
+    // 2. A drag occurred and handlePointerMove set it to null (handled).
+    
+    // Always clear pointerDownPositionRef if it wasn't cleared by long press timer
+    if (pointerDownPositionRef.current) {
+        pointerDownPositionRef.current = null;
+    }
   };
   
   const handlePointerMove = (clientX: number, clientY: number) => {
-    if (!longPressTimerRef.current || !pointerDownPositionRef.current) return;
+    if (!pointerDownPositionRef.current) return;
 
-    const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
-    const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
+    // If a long press timer is active, check for drag to cancel it
+    if (longPressTimerRef.current) {
+        const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
+        const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
 
-    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-      pointerDownPositionRef.current = null; 
+        if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+          pointerDownPositionRef.current = null; // Mark as drag
+        }
     }
   };
 
@@ -413,17 +427,22 @@ export function ProductSearchTable() {
             </Select>
           </div>
           {isSelectionModeActive && (
-            <div className="mt-4 flex justify-end space-x-2">
-                <Button variant="ghost" onClick={cancelSelectionMode}>
+            <div className="mt-4 flex items-center justify-between">
+               <p className="text-sm text-muted-foreground">
+                {selectedProductIds.length} item(s) selecionado(s)
+              </p>
+              <div className="flex space-x-2">
+                <Button variant="ghost" onClick={cancelSelectionMode} size="sm">
                   <XCircle className="mr-2 h-4 w-4" />
-                  Cancelar Seleção
+                  Cancelar
                 </Button>
-              {selectedProductIds.length > 0 && (
-                <Button variant="destructive" onClick={confirmDeleteSelected}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir Selecionados ({selectedProductIds.length})
-                </Button>
-              )}
+                {selectedProductIds.length > 0 && (
+                  <Button variant="destructive" onClick={confirmDeleteSelected} size="sm">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </CardHeader>
@@ -433,7 +452,7 @@ export function ProductSearchTable() {
               <TableHeader>
                 <TableRow>
                   {isSelectionModeActive && (
-                    <TableHead className="w-[50px]">
+                    <TableHead className="w-[50px] px-2">
                        <Checkbox
                           id="selectAll"
                           aria-label="Selecionar todas as linhas visíveis"
@@ -442,7 +461,7 @@ export function ProductSearchTable() {
                         />
                     </TableHead>
                   )}
-                  <TableHead className={`w-[80px] ${!isSelectionModeActive ? 'pl-4' : ''}`}>ID</TableHead>
+                  <TableHead className={`w-[80px] ${!isSelectionModeActive ? 'pl-4' : 'pl-2'}`}>ID</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Marca</TableHead>
                   <TableHead>Unidade</TableHead>
@@ -454,7 +473,7 @@ export function ProductSearchTable() {
                   filteredProducts.map((product) => (
                     <Popover
                       key={product.id}
-                      open={activePopoverProductId === product.id}
+                      open={activePopoverProductId === product.id && !isSelectionModeActive} // Only open if not in selection mode
                       onOpenChange={(isOpen) => {
                         if (isSelectionModeActive) return; 
                         if (isOpen) {
@@ -463,7 +482,7 @@ export function ProductSearchTable() {
                         } else {
                           if (activePopoverProductId === product.id) {
                             setActivePopoverProductId(null);
-                            setSelectedProduct(null);
+                            //setSelectedProduct(null); // Keep selectedProduct if dialogs are open
                           }
                         }
                       }}
@@ -472,34 +491,38 @@ export function ProductSearchTable() {
                         <TableRow 
                           className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive)}
                           data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
-                          onMouseDown={(e: PointerEvent<HTMLTableRowElement>) => {
+                          onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
                              handleRowInteractionStart(product.id, e.clientX, e.clientY);
                           }}
-                          onMouseUp={(e: PointerEvent<HTMLTableRowElement>) => {
+                          onPointerUp={(e: PointerEvent<HTMLTableRowElement>) => {
                             handleRowInteractionEnd(product, e.clientX, e.clientY, e.target);
                           }}
-                          onMouseLeave={() => {
+                          onPointerLeave={() => { // Clear timer if pointer leaves row during press
                             if (longPressTimerRef.current) {
                               clearTimeout(longPressTimerRef.current);
                               longPressTimerRef.current = null;
                             }
-                            pointerDownPositionRef.current = null;
+                            // Don't clear pointerDownPositionRef here, move might handle it or up might need it
                           }}
-                          onMouseMove={(e: PointerEvent<HTMLTableRowElement>) => {
+                          onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => {
                             handlePointerMove(e.clientX, e.clientY);
                           }}
                           onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
-                            handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY);
+                            if (e.touches.length === 1) { // Ensure single touch
+                                handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY);
+                            }
                           }}
                           onTouchEnd={(e: TouchEvent<HTMLTableRowElement>) => {
-                            if (e.changedTouches.length > 0) {
+                            if (e.changedTouches.length === 1) {
                                handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
                             }
                           }}
                           onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
-                             handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                             if (e.touches.length === 1) {
+                                handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                             }
                           }}
-                          onTouchCancel={() => {
+                          onTouchCancel={() => { // Similar to pointer leave
                              if (longPressTimerRef.current) {
                               clearTimeout(longPressTimerRef.current);
                               longPressTimerRef.current = null;
@@ -508,7 +531,7 @@ export function ProductSearchTable() {
                           }}
                         >
                           {isSelectionModeActive && (
-                            <TableCell data-is-checkbox-cell="true" className="py-0" onClick={(e) => e.stopPropagation()}>
+                            <TableCell data-is-checkbox-cell="true" className="py-0 px-2" onClick={(e) => e.stopPropagation()}>
                                <Checkbox
                                   aria-label={`Selecionar produto ${product.produto}`}
                                   checked={selectedProductIds.includes(product.id)}
@@ -516,7 +539,7 @@ export function ProductSearchTable() {
                                 />
                             </TableCell>
                           )}
-                          <TableCell className={`font-medium ${!isSelectionModeActive ? 'pl-4' : ''}`}>{product.id}</TableCell>
+                          <TableCell className={`font-medium ${!isSelectionModeActive ? 'pl-4' : 'pl-2'}`}>{product.id}</TableCell>
                           <TableCell>{product.produto}</TableCell>
                           <TableCell>{product.marca}</TableCell>
                           <TableCell>{product.unidade}</TableCell>
@@ -527,16 +550,21 @@ export function ProductSearchTable() {
                           </TableCell>
                         </TableRow>
                       </PopoverTrigger>
-                      <PopoverContent side="top" align="end" className="w-auto p-1 z-50" onEscapeKeyDown={() => setActivePopoverProductId(null)} onOpenAutoFocus={(e) => e.preventDefault()}>
-                        <div className="flex space-x-1">
-                          <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="destructive" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </PopoverContent>
+                       {!isSelectionModeActive && (
+                        <PopoverContent side="top" align="end" className="w-auto p-1 z-50" 
+                          onOpenAutoFocus={(e) => e.preventDefault()} // Prevent focus stealing
+                          onCloseAutoFocus={(e) => e.preventDefault()} // Prevent focus stealing
+                        >
+                          <div className="flex space-x-1">
+                            <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                       )}
                     </Popover>
                   ))
                 ) : (
@@ -552,7 +580,10 @@ export function ProductSearchTable() {
         </CardContent>
       </Card>
       
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={(isOpen) => {
+          setIsDeleteDialogOpen(isOpen);
+          if (!isOpen) setSelectedProduct(null); // Clear selected product when dialog closes
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
@@ -589,7 +620,10 @@ export function ProductSearchTable() {
       {editingProduct && (
         <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => {
           setIsEditDialogOpen(isOpen);
-          if (!isOpen) setEditingProduct(null);
+          if (!isOpen) {
+            setEditingProduct(null);
+            //setSelectedProduct(null); // Clear selectedProduct if edit is cancelled
+          }
         }}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -662,4 +696,3 @@ export function ProductSearchTable() {
   );
 }
 
-    
