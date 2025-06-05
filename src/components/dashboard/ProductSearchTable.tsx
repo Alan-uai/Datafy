@@ -98,12 +98,9 @@ export function ProductSearchTable() {
     const today = startOfDay(new Date());
 
     return products.filter(product => {
-      // Ensure validade is treated as a date at the start of its day in UTC
-      // to avoid timezone issues with comparisons.
       const productDate = parseISO(product.validade);
-      if (!isValid(productDate)) return false; // Skip invalid dates
+      if (!isValid(productDate)) return false; 
 
-      // Convert productDate to start of day for consistent comparison
       const productDateStartOfDay = startOfDay(productDate);
 
       switch (selectedDateFilter) {
@@ -143,7 +140,7 @@ export function ProductSearchTable() {
     <Card className="shadow-xl">
       <CardHeader>
         <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -209,5 +206,3 @@ export function ProductSearchTable() {
     </Card>
   );
 }
-
-    
