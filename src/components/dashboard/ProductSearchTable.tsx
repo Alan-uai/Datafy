@@ -144,7 +144,7 @@ export function ProductSearchTable() {
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(resequenceProducts(mockProducts));
   
-  const [sortBy, setSortBy] = useState<SortableKey | 'none'>('none');
+  const [sortBy, setSortBy] = useState<SortableKey | 'none'>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -213,8 +213,6 @@ export function ProductSearchTable() {
         }
       }
     } else if (isSelectionModeActive && !pointerDownPositionRef.current && !isClickOnCheckboxCell) {
-      // This case handles the scenario where long press has fired and pointerDownPositionRef was nulled
-      // but the click is not on the checkbox cell.
       handleToggleSelectProduct(product.id);
     }
     
@@ -342,13 +340,12 @@ export function ProductSearchTable() {
           } else if (isValid(dateB)) {
             comparison = 1;
           }
-        } else if (sortBy === 'id' || sortBy === 'unidade') { // Unidade is now quantity (numeric string)
+        } else if (sortBy === 'id' || sortBy === 'unidade') { 
           const numA = parseInt(valA as string, 10);
           const numB = parseInt(valB as string, 10);
           if (!isNaN(numA) && !isNaN(numB)) {
             comparison = numA - numB;
           } else {
-            // Fallback for non-numeric strings, though 'unidade' should be numeric now
             comparison = normalizeString(valA as string).localeCompare(normalizeString(valB as string));
           }
         } else {
@@ -440,51 +437,53 @@ export function ProductSearchTable() {
       <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 items-end">
-            <div className="relative sm:col-span-2 md:col-span-1">
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar..."
+                placeholder="Buscar produtos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-full"
               />
             </div>
-            <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Filtrar por validade..." />
-              </SelectTrigger>
-              <SelectContent>
-                {dateFilterOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortableKey | 'none')}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Ordenar por..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Não Ordenar</SelectItem>
-                <SelectItem value="id">ID</SelectItem>
-                <SelectItem value="produto">Produto</SelectItem>
-                <SelectItem value="marca">Marca</SelectItem>
-                <SelectItem value="unidade">Quantidade</SelectItem>
-                <SelectItem value="validade">Validade</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              variant="outline" 
-              onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')} 
-              className="w-full"
-              disabled={sortBy === 'none'}
-            >
-              {sortDirection === 'asc' ? <ArrowUpAZ className="mr-2 h-4 w-4" /> : <ArrowDownZA className="mr-2 h-4 w-4" />}
-              {sortDirection === 'asc' ? 'A-Z' : 'Z-A'}
-            </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+              <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filtrar por validade..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {dateFilterOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortableKey | 'none')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Ordenar por..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="id">ID</SelectItem>
+                  <SelectItem value="produto">Produto</SelectItem>
+                  <SelectItem value="marca">Marca</SelectItem>
+                  <SelectItem value="unidade">Quantidade</SelectItem>
+                  <SelectItem value="validade">Validade</SelectItem>
+                  <SelectItem value="none">Não Ordenar</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')} 
+                className="w-full"
+                disabled={sortBy === 'none'}
+              >
+                {sortDirection === 'asc' ? <ArrowUpAZ className="mr-2 h-4 w-4" /> : <ArrowDownZA className="mr-2 h-4 w-4" />}
+                {sortDirection === 'asc' ? 'A-Z' : 'Z-A'}
+              </Button>
+            </div>
           </div>
           {isSelectionModeActive && (
             <div className="mt-4 flex items-center justify-between">
@@ -838,5 +837,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-    
