@@ -6,8 +6,9 @@ import { useState, useMemo, useEffect, type ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2 } from 'lucide-react';
+import { Search, Pencil, Trash2, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -47,6 +49,8 @@ import {
   isValid,
   format,
 } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
+
 
 const mockProducts: Product[] = [
   { id: '1', produto: 'Leite Integral UHT', marca: 'Tirol', unidade: 'Litro', validade: '2024-12-15' },
@@ -90,30 +94,40 @@ const dateFilterOptions = [
   { value: 'nextMonth', label: 'Próximo mês' },
 ];
 
-const getRowStyling = (validade: string): string => {
+const getRowStyling = (validade: string, isSelected: boolean): string => {
   const productDate = parseISO(validade);
-  if (!isValid(productDate)) return '';
+  let baseStyle = 'cursor-pointer';
+
+  if (isSelected) {
+    baseStyle += ' bg-primary/10 dark:bg-primary/20';
+  } else {
+    baseStyle += ' hover:bg-muted/50';
+  }
+  
+  if (!isValid(productDate)) return baseStyle;
 
   const productDateStartOfDay = startOfDay(productDate);
   const today = startOfDay(new Date());
 
   if (isPast(productDateStartOfDay) && !isToday(productDateStartOfDay)) {
-    return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40 cursor-pointer'; // Expired
+    return `${baseStyle} bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40`; // Expired
   }
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
-    return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40 cursor-pointer'; // Expiring today or tomorrow
+    return `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`; // Expiring today or tomorrow
   }
-  return 'hover:bg-muted/50 cursor-pointer'; // Default hover
+  return baseStyle;
 };
 
 
 export function ProductSearchTable() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(mockProducts);
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -123,8 +137,12 @@ export function ProductSearchTable() {
     unidade: '',
     validade: '',
   });
+  
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
 
   const handleRowClick = (product: Product) => {
+    setSelectedProductIds([]); // Clear multi-selection when a single row is clicked for action
     setSelectedProduct(product);
     setIsActionDialogOpen(true);
   };
@@ -143,15 +161,22 @@ export function ProductSearchTable() {
     }
   };
 
-  const handleDelete = () => {
+  const confirmDeleteSingleProduct = () => {
     if (selectedProduct) {
-      console.log('Delete product:', selectedProduct);
-      setClientSideProducts(clientSideProducts.filter(p => p.id !== selectedProduct.id));
+      setIsDeleteDialogOpen(true);
       setIsActionDialogOpen(false);
-      setSelectedProduct(null);
     }
   };
 
+  const handleDeleteSingleProduct = () => {
+    if (selectedProduct) {
+      setClientSideProducts(clientSideProducts.filter(p => p.id !== selectedProduct.id));
+      toast({ title: "Produto excluído", description: `${selectedProduct.produto} foi removido.` });
+      setIsDeleteDialogOpen(false);
+      setSelectedProduct(null);
+    }
+  };
+  
   const handleEditFormChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditFormData(prev => ({ ...prev, [name]: value }));
@@ -159,11 +184,11 @@ export function ProductSearchTable() {
 
   const handleSaveEdit = () => {
     if (editingProduct) {
-      setClientSideProducts(prevProducts =>
-        prevProducts.map(p =>
-          p.id === editingProduct.id ? { ...editingProduct, ...editFormData } : p
-        )
+      const updatedProducts = clientSideProducts.map(p =>
+        p.id === editingProduct.id ? { ...editingProduct, ...editFormData } : p
       );
+      setClientSideProducts(updatedProducts);
+      toast({ title: "Produto atualizado", description: `${editFormData.produto} foi atualizado com sucesso.` });
       setIsEditDialogOpen(false);
       setEditingProduct(null);
     }
@@ -228,12 +253,49 @@ export function ProductSearchTable() {
     });
   }, [searchTerm, clientSideProducts, selectedDateFilter]);
 
+  const handleToggleSelectProduct = (productId: string) => {
+    setSelectedProductIds((prevSelected) =>
+      prevSelected.includes(productId)
+        ? prevSelected.filter((id) => id !== productId)
+        : [...prevSelected, productId]
+    );
+  };
+
+  const handleSelectAll = (isChecked: boolean | 'indeterminate') => {
+    if (isChecked === true) {
+      setSelectedProductIds(filteredProducts.map((p) => p.id));
+    } else {
+      setSelectedProductIds([]);
+    }
+  };
+  
+  const [isDeleteSelectedConfirmOpen, setIsDeleteSelectedConfirmOpen] = useState(false);
+
+  const confirmDeleteSelected = () => {
+    if (selectedProductIds.length > 0) {
+      setIsDeleteSelectedConfirmOpen(true);
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    setClientSideProducts((prevProducts) =>
+      prevProducts.filter((p) => !selectedProductIds.includes(p.id))
+    );
+    toast({ title: `${selectedProductIds.length} produto(s) excluído(s)`, description: "Os produtos selecionados foram removidos." });
+    setSelectedProductIds([]);
+    setIsDeleteSelectedConfirmOpen(false);
+  };
+
+  const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProductIds.includes(p.id));
+  const someFilteredSelected = selectedProductIds.length > 0 && selectedProductIds.some(id => filteredProducts.find(p => p.id === id));
+  const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
+
   return (
     <>
       <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 items-end">
             <div className="relative sm:col-span-2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -257,12 +319,28 @@ export function ProductSearchTable() {
               </SelectContent>
             </Select>
           </div>
+           {selectedProductIds.length > 0 && (
+            <div className="mt-4 flex justify-end">
+              <Button variant="destructive" onClick={confirmDeleteSelected}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir Selecionados ({selectedProductIds.length})
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                     <Checkbox
+                        id="selectAll"
+                        aria-label="Selecionar todas as linhas"
+                        checked={selectAllCheckedState}
+                        onCheckedChange={handleSelectAll}
+                      />
+                  </TableHead>
                   <TableHead className="w-[80px]">ID</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Marca</TableHead>
@@ -275,9 +353,17 @@ export function ProductSearchTable() {
                   filteredProducts.map((product) => (
                     <TableRow 
                       key={product.id} 
-                      className={getRowStyling(product.validade)}
+                      className={getRowStyling(product.validade, selectedProductIds.includes(product.id))}
                       onClick={() => handleRowClick(product)}
+                      data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
                     >
+                      <TableCell onClick={(e) => e.stopPropagation()} className="py-0">
+                         <Checkbox
+                            aria-label={`Selecionar produto ${product.produto}`}
+                            checked={selectedProductIds.includes(product.id)}
+                            onCheckedChange={() => handleToggleSelectProduct(product.id)}
+                          />
+                      </TableCell>
                       <TableCell className="font-medium">{product.id}</TableCell>
                       <TableCell>{product.produto}</TableCell>
                       <TableCell>{product.marca}</TableCell>
@@ -291,7 +377,7 @@ export function ProductSearchTable() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
+                    <TableCell colSpan={6} className="text-center h-24">
                       Nenhum produto encontrado com os filtros aplicados.
                     </TableCell>
                   </TableRow>
@@ -315,7 +401,7 @@ export function ProductSearchTable() {
               <Button variant="outline" size="lg" onClick={handleEdit} aria-label="Editar Produto">
                 <Pencil className="h-5 w-5 mr-2" /> Editar
               </Button>
-              <Button variant="destructive" size="lg" onClick={handleDelete} aria-label="Excluir Produto">
+              <Button variant="destructive" size="lg" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto">
                 <Trash2 className="h-5 w-5 mr-2" /> Excluir
               </Button>
             </div>
@@ -325,6 +411,43 @@ export function ProductSearchTable() {
           </AlertDialogContent>
         </AlertDialog>
       )}
+      
+      {/* Confirmation Dialog for Single Delete */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o produto "{selectedProduct?.produto}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSingleProduct} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation Dialog for Deleting Selected Products */}
+      <AlertDialog open={isDeleteSelectedConfirmOpen} onOpenChange={setIsDeleteSelectedConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão de Múltiplos Itens</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir os {selectedProductIds.length} produtos selecionados? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSelected} className="bg-destructive hover:bg-destructive/90">
+              Excluir Selecionados
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {editingProduct && (
         <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => {
@@ -401,5 +524,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-    
