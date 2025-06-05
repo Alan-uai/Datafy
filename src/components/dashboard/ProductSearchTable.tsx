@@ -2,11 +2,11 @@
 "use client";
 
 import type { Product } from '@/types';
-import { useState, useMemo, useEffect, type ChangeEvent } from 'react';
+import { useState, useMemo, useEffect, type ChangeEvent, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, AlertCircle } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,7 +18,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -94,14 +93,14 @@ const dateFilterOptions = [
   { value: 'nextMonth', label: 'Próximo mês' },
 ];
 
-const getRowStyling = (validade: string, isSelected: boolean): string => {
+const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean): string => {
   const productDate = parseISO(validade);
-  let baseStyle = 'cursor-pointer';
+  let baseStyle = 'transition-colors duration-150 ease-in-out';
 
-  if (isSelected) {
-    baseStyle += ' bg-primary/10 dark:bg-primary/20';
+  if (isSelectionModeActive) {
+    baseStyle += isSelected ? ' bg-primary/20 dark:bg-primary/30' : ' hover:bg-muted/50 cursor-pointer';
   } else {
-    baseStyle += ' hover:bg-muted/50';
+    baseStyle += ' hover:bg-muted/50 cursor-pointer';
   }
   
   if (!isValid(productDate)) return baseStyle;
@@ -110,20 +109,29 @@ const getRowStyling = (validade: string, isSelected: boolean): string => {
   const today = startOfDay(new Date());
 
   if (isPast(productDateStartOfDay) && !isToday(productDateStartOfDay)) {
-    return `${baseStyle} bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40`; // Expired
+    return `${baseStyle} bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40`;
   }
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
-    return `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`; // Expiring today or tomorrow
+    return `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`;
   }
   return baseStyle;
 };
 
+const resequenceProducts = (products: Product[]): Product[] => {
+  return products.map((product, index) => ({
+    ...product,
+    id: (index + 1).toString(),
+  }));
+};
+
+const LONG_PRESS_DURATION = 700; // milliseconds
+const DRAG_THRESHOLD = 10; // pixels
 
 export function ProductSearchTable() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
-  const [clientSideProducts, setClientSideProducts] = useState<Product[]>(mockProducts);
+  const [clientSideProducts, setClientSideProducts] = useState<Product[]>(resequenceProducts(mockProducts));
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
@@ -139,13 +147,64 @@ export function ProductSearchTable() {
   });
   
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
 
 
-  const handleRowClick = (product: Product) => {
-    setSelectedProductIds([]); // Clear multi-selection when a single row is clicked for action
-    setSelectedProduct(product);
-    setIsActionDialogOpen(true);
+  const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+    pointerDownPositionRef.current = { x: clientX, y: clientY };
+    longPressTimerRef.current = setTimeout(() => {
+      setIsSelectionModeActive(true);
+      setSelectedProductIds((prevSelected) =>
+        prevSelected.includes(productId) ? prevSelected : [...prevSelected, productId]
+      );
+      longPressTimerRef.current = null;
+      pointerDownPositionRef.current = null; 
+    }, LONG_PRESS_DURATION);
   };
+
+  const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number) => {
+    const wasLongPress = !longPressTimerRef.current && isSelectionModeActive; // Timer cleared by itself or already in selection mode
+    
+    if (longPressTimerRef.current) { // Short click
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      
+      if (!isSelectionModeActive) {
+        setSelectedProductIds([]); 
+        setSelectedProduct(product);
+        setIsActionDialogOpen(true);
+      } else {
+        handleToggleSelectProduct(product.id);
+      }
+    } else if (isSelectionModeActive && !wasLongPress) {
+        // This means a click happened while selection mode was already active (not the one activating it)
+        const dx = Math.abs(clientX - (pointerDownPositionRef.current?.x ?? 0));
+        const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? 0));
+        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // Ensure it's not a drag release
+          handleToggleSelectProduct(product.id);
+        }
+    }
+    pointerDownPositionRef.current = null;
+  };
+  
+  const handlePointerMove = (clientX: number, clientY: number) => {
+    if (!longPressTimerRef.current || !pointerDownPositionRef.current) return;
+
+    const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
+    const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
+
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      pointerDownPositionRef.current = null; 
+    }
+  };
+
 
   const handleEdit = () => {
     if (selectedProduct) {
@@ -170,10 +229,15 @@ export function ProductSearchTable() {
 
   const handleDeleteSingleProduct = () => {
     if (selectedProduct) {
-      setClientSideProducts(clientSideProducts.filter(p => p.id !== selectedProduct.id));
+      let updatedProducts = clientSideProducts.filter(p => p.id !== selectedProduct.id);
+      updatedProducts = resequenceProducts(updatedProducts);
+      setClientSideProducts(updatedProducts);
       toast({ title: "Produto excluído", description: `${selectedProduct.produto} foi removido.` });
       setIsDeleteDialogOpen(false);
       setSelectedProduct(null);
+      if (isSelectionModeActive && selectedProductIds.includes(selectedProduct.id)) {
+        setSelectedProductIds(ids => ids.filter(id => id !== selectedProduct.id));
+      }
     }
   };
   
@@ -184,9 +248,10 @@ export function ProductSearchTable() {
 
   const handleSaveEdit = () => {
     if (editingProduct) {
-      const updatedProducts = clientSideProducts.map(p =>
+      let updatedProducts = clientSideProducts.map(p =>
         p.id === editingProduct.id ? { ...editingProduct, ...editFormData } : p
       );
+      // No need to resequence on edit, only on delete/add
       setClientSideProducts(updatedProducts);
       toast({ title: "Produto atualizado", description: `${editFormData.produto} foi atualizado com sucesso.` });
       setIsEditDialogOpen(false);
@@ -278,17 +343,33 @@ export function ProductSearchTable() {
   };
 
   const handleDeleteSelected = () => {
-    setClientSideProducts((prevProducts) =>
-      prevProducts.filter((p) => !selectedProductIds.includes(p.id))
-    );
+    let remainingProducts = clientSideProducts.filter((p) => !selectedProductIds.includes(p.id));
+    remainingProducts = resequenceProducts(remainingProducts);
+    setClientSideProducts(remainingProducts);
     toast({ title: `${selectedProductIds.length} produto(s) excluído(s)`, description: "Os produtos selecionados foram removidos." });
     setSelectedProductIds([]);
     setIsDeleteSelectedConfirmOpen(false);
+    setIsSelectionModeActive(false); // Exit selection mode after deleting
+  };
+  
+  const cancelSelectionMode = () => {
+    setIsSelectionModeActive(false);
+    setSelectedProductIds([]);
   };
 
   const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProductIds.includes(p.id));
   const someFilteredSelected = selectedProductIds.length > 0 && selectedProductIds.some(id => filteredProducts.find(p => p.id === id));
   const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
+
 
   return (
     <>
@@ -319,29 +400,37 @@ export function ProductSearchTable() {
               </SelectContent>
             </Select>
           </div>
-           {selectedProductIds.length > 0 && (
-            <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex justify-end space-x-2">
+            {isSelectionModeActive && (
+              <Button variant="ghost" onClick={cancelSelectionMode}>
+                <XCircle className="mr-2 h-4 w-4" />
+                Cancelar Seleção
+              </Button>
+            )}
+            {isSelectionModeActive && selectedProductIds.length > 0 && (
               <Button variant="destructive" onClick={confirmDeleteSelected}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Excluir Selecionados ({selectedProductIds.length})
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
-                     <Checkbox
-                        id="selectAll"
-                        aria-label="Selecionar todas as linhas"
-                        checked={selectAllCheckedState}
-                        onCheckedChange={handleSelectAll}
-                      />
-                  </TableHead>
-                  <TableHead className="w-[80px]">ID</TableHead>
+                  {isSelectionModeActive && (
+                    <TableHead className="w-[50px]">
+                       <Checkbox
+                          id="selectAll"
+                          aria-label="Selecionar todas as linhas visíveis"
+                          checked={selectAllCheckedState}
+                          onCheckedChange={handleSelectAll}
+                        />
+                    </TableHead>
+                  )}
+                  <TableHead className={`w-[80px] ${!isSelectionModeActive ? 'pl-4' : ''}`}>ID</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Marca</TableHead>
                   <TableHead>Unidade</TableHead>
@@ -353,18 +442,45 @@ export function ProductSearchTable() {
                   filteredProducts.map((product) => (
                     <TableRow 
                       key={product.id} 
-                      className={getRowStyling(product.validade, selectedProductIds.includes(product.id))}
-                      onClick={() => handleRowClick(product)}
+                      className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive)}
                       data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
+                      onMouseDown={(e) => handleRowInteractionStart(product.id, e.clientX, e.clientY)}
+                      onMouseUp={(e) => handleRowInteractionEnd(product, e.clientX, e.clientY)}
+                      onMouseLeave={() => {
+                        if (longPressTimerRef.current) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                        pointerDownPositionRef.current = null;
+                      }}
+                      onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
+                      onTouchStart={(e) => handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchEnd={(e) => {
+                        // Use changedTouches as targetTouches might be empty if the touch ended
+                        if (e.changedTouches.length > 0) {
+                           handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                        }
+                      }}
+                      onTouchMove={(e) => handlePointerMove(e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchCancel={() => {
+                         if (longPressTimerRef.current) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                        pointerDownPositionRef.current = null;
+                      }}
+
                     >
-                      <TableCell onClick={(e) => e.stopPropagation()} className="py-0">
-                         <Checkbox
-                            aria-label={`Selecionar produto ${product.produto}`}
-                            checked={selectedProductIds.includes(product.id)}
-                            onCheckedChange={() => handleToggleSelectProduct(product.id)}
-                          />
-                      </TableCell>
-                      <TableCell className="font-medium">{product.id}</TableCell>
+                      {isSelectionModeActive && (
+                        <TableCell onClick={(e) => e.stopPropagation()} className="py-0">
+                           <Checkbox
+                              aria-label={`Selecionar produto ${product.produto}`}
+                              checked={selectedProductIds.includes(product.id)}
+                              onCheckedChange={() => handleToggleSelectProduct(product.id)}
+                            />
+                        </TableCell>
+                      )}
+                      <TableCell className={`font-medium ${!isSelectionModeActive ? 'pl-4' : ''}`}>{product.id}</TableCell>
                       <TableCell>{product.produto}</TableCell>
                       <TableCell>{product.marca}</TableCell>
                       <TableCell>{product.unidade}</TableCell>
@@ -377,7 +493,7 @@ export function ProductSearchTable() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
+                    <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24">
                       Nenhum produto encontrado com os filtros aplicados.
                     </TableCell>
                   </TableRow>
@@ -389,7 +505,10 @@ export function ProductSearchTable() {
       </Card>
 
       {selectedProduct && (
-        <AlertDialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
+        <AlertDialog open={isActionDialogOpen} onOpenChange={(isOpen) => {
+          setIsActionDialogOpen(isOpen);
+          if (!isOpen) setSelectedProduct(null);
+        }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Ações para: {selectedProduct.produto}</AlertDialogTitle>
@@ -412,7 +531,6 @@ export function ProductSearchTable() {
         </AlertDialog>
       )}
       
-      {/* Confirmation Dialog for Single Delete */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -430,7 +548,6 @@ export function ProductSearchTable() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Confirmation Dialog for Deleting Selected Products */}
       <AlertDialog open={isDeleteSelectedConfirmOpen} onOpenChange={setIsDeleteSelectedConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -447,7 +564,6 @@ export function ProductSearchTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
 
       {editingProduct && (
         <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => {
@@ -524,3 +640,4 @@ export function ProductSearchTable() {
     </>
   );
 }
+
