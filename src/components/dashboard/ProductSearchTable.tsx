@@ -148,8 +148,7 @@ type SortableKey = keyof Omit<Product, 'isExploding'>;
 
 const Particle = ({ onComplete }: { onComplete: () => void }) => {
   const numParticles = 20;
-  const animationDuration = 0.7; 
-
+  const animationDuration = 0.8; // Increased duration
   const onCompleteCalledRef = useRef(false);
 
   const handleAnimationComplete = () => {
@@ -161,25 +160,25 @@ const Particle = ({ onComplete }: { onComplete: () => void }) => {
 
   return (
     <motion.div
-      className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none"
+      className="absolute inset-0 flex items-center justify-center pointer-events-none" // Removed overflow-hidden
     >
       {Array.from({ length: numParticles }).map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-1.5 h-1.5 bg-primary rounded-full"
+          className="absolute w-2 h-2 bg-primary rounded-full" // Slightly larger particles
           initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
           animate={{
-            x: (Math.random() - 0.5) * 200, 
-            y: (Math.random() - 0.5) * 80,
+            x: (Math.random() - 0.5) * 100, // Adjusted spread
+            y: (Math.random() - 0.5) * 60,  // Adjusted spread
             scale: 0,
             opacity: 0,
           }}
           transition={{
             duration: animationDuration,
-            delay: Math.random() * 0.2, 
+            delay: Math.random() * 0.25, // Adjusted stagger
             ease: "easeOut",
           }}
-          onAnimationComplete={i === numParticles -1 ? handleAnimationComplete : undefined}
+          onAnimationComplete={i === numParticles - 1 ? handleAnimationComplete : undefined}
         />
       ))}
     </motion.div>
@@ -222,13 +221,12 @@ export function ProductSearchTable() {
     setClientSideProducts(prevProducts =>
       resequenceProducts(prevProducts.filter(p => p.id !== productId))
     );
-    const stillExploding = clientSideProducts.some(p => p.isExploding && p.id !== productId);
-    if (!stillExploding && selectedProductIds.includes(productId)) {
-        const remainingSelected = selectedProductIds.filter(id => id !== productId);
-        if (remainingSelected.length === 0 || !clientSideProducts.some(p => remainingSelected.includes(p.id) && p.isExploding)) {
-           setSelectedProductIds([]);
-           setIsSelectionModeActive(false);
-        }
+    if (selectedProductIds.includes(productId)) {
+      const newSelectedIds = selectedProductIds.filter(id => id !== productId);
+      setSelectedProductIds(newSelectedIds);
+      if (newSelectedIds.length === 0) {
+         setIsSelectionModeActive(false);
+      }
     }
   };
 
@@ -409,19 +407,18 @@ export function ProductSearchTable() {
     const normalizedSearch = normalizeString(searchTerm);
     let productsToFilter = [...clientSideProducts];
 
-
     if (normalizedSearch) {
       productsToFilter = productsToFilter.filter(product =>
-        !product.isExploding && Object.values(product).some(value =>
+        product.isExploding || 
+        Object.values(product).some(value =>
           normalizeString(String(value)).includes(normalizedSearch)
-        ) || product.isExploding 
+        )
       );
     }
 
     if (selectedDateFilter !== 'all') {
-      const today = startOfDay(new Date());
       productsToFilter = productsToFilter.filter(product => {
-        if (product.isExploding) return true; 
+        if (product.isExploding) return true;
         const productDate = parseISO(product.validade);
         if (!isValid(productDate)) return false;
         const productDateStartOfDay = startOfDay(productDate);
@@ -443,7 +440,7 @@ export function ProductSearchTable() {
     }
     
     const displayableProducts = productsToFilter.filter(p => !p.isExploding);
-    const explodingProducts = productsToFilter.filter(p => p.isExploding);
+    const explodingProductsInCurrentFilter = productsToFilter.filter(p => p.isExploding);
 
     if (sortBy && sortBy !== 'none') {
       displayableProducts.sort((a, b) => {
@@ -475,7 +472,8 @@ export function ProductSearchTable() {
         return sortDirection === 'asc' ? comparison : -comparison;
       });
     }
-    return [...displayableProducts, ...explodingProducts];
+    // Keep exploding products that matched the current filters, append them after sorted displayable products
+    return [...displayableProducts, ...explodingProductsInCurrentFilter];
   }, [searchTerm, clientSideProducts, selectedDateFilter, sortBy, sortDirection]);
 
   const handleToggleSelectProduct = (productId: string) => {
@@ -564,14 +562,25 @@ export function ProductSearchTable() {
   useEffect(() => {
     const explodingProductStillInList = clientSideProducts.some(p => p.isExploding);
     if (!explodingProductStillInList && selectedProductIds.length > 0) {
-      const remainingSelectedStillInList = selectedProductIds.every(id => clientSideProducts.find(p => p.id === id && !p.isExploding));
-      if (!remainingSelectedStillInList || selectedProductIds.length === 0) {
-          if (!clientSideProducts.some(p=> p.isExploding)) { 
-            setSelectedProductIds([]);
-            setIsSelectionModeActive(false);
-          }
-      }
+        // If no products are exploding and there are still selected IDs,
+        // check if these selected IDs actually correspond to existing (non-exploding) products.
+        const remainingSelectedStillInClientList = selectedProductIds.every(id => 
+            clientSideProducts.find(p => p.id === id && !p.isExploding)
+        );
+
+        if (!remainingSelectedStillInClientList || selectedProductIds.length === 0 ) {
+            // If selected IDs are for products that no longer exist or no selections left
+            // and nothing is exploding, then safe to clear selection.
+            if (!clientSideProducts.some(p => p.isExploding)) {
+                setSelectedProductIds([]);
+                setIsSelectionModeActive(false);
+            }
+        }
+    } else if (!explodingProductStillInList && selectedProductIds.length === 0 && isSelectionModeActive) {
+        // If no products are exploding, no products are selected, but selection mode is active, deactivate it.
+        setIsSelectionModeActive(false);
     }
+
 
     return () => {
       if (longPressTimerRef.current) {
@@ -581,7 +590,7 @@ export function ProductSearchTable() {
         clearTimeout(longPressHeaderTimerRef.current);
       }
     };
-  }, [clientSideProducts, selectedProductIds]);
+  }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
     const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`;
@@ -1058,3 +1067,4 @@ export function ProductSearchTable() {
     </>
   );
 }
+
