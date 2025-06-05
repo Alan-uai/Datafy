@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEve
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -125,8 +125,15 @@ const resequenceProducts = (products: Product[]): Product[] => {
   }));
 };
 
-const LONG_PRESS_DURATION = 700; 
+const LONG_PRESS_DURATION = 1000; 
 const DRAG_THRESHOLD = 10; 
+
+const initialNewProductFormData: Omit<Product, 'id'> = {
+  produto: '',
+  marca: '',
+  unidade: '',
+  validade: '',
+};
 
 export function ProductSearchTable() {
   const { toast } = useToast();
@@ -139,18 +146,16 @@ export function ProductSearchTable() {
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editFormData, setEditFormData] = useState<Omit<Product, 'id'>>({
-    produto: '',
-    marca: '',
-    unidade: '',
-    validade: '',
-  });
+  const [editFormData, setEditFormData] = useState<Omit<Product, 'id'>>({ ...initialNewProductFormData });
   
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
   const [activePopoverProductId, setActivePopoverProductId] = useState<string | null>(null);
+
+  const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
+  const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id'>>({ ...initialNewProductFormData });
 
 
   const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
@@ -174,7 +179,7 @@ export function ProductSearchTable() {
           prevSelected.includes(productId) ? prevSelected : [...prevSelected, productId]
         );
         setActivePopoverProductId(null); 
-        pointerDownPositionRef.current = null; // Interaction handled by long press, prevent mouseUp toggle
+        pointerDownPositionRef.current = null; 
       }
       longPressTimerRef.current = null;
     }, LONG_PRESS_DURATION);
@@ -183,11 +188,9 @@ export function ProductSearchTable() {
   const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number, target: EventTarget | null) => {
     const isClickOnCheckboxCell = target instanceof HTMLElement && !!target.closest('[data-is-checkbox-cell="true"]');
   
-    if (longPressTimerRef.current) { // Timer was active, meaning it's a short click before long press triggered
+    if (longPressTimerRef.current) { 
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
-      // If short click & in selection mode & not on checkbox cell -> toggle selection
-      // This case is less common as starting interaction while timer is running and in selection mode is tricky
       if (isSelectionModeActive && !isClickOnCheckboxCell && pointerDownPositionRef.current) {
          const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
          const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
@@ -195,23 +198,16 @@ export function ProductSearchTable() {
             handleToggleSelectProduct(product.id);
          }
       }
-      // If !isSelectionModeActive, short click opens Popover (handled by PopoverTrigger)
     } else if (isSelectionModeActive && pointerDownPositionRef.current) {
-      // In selection mode, and timer was NOT active (either it fired, or we started interaction in selection mode)
-      // AND pointerDownPositionRef is not null (meaning it wasn't a long press that just completed and handled it)
       const dx = Math.abs(clientX - (pointerDownPositionRef.current?.x ?? clientX));
       const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? clientY));
-      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // It was a click-like release
+      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { 
         if (!isClickOnCheckboxCell) {
           handleToggleSelectProduct(product.id);
         }
       }
     }
-    // If pointerDownPositionRef.current is null here, it means either:
-    // 1. A long press just completed and set it to null (handled).
-    // 2. A drag occurred and handlePointerMove set it to null (handled).
     
-    // Always clear pointerDownPositionRef if it wasn't cleared by long press timer
     if (pointerDownPositionRef.current) {
         pointerDownPositionRef.current = null;
     }
@@ -220,7 +216,6 @@ export function ProductSearchTable() {
   const handlePointerMove = (clientX: number, clientY: number) => {
     if (!pointerDownPositionRef.current) return;
 
-    // If a long press timer is active, check for drag to cancel it
     if (longPressTimerRef.current) {
         const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
         const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
@@ -228,7 +223,7 @@ export function ProductSearchTable() {
         if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
           clearTimeout(longPressTimerRef.current);
           longPressTimerRef.current = null;
-          pointerDownPositionRef.current = null; // Mark as drag
+          pointerDownPositionRef.current = null; 
         }
     }
   };
@@ -384,6 +379,29 @@ export function ProductSearchTable() {
     setSelectedProductIds([]);
   };
 
+  const handleNewProductFormChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewProductFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddNewProduct = () => {
+    if (!newProductFormData.produto || !newProductFormData.validade) {
+      toast({
+        title: "Erro",
+        description: "Produto e Validade são campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const newProduct: Omit<Product, 'id'> = { ...newProductFormData };
+    let updatedProducts = [...clientSideProducts, { ...newProduct, id: '' }]; // Temp ID, will be resequenced
+    updatedProducts = resequenceProducts(updatedProducts);
+    setClientSideProducts(updatedProducts);
+    toast({ title: "Produto Adicionado", description: `${newProduct.produto} foi adicionado com sucesso.` });
+    setIsAddProductDialogOpen(false);
+    setNewProductFormData({ ...initialNewProductFormData });
+  };
+
   const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProductIds.includes(p.id));
   const someFilteredSelected = selectedProductIds.length > 0 && selectedProductIds.some(id => filteredProducts.find(p => p.id === id));
   const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
@@ -465,7 +483,18 @@ export function ProductSearchTable() {
                   <TableHead>Produto</TableHead>
                   <TableHead>Marca</TableHead>
                   <TableHead>Unidade</TableHead>
-                  <TableHead className="w-[150px]">Validade</TableHead>
+                  <TableHead className="w-[170px] flex items-center">
+                    Validade
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="ml-2 h-6 w-6"
+                      onClick={() => setIsAddProductDialogOpen(true)}
+                      aria-label="Adicionar novo produto"
+                    >
+                      <PlusCircle className="h-4 w-4 text-primary" />
+                    </Button>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -473,7 +502,7 @@ export function ProductSearchTable() {
                   filteredProducts.map((product) => (
                     <Popover
                       key={product.id}
-                      open={activePopoverProductId === product.id && !isSelectionModeActive} // Only open if not in selection mode
+                      open={activePopoverProductId === product.id && !isSelectionModeActive} 
                       onOpenChange={(isOpen) => {
                         if (isSelectionModeActive) return; 
                         if (isOpen) {
@@ -482,7 +511,6 @@ export function ProductSearchTable() {
                         } else {
                           if (activePopoverProductId === product.id) {
                             setActivePopoverProductId(null);
-                            //setSelectedProduct(null); // Keep selectedProduct if dialogs are open
                           }
                         }
                       }}
@@ -497,18 +525,17 @@ export function ProductSearchTable() {
                           onPointerUp={(e: PointerEvent<HTMLTableRowElement>) => {
                             handleRowInteractionEnd(product, e.clientX, e.clientY, e.target);
                           }}
-                          onPointerLeave={() => { // Clear timer if pointer leaves row during press
+                          onPointerLeave={() => { 
                             if (longPressTimerRef.current) {
                               clearTimeout(longPressTimerRef.current);
                               longPressTimerRef.current = null;
                             }
-                            // Don't clear pointerDownPositionRef here, move might handle it or up might need it
                           }}
                           onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => {
                             handlePointerMove(e.clientX, e.clientY);
                           }}
                           onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
-                            if (e.touches.length === 1) { // Ensure single touch
+                            if (e.touches.length === 1) { 
                                 handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY);
                             }
                           }}
@@ -522,7 +549,7 @@ export function ProductSearchTable() {
                                 handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
                              }
                           }}
-                          onTouchCancel={() => { // Similar to pointer leave
+                          onTouchCancel={() => { 
                              if (longPressTimerRef.current) {
                               clearTimeout(longPressTimerRef.current);
                               longPressTimerRef.current = null;
@@ -552,8 +579,8 @@ export function ProductSearchTable() {
                       </PopoverTrigger>
                        {!isSelectionModeActive && (
                         <PopoverContent side="top" align="end" className="w-auto p-1 z-50" 
-                          onOpenAutoFocus={(e) => e.preventDefault()} // Prevent focus stealing
-                          onCloseAutoFocus={(e) => e.preventDefault()} // Prevent focus stealing
+                          onOpenAutoFocus={(e) => e.preventDefault()} 
+                          onCloseAutoFocus={(e) => e.preventDefault()} 
                         >
                           <div className="flex space-x-1">
                             <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto">
@@ -582,7 +609,7 @@ export function ProductSearchTable() {
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={(isOpen) => {
           setIsDeleteDialogOpen(isOpen);
-          if (!isOpen) setSelectedProduct(null); // Clear selected product when dialog closes
+          if (!isOpen) setSelectedProduct(null); 
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -622,7 +649,6 @@ export function ProductSearchTable() {
           setIsEditDialogOpen(isOpen);
           if (!isOpen) {
             setEditingProduct(null);
-            //setSelectedProduct(null); // Clear selectedProduct if edit is cancelled
           }
         }}>
           <DialogContent className="sm:max-w-[425px]">
@@ -634,11 +660,11 @@ export function ProductSearchTable() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="produto" className="text-right">
+                <Label htmlFor="edit-produto" className="text-right">
                   Produto
                 </Label>
                 <Input
-                  id="produto"
+                  id="edit-produto"
                   name="produto"
                   value={editFormData.produto}
                   onChange={handleEditFormChange}
@@ -646,11 +672,11 @@ export function ProductSearchTable() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="marca" className="text-right">
+                <Label htmlFor="edit-marca" className="text-right">
                   Marca
                 </Label>
                 <Input
-                  id="marca"
+                  id="edit-marca"
                   name="marca"
                   value={editFormData.marca}
                   onChange={handleEditFormChange}
@@ -658,11 +684,11 @@ export function ProductSearchTable() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="unidade" className="text-right">
+                <Label htmlFor="edit-unidade" className="text-right">
                   Unidade
                 </Label>
                 <Input
-                  id="unidade"
+                  id="edit-unidade"
                   name="unidade"
                   value={editFormData.unidade}
                   onChange={handleEditFormChange}
@@ -670,11 +696,11 @@ export function ProductSearchTable() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="validade" className="text-right">
+                <Label htmlFor="edit-validade" className="text-right">
                   Validade
                 </Label>
                 <Input
-                  id="validade"
+                  id="edit-validade"
                   name="validade"
                   type="date"
                   value={editFormData.validade}
@@ -692,7 +718,79 @@ export function ProductSearchTable() {
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog open={isAddProductDialogOpen} onOpenChange={(isOpen) => {
+        setIsAddProductDialogOpen(isOpen);
+        if (!isOpen) setNewProductFormData({ ...initialNewProductFormData });
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Produto</DialogTitle>
+            <DialogDescription>
+              Preencha os detalhes do novo produto abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-produto" className="text-right">
+                Produto
+              </Label>
+              <Input
+                id="new-produto"
+                name="produto"
+                value={newProductFormData.produto}
+                onChange={handleNewProductFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-marca" className="text-right">
+                Marca
+              </Label>
+              <Input
+                id="new-marca"
+                name="marca"
+                value={newProductFormData.marca}
+                onChange={handleNewProductFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-unidade" className="text-right">
+                Unidade
+              </Label>
+              <Input
+                id="new-unidade"
+                name="unidade"
+                value={newProductFormData.unidade}
+                onChange={handleNewProductFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-validade" className="text-right">
+                Validade
+              </Label>
+              <Input
+                id="new-validade"
+                name="validade"
+                type="date"
+                value={newProductFormData.validade}
+                onChange={handleNewProductFormChange}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button type="button" onClick={handleAddNewProduct}>Salvar Produto</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
+    
