@@ -270,7 +270,7 @@ export function ProductSearchTable() {
         handleHeaderClick(column); 
     }
     
-    if (headerPointerDownPositionRef.current) { 
+    if (pointerDownPositionRef.current) { 
         setIsAddActionPopoverOpen(false);
     }
     headerPointerDownPositionRef.current = null;
@@ -455,10 +455,10 @@ export function ProductSearchTable() {
   };
 
   const handleAddNewProduct = () => {
-    if (!newProductFormData.produto || !newProductFormData.validade) {
+    if (!newProductFormData.produto || !newProductFormData.validade || !newProductFormData.unidade) {
       toast({
         title: "Erro",
-        description: "Produto e Validade são campos obrigatórios.",
+        description: "Produto, Quantidade e Validade são campos obrigatórios.",
         variant: "destructive",
       });
       return;
@@ -589,7 +589,7 @@ export function ProductSearchTable() {
           <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow>
+                <ShadTableRow>
                   {isSelectionModeActive && (
                     <TableHead className="w-[50px] px-2 py-3">
                        <Checkbox
@@ -631,7 +631,6 @@ export function ProductSearchTable() {
                     {sortBy === 'validade' && sortBy !== 'none' && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
                     <Popover open={isAddActionPopoverOpen && !isSelectionModeActive} onOpenChange={setIsAddActionPopoverOpen}>
                        <PopoverTrigger asChild>
-                         {/* Empty span, Popover is controlled by isAddActionPopoverOpen state */}
                          <span />
                        </PopoverTrigger>
                        <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]" 
@@ -653,9 +652,9 @@ export function ProductSearchTable() {
                       </PopoverContent>
                     </Popover>
                   </TableHead>
-                </TableRow>
+                </ShadTableRow>
               </TableHeader>
-              <MotionTableBody>
+              <MotionTableBody layout>
                 <AnimatePresence>
                   {filteredProducts.length > 0 ? (
                     filteredProducts.map((product) => (
@@ -677,8 +676,8 @@ export function ProductSearchTable() {
                         <PopoverTrigger asChild disabled={isSelectionModeActive}>
                           <MotionTableRow 
                             layout="position"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
                             className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive)}
                             data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
@@ -961,4 +960,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
