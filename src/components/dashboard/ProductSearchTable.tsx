@@ -53,24 +53,24 @@ import { useToast } from "@/hooks/use-toast";
 
 
 const mockProducts: Product[] = [
-  { id: '1', produto: 'Leite Integral UHT', marca: 'Tirol', unidade: 'Litro', validade: '2024-12-15' },
-  { id: '2', produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: 'Pacote 400g', validade: '2024-07-20' },
-  { id: '3', produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: 'Pacote 500g', validade: '2025-03-10' },
-  { id: '4', produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: 'Pacote 5kg', validade: '2025-08-01' },
-  { id: '5', produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: 'Pacote 1kg', validade: '2025-06-22' },
-  { id: '6', produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: 'Garrafa 900ml', validade: '2024-11-05' },
-  { id: '7', produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: 'Lata 350ml', validade: '2024-10-30' },
-  { id: '8', produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: 'Pacote 350g', validade: '2024-09-01' },
-  { id: '9', produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: 'Pacote 500g', validade: '2026-01-15' },
-  { id: '10', produto: 'Açúcar Refinado', marca: 'União', unidade: 'Pacote 1kg', validade: '2025-12-31' },
-  { id: '11', produto: 'Leite Condensado', marca: 'Moça', unidade: 'Lata 395g', validade: '2025-02-20' },
-  { id: '12', produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: 'Caixa 200g', validade: '2024-11-25' },
-  { id: '13', produto: 'Iogurte Natural', marca: 'Batavo', unidade: 'Copo 170g', validade: new Date().toISOString().split('T')[0] }, // Today
-  { id: '14', produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: 'Peça 250g', validade: subDays(new Date(), 1).toISOString().split('T')[0] }, // Yesterday
-  { id: '15', produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: 'Caixa 1L', validade: addDays(new Date(), 1).toISOString().split('T')[0] }, // Tomorrow
-  { id: '16', produto: 'Manteiga com Sal', marca: 'Aviação', unidade: 'Tablete 200g', validade: '2023-01-01' }, // Expired
-  { id: '17', produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: 'Copo 200g', validade: addDays(new Date(), 3).toISOString().split('T')[0] }, // Next 7 days
-  { id: '18', produto: 'Doce de Leite', marca: 'Itambé', unidade: 'Pote 400g', validade: subDays(new Date(), 5).toISOString().split('T')[0] }, // Last 7 days
+  { id: '1', produto: 'Leite Integral UHT', marca: 'Tirol', unidade: '24', validade: '2024-12-15' },
+  { id: '2', produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: '10', validade: '2024-07-20' },
+  { id: '3', produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: '15', validade: '2025-03-10' },
+  { id: '4', produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: '5', validade: '2025-08-01' },
+  { id: '5', produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: '8', validade: '2025-06-22' },
+  { id: '6', produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: '20', validade: '2024-11-05' },
+  { id: '7', produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: '48', validade: '2024-10-30' },
+  { id: '8', produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: '30', validade: '2024-09-01' },
+  { id: '9', produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: '25', validade: '2026-01-15' },
+  { id: '10', produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31' },
+  { id: '11', produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20' },
+  { id: '12', produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25' },
+  { id: '13', produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0] }, // Today
+  { id: '14', produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0] }, // Yesterday
+  { id: '15', produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0] }, // Tomorrow
+  { id: '16', produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01' }, // Expired
+  { id: '17', produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0] }, // Next 7 days
+  { id: '18', produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0] }, // Last 7 days
 ];
 
 const normalizeString = (str: string) => {
@@ -212,6 +212,10 @@ export function ProductSearchTable() {
           handleToggleSelectProduct(product.id);
         }
       }
+    } else if (isSelectionModeActive && !pointerDownPositionRef.current && !isClickOnCheckboxCell) {
+      // This case handles the scenario where long press has fired and pointerDownPositionRef was nulled
+      // but the click is not on the checkbox cell.
+      handleToggleSelectProduct(product.id);
     }
     
     if (pointerDownPositionRef.current) {
@@ -338,12 +342,13 @@ export function ProductSearchTable() {
           } else if (isValid(dateB)) {
             comparison = 1;
           }
-        } else if (sortBy === 'id') {
+        } else if (sortBy === 'id' || sortBy === 'unidade') { // Unidade is now quantity (numeric string)
           const numA = parseInt(valA as string, 10);
           const numB = parseInt(valB as string, 10);
           if (!isNaN(numA) && !isNaN(numB)) {
             comparison = numA - numB;
           } else {
+            // Fallback for non-numeric strings, though 'unidade' should be numeric now
             comparison = normalizeString(valA as string).localeCompare(normalizeString(valB as string));
           }
         } else {
@@ -467,7 +472,7 @@ export function ProductSearchTable() {
                 <SelectItem value="id">ID</SelectItem>
                 <SelectItem value="produto">Produto</SelectItem>
                 <SelectItem value="marca">Marca</SelectItem>
-                <SelectItem value="unidade">Unidade</SelectItem>
+                <SelectItem value="unidade">Quantidade</SelectItem>
                 <SelectItem value="validade">Validade</SelectItem>
               </SelectContent>
             </Select>
@@ -519,7 +524,7 @@ export function ProductSearchTable() {
                   <TableHead className={`w-[80px] ${!isSelectionModeActive ? 'pl-4' : 'pl-2'}`}>ID</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Marca</TableHead>
-                  <TableHead>Unidade</TableHead>
+                  <TableHead>Quantidade</TableHead>
                   <TableHead className="w-[170px] flex items-center">
                     Validade
                     <Button 
@@ -722,7 +727,7 @@ export function ProductSearchTable() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-unidade" className="text-right">
-                  Unidade
+                  Quantidade
                 </Label>
                 <Input
                   id="edit-unidade"
@@ -730,6 +735,7 @@ export function ProductSearchTable() {
                   value={editFormData.unidade}
                   onChange={handleEditFormChange}
                   className="col-span-3"
+                  type="number"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -795,7 +801,7 @@ export function ProductSearchTable() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="new-unidade" className="text-right">
-                Unidade
+                Quantidade
               </Label>
               <Input
                 id="new-unidade"
@@ -803,6 +809,7 @@ export function ProductSearchTable() {
                 value={newProductFormData.unidade}
                 onChange={handleNewProductFormChange}
                 className="col-span-3"
+                type="number"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -831,3 +838,5 @@ export function ProductSearchTable() {
     </>
   );
 }
+
+    
