@@ -529,7 +529,7 @@ export function ProductSearchTable() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="ml-2 h-6 w-6"
+                      className="ml-4 h-6 w-6"
                       onClick={() => setIsAddProductDialogOpen(true)}
                       aria-label="Adicionar novo produto"
                     >
@@ -837,3 +837,5 @@ export function ProductSearchTable() {
     </>
   );
 }
+
+    
