@@ -126,7 +126,7 @@ const resequenceProducts = (products: Product[]): Product[] => {
   }));
 };
 
-const LONG_PRESS_DURATION = 1000; 
+const LONG_PRESS_DURATION = 500; 
 const DRAG_THRESHOLD = 10; 
 
 const initialNewProductFormData: Omit<Product, 'id'> = {
@@ -247,23 +247,23 @@ export function ProductSearchTable() {
       clearTimeout(longPressHeaderTimerRef.current);
     }
     longPressHeaderTimerRef.current = setTimeout(() => {
-      if (headerPointerDownPositionRef.current) { // Check if not cleared by drag
+      if (headerPointerDownPositionRef.current) { 
         setIsAddActionPopoverOpen(true);
-        headerPointerDownPositionRef.current = null; // Mark as handled by long press
+        headerPointerDownPositionRef.current = null; 
       }
       longPressHeaderTimerRef.current = null;
     }, LONG_PRESS_DURATION);
   };
 
   const handleHeaderPointerUp = (column: SortableKey) => {
-    if (longPressHeaderTimerRef.current) { // Was a short click or drag didn't cancel in time
+    if (longPressHeaderTimerRef.current) { 
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
-      if (headerPointerDownPositionRef.current) { // If not cleared, it's a short click
+      if (headerPointerDownPositionRef.current) { 
         handleHeaderClick(column);
       }
     }
-    // Always ensure popover is closed on a short click, regardless of which header
+    
     if (headerPointerDownPositionRef.current) { 
         setIsAddActionPopoverOpen(false);
     }
@@ -479,7 +479,7 @@ export function ProductSearchTable() {
       setSortBy(column);
       setSortDirection('asc');
     }
-     // Do not manage isAddActionPopoverOpen here for short clicks anymore
+     setIsAddActionPopoverOpen(false);
   };
 
 
@@ -496,6 +496,10 @@ export function ProductSearchTable() {
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
     const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'} ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`;
+    const icon = sortBy === column && sortBy !== 'none'
+      ? (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)
+      : null;
+
     return (
       <TableHead
         className={`${baseClasses} ${classNameExt}`}
@@ -518,7 +522,7 @@ export function ProductSearchTable() {
           if (e.touches.length === 1) handleHeaderPointerMove(e.touches[0].clientX, e.touches[0].clientY);
         }}
       >
-        {label}
+        {label} {icon}
       </TableHead>
     );
   };
@@ -540,7 +544,7 @@ export function ProductSearchTable() {
                 className="pl-10 w-full"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 items-end">
               <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Filtrar por validade..." />
@@ -553,28 +557,6 @@ export function ProductSearchTable() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortableKey | 'none')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Ordenar por..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="id">ID</SelectItem>
-                  <SelectItem value="produto">Produto</SelectItem>
-                  <SelectItem value="marca">Marca</SelectItem>
-                  <SelectItem value="unidade">Quantidade</SelectItem>
-                  <SelectItem value="validade">Validade</SelectItem>
-                  <SelectItem value="none">Não Ordenar</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button 
-                variant="outline" 
-                onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')} 
-                className="w-full"
-                disabled={sortBy === 'none'}
-              >
-                {sortDirection === 'asc' ? <ArrowUpAZ className="mr-2 h-4 w-4" /> : <ArrowDownZA className="mr-2 h-4 w-4" />}
-                {sortDirection === 'asc' ? 'A-Z' : 'Z-A'}
-              </Button>
             </div>
           </div>
           {isSelectionModeActive && (
@@ -615,7 +597,7 @@ export function ProductSearchTable() {
                   {renderHeaderCell('id', 'ID', 'w-[60px]')}
                   {renderHeaderCell('produto', 'Produto', 'px-2 md:px-4')}
                   {renderHeaderCell('marca', 'Marca', 'px-2 md:px-4 hidden sm:table-cell')}
-                  {renderHeaderCell('unidade', 'Quantidade', 'px-2 md:px-4 text-center')}
+                  {renderHeaderCell('unidade', 'Qtde', 'px-2 md:px-4 text-center')}
                   
                   <TableHead 
                     ref={validadeHeaderRef}
@@ -639,10 +621,10 @@ export function ProductSearchTable() {
                        if (e.touches.length === 1) handleHeaderPointerMove(e.touches[0].clientX, e.touches[0].clientY);
                      }}
                   >
-                    Validade
+                    Validade 
+                    {sortBy === 'validade' && sortBy !== 'none' && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
                     <Popover open={isAddActionPopoverOpen && !isSelectionModeActive} onOpenChange={setIsAddActionPopoverOpen}>
                        <PopoverTrigger asChild>
-                         {/* Invisible trigger, Popover controlled by isAddActionPopoverOpen state */}
                          <span />
                        </PopoverTrigger>
                        <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]" 
