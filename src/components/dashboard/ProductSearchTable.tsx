@@ -2,7 +2,7 @@
 "use client";
 
 import type { Product } from '@/types';
-import { useState, useMemo, useEffect, type ChangeEvent, useRef } from 'react';
+import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -124,8 +125,8 @@ const resequenceProducts = (products: Product[]): Product[] => {
   }));
 };
 
-const LONG_PRESS_DURATION = 700; // milliseconds
-const DRAG_THRESHOLD = 10; // pixels
+const LONG_PRESS_DURATION = 700; 
+const DRAG_THRESHOLD = 10; 
 
 export function ProductSearchTable() {
   const { toast } = useToast();
@@ -134,7 +135,6 @@ export function ProductSearchTable() {
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(resequenceProducts(mockProducts));
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -150,9 +150,12 @@ export function ProductSearchTable() {
   const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const [activePopoverProductId, setActivePopoverProductId] = useState<string | null>(null);
 
 
   const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
+    if (isSelectionModeActive) return; // Don't start new long press if already in selection mode
+
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
     }
@@ -164,30 +167,42 @@ export function ProductSearchTable() {
       );
       longPressTimerRef.current = null;
       pointerDownPositionRef.current = null; 
+      setActivePopoverProductId(null); // Close any open popover
     }, LONG_PRESS_DURATION);
   };
 
-  const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number) => {
-    const wasLongPress = !longPressTimerRef.current && isSelectionModeActive; 
-    
-    if (longPressTimerRef.current) { 
-      clearTimeout(longPressTimerRef.current);
+  const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number, target: EventTarget | null) => {
+    const isClickOnCheckboxCell = target instanceof HTMLElement && !!target.closest('[data-is-checkbox-cell="true"]');
+    const wasTimerActive = !!longPressTimerRef.current;
+
+    if (wasTimerActive) { // Timer was running, so it's a short click/tap attempt
+      clearTimeout(longPressTimerRef.current!);
       longPressTimerRef.current = null;
-      
-      if (!isSelectionModeActive) {
-        setSelectedProductIds([]); 
-        setSelectedProduct(product);
-        setIsActionDialogOpen(true);
-      } else {
-        handleToggleSelectProduct(product.id);
-      }
-    } else if (isSelectionModeActive && !wasLongPress) {
-        const dx = Math.abs(clientX - (pointerDownPositionRef.current?.x ?? 0));
-        const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? 0));
-        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { 
+
+      if (isSelectionModeActive) {
+        // In selection mode, short click on row (not checkbox cell) toggles selection
+        if (!isClickOnCheckboxCell) {
           handleToggleSelectProduct(product.id);
         }
+        // If it was on checkbox cell, checkbox's onCheckedChange handles it.
+      } else {
+        // Not in selection mode, short click. PopoverTrigger (TableRow) handles opening popover.
+        // This function's job here is mainly to clear the timer.
+        // Popover state is managed by activePopoverProductId and Popover's onOpenChange.
+      }
+    } else if (isSelectionModeActive) { // Long press already completed OR in selection mode and it was a drag-release
+        const dx = Math.abs(clientX - (pointerDownPositionRef.current?.x ?? 0));
+        const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? 0));
+        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // It was a click-like release
+          if (!isClickOnCheckboxCell) {
+            handleToggleSelectProduct(product.id);
+          }
+        }
     }
+    // If !isSelectionModeActive and !wasTimerActive:
+    // Means a long press just successfully completed (timer fired setting selection mode via its callback).
+    // Product was selected in the timer callback.
+
     pointerDownPositionRef.current = null;
   };
   
@@ -215,14 +230,14 @@ export function ProductSearchTable() {
         validade: selectedProduct.validade,
       });
       setIsEditDialogOpen(true);
-      setIsActionDialogOpen(false); 
+      setActivePopoverProductId(null); 
     }
   };
 
   const confirmDeleteSingleProduct = () => {
     if (selectedProduct) {
       setIsDeleteDialogOpen(true);
-      setIsActionDialogOpen(false);
+      setActivePopoverProductId(null);
     }
   };
 
@@ -233,10 +248,10 @@ export function ProductSearchTable() {
       setClientSideProducts(updatedProducts);
       toast({ title: "Produto excluído", description: `${selectedProduct.produto} foi removido.` });
       setIsDeleteDialogOpen(false);
-      setSelectedProduct(null);
       if (isSelectionModeActive && selectedProductIds.includes(selectedProduct.id)) {
         setSelectedProductIds(ids => ids.filter(id => id !== selectedProduct.id));
       }
+      setSelectedProduct(null);
     }
   };
   
@@ -397,20 +412,20 @@ export function ProductSearchTable() {
               </SelectContent>
             </Select>
           </div>
-          <div className="mt-4 flex justify-end space-x-2">
-            {isSelectionModeActive && (
-              <Button variant="ghost" onClick={cancelSelectionMode}>
-                <XCircle className="mr-2 h-4 w-4" />
-                Cancelar Seleção
-              </Button>
-            )}
-            {isSelectionModeActive && selectedProductIds.length > 0 && (
-              <Button variant="destructive" onClick={confirmDeleteSelected}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir Selecionados ({selectedProductIds.length})
-              </Button>
-            )}
-          </div>
+          {isSelectionModeActive && (
+            <div className="mt-4 flex justify-end space-x-2">
+                <Button variant="ghost" onClick={cancelSelectionMode}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar Seleção
+                </Button>
+              {selectedProductIds.length > 0 && (
+                <Button variant="destructive" onClick={confirmDeleteSelected}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir Selecionados ({selectedProductIds.length})
+                </Button>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border">
@@ -437,55 +452,92 @@ export function ProductSearchTable() {
               <TableBody>
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
-                    <TableRow 
-                      key={product.id} 
-                      className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive)}
-                      data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
-                      onMouseDown={(e) => handleRowInteractionStart(product.id, e.clientX, e.clientY)}
-                      onMouseUp={(e) => handleRowInteractionEnd(product, e.clientX, e.clientY)}
-                      onMouseLeave={() => {
-                        if (longPressTimerRef.current) {
-                          clearTimeout(longPressTimerRef.current);
-                          longPressTimerRef.current = null;
-                        }
-                        pointerDownPositionRef.current = null;
-                      }}
-                      onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
-                      onTouchStart={(e) => handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY)}
-                      onTouchEnd={(e) => {
-                        if (e.changedTouches.length > 0) {
-                           handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                    <Popover
+                      key={product.id}
+                      open={activePopoverProductId === product.id}
+                      onOpenChange={(isOpen) => {
+                        if (isSelectionModeActive) return; 
+                        if (isOpen) {
+                          setSelectedProduct(product);
+                          setActivePopoverProductId(product.id);
+                        } else {
+                          if (activePopoverProductId === product.id) {
+                            setActivePopoverProductId(null);
+                            setSelectedProduct(null);
+                          }
                         }
                       }}
-                      onTouchMove={(e) => handlePointerMove(e.touches[0].clientX, e.touches[0].clientY)}
-                      onTouchCancel={() => {
-                         if (longPressTimerRef.current) {
-                          clearTimeout(longPressTimerRef.current);
-                          longPressTimerRef.current = null;
-                        }
-                        pointerDownPositionRef.current = null;
-                      }}
-
                     >
-                      {isSelectionModeActive && (
-                        <TableCell onClick={(e) => e.stopPropagation()} className="py-0">
-                           <Checkbox
-                              aria-label={`Selecionar produto ${product.produto}`}
-                              checked={selectedProductIds.includes(product.id)}
-                              onCheckedChange={() => handleToggleSelectProduct(product.id)}
-                            />
-                        </TableCell>
-                      )}
-                      <TableCell className={`font-medium ${!isSelectionModeActive ? 'pl-4' : ''}`}>{product.id}</TableCell>
-                      <TableCell>{product.produto}</TableCell>
-                      <TableCell>{product.marca}</TableCell>
-                      <TableCell>{product.unidade}</TableCell>
-                      <TableCell>
-                        {isValid(parseISO(product.validade))
-                          ? format(parseISO(product.validade), 'dd/MM/yyyy')
-                          : 'Data inválida'}
-                      </TableCell>
-                    </TableRow>
+                      <PopoverTrigger asChild disabled={isSelectionModeActive}>
+                        <TableRow 
+                          className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive)}
+                          data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
+                          onMouseDown={(e: PointerEvent<HTMLTableRowElement>) => {
+                             handleRowInteractionStart(product.id, e.clientX, e.clientY);
+                          }}
+                          onMouseUp={(e: PointerEvent<HTMLTableRowElement>) => {
+                            handleRowInteractionEnd(product, e.clientX, e.clientY, e.target);
+                          }}
+                          onMouseLeave={() => {
+                            if (longPressTimerRef.current) {
+                              clearTimeout(longPressTimerRef.current);
+                              longPressTimerRef.current = null;
+                            }
+                            pointerDownPositionRef.current = null;
+                          }}
+                          onMouseMove={(e: PointerEvent<HTMLTableRowElement>) => {
+                            handlePointerMove(e.clientX, e.clientY);
+                          }}
+                          onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
+                            handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY);
+                          }}
+                          onTouchEnd={(e: TouchEvent<HTMLTableRowElement>) => {
+                            if (e.changedTouches.length > 0) {
+                               handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
+                            }
+                          }}
+                          onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
+                             handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                          }}
+                          onTouchCancel={() => {
+                             if (longPressTimerRef.current) {
+                              clearTimeout(longPressTimerRef.current);
+                              longPressTimerRef.current = null;
+                            }
+                            pointerDownPositionRef.current = null;
+                          }}
+                        >
+                          {isSelectionModeActive && (
+                            <TableCell data-is-checkbox-cell="true" className="py-0" onClick={(e) => e.stopPropagation()}>
+                               <Checkbox
+                                  aria-label={`Selecionar produto ${product.produto}`}
+                                  checked={selectedProductIds.includes(product.id)}
+                                  onCheckedChange={() => handleToggleSelectProduct(product.id)}
+                                />
+                            </TableCell>
+                          )}
+                          <TableCell className={`font-medium ${!isSelectionModeActive ? 'pl-4' : ''}`}>{product.id}</TableCell>
+                          <TableCell>{product.produto}</TableCell>
+                          <TableCell>{product.marca}</TableCell>
+                          <TableCell>{product.unidade}</TableCell>
+                          <TableCell>
+                            {isValid(parseISO(product.validade))
+                              ? format(parseISO(product.validade), 'dd/MM/yyyy')
+                              : 'Data inválida'}
+                          </TableCell>
+                        </TableRow>
+                      </PopoverTrigger>
+                      <PopoverContent side="top" align="end" className="w-auto p-1 z-50" onEscapeKeyDown={() => setActivePopoverProductId(null)} onOpenAutoFocus={(e) => e.preventDefault()}>
+                        <div className="flex space-x-1">
+                          <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="destructive" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   ))
                 ) : (
                   <TableRow>
@@ -499,32 +551,6 @@ export function ProductSearchTable() {
           </div>
         </CardContent>
       </Card>
-
-      {selectedProduct && (
-        <AlertDialog open={isActionDialogOpen} onOpenChange={(isOpen) => {
-          setIsActionDialogOpen(isOpen);
-          if (!isOpen) setSelectedProduct(null);
-        }}>
-          <AlertDialogContent className="sm:max-w-xs p-4">
-            <AlertDialogHeader className="mb-2">
-              <AlertDialogTitle className="text-base text-center">
-                Ações: {selectedProduct.produto}
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <div className="flex justify-center space-x-3 py-2">
-              <Button variant="outline" size="icon" onClick={handleEdit} aria-label="Editar Produto">
-                <Pencil className="h-5 w-5" />
-              </Button>
-              <Button variant="destructive" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto">
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </div>
-            <AlertDialogFooter className="mt-2 sm:justify-center">
-              <AlertDialogCancel onClick={() => setSelectedProduct(null)} className="h-8 px-3">Cancelar</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -636,3 +662,4 @@ export function ProductSearchTable() {
   );
 }
 
+    
