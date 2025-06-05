@@ -5,7 +5,7 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody as ShadTableBody, TableCell, TableHeader, TableRow as ShadTableRow } from '@/components/ui/table';
+import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -150,7 +150,6 @@ const Particle = ({ onComplete }: { onComplete: () => void }) => {
   const numParticles = 20;
   const animationDuration = 0.7; 
 
-  // Use a ref to track if onComplete has been called to prevent multiple calls
   const onCompleteCalledRef = useRef(false);
 
   const handleAnimationComplete = () => {
@@ -223,11 +222,8 @@ export function ProductSearchTable() {
     setClientSideProducts(prevProducts =>
       resequenceProducts(prevProducts.filter(p => p.id !== productId))
     );
-     // Check if this was the last exploding product among the initially selected ones
     const stillExploding = clientSideProducts.some(p => p.isExploding && p.id !== productId);
     if (!stillExploding && selectedProductIds.includes(productId)) {
-        // If this product was part of a multi-selection and it's the last one to finish exploding
-        // or if all selected products have been processed.
         const remainingSelected = selectedProductIds.filter(id => id !== productId);
         if (remainingSelected.length === 0 || !clientSideProducts.some(p => remainingSelected.includes(p.id) && p.isExploding)) {
            setSelectedProductIds([]);
@@ -332,12 +328,11 @@ export function ProductSearchTable() {
       }
     } else if (headerPointerDownPositionRef.current) {
         handleHeaderClick(column); 
-    } else if (!isAddActionPopoverOpen) { // If popover isn't opening, treat as click
+    } else if (!isAddActionPopoverOpen) { 
         handleHeaderClick(column);
     }
     
     if (pointerDownPositionRef.current && isAddActionPopoverOpen) { 
-        // Do nothing if long press led to popover
     }
     headerPointerDownPositionRef.current = null;
   };
@@ -569,18 +564,14 @@ export function ProductSearchTable() {
   useEffect(() => {
     const explodingProductStillInList = clientSideProducts.some(p => p.isExploding);
     if (!explodingProductStillInList && selectedProductIds.length > 0) {
-      // All explosion animations are done, check if any of the originally selected items are now gone
       const remainingSelectedStillInList = selectedProductIds.every(id => clientSideProducts.find(p => p.id === id && !p.isExploding));
       if (!remainingSelectedStillInList || selectedProductIds.length === 0) {
-          // If some selected items were deleted and finished exploding, or if selection became empty
-          // and no more items are exploding, then clear selection and mode.
-          if (!clientSideProducts.some(p=> p.isExploding)) { // Ensure no other explosions are pending from single deletes
+          if (!clientSideProducts.some(p=> p.isExploding)) { 
             setSelectedProductIds([]);
             setIsSelectionModeActive(false);
           }
       }
     }
-
 
     return () => {
       if (longPressTimerRef.current) {
@@ -769,7 +760,7 @@ export function ProductSearchTable() {
                             layout="position"
                             initial={{ opacity: 1, height: 'auto' }}
                             animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }} // For non-exploding exit
+                            exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }} 
                             className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive, product.isExploding)}
                             data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
@@ -862,8 +853,7 @@ export function ProductSearchTable() {
                           </PopoverContent>
                          )}
                       </Popover>
-                    ))
-                  }
+                    ))}
                    {filteredProducts.filter(p => !p.isExploding).length === 0 && !clientSideProducts.some(p => p.isExploding) && (
                      <MotionTableRow>
                        <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
