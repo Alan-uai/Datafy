@@ -24,6 +24,7 @@ import {
   endOfMonth,
   addMonths,
   isValid,
+  format,
 } from 'date-fns';
 
 const mockProducts: Product[] = [
@@ -67,6 +68,23 @@ const dateFilterOptions = [
   { value: 'thisMonth', label: 'Este mês' },
   { value: 'nextMonth', label: 'Próximo mês' },
 ];
+
+const getRowStyling = (validade: string): string => {
+  const productDate = parseISO(validade);
+  if (!isValid(productDate)) return '';
+
+  const productDateStartOfDay = startOfDay(productDate);
+  const today = startOfDay(new Date());
+
+  if (isPast(productDateStartOfDay) && !isToday(productDateStartOfDay)) {
+    return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40'; // Expired
+  }
+  if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
+    return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40'; // Expiring today or tomorrow
+  }
+  return 'hover:bg-muted/50'; // Default hover
+};
+
 
 export function ProductSearchTable() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -180,14 +198,14 @@ export function ProductSearchTable() {
             <TableBody>
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
+                  <TableRow key={product.id} className={getRowStyling(product.validade)}>
                     <TableCell className="font-medium">{product.id}</TableCell>
                     <TableCell>{product.produto}</TableCell>
                     <TableCell>{product.marca}</TableCell>
                     <TableCell>{product.unidade}</TableCell>
                     <TableCell>
                       {isValid(parseISO(product.validade)) 
-                        ? new Date(product.validade + 'T00:00:00').toLocaleDateString() 
+                        ? format(parseISO(product.validade), 'dd/MM/yyyy')
                         : 'Data inválida'}
                     </TableCell>
                   </TableRow>
@@ -206,3 +224,5 @@ export function ProductSearchTable() {
     </Card>
   );
 }
+
+    
