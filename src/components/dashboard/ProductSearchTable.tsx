@@ -162,6 +162,7 @@ export function ProductSearchTable() {
 
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
   const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id'>>({ ...initialNewProductFormData });
+  const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
 
 
   const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
@@ -423,6 +424,24 @@ export function ProductSearchTable() {
   const someFilteredSelected = selectedProductIds.length > 0 && selectedProductIds.some(id => filteredProducts.find(p => p.id === id));
   const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
 
+  const handleHeaderClick = (column: SortableKey) => {
+    if (isSelectionModeActive) return; // Disable sorting/popover when in selection mode
+
+    if (sortBy === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDirection('asc');
+    }
+
+    if (column === 'validade') {
+      setIsAddActionPopoverOpen(true);
+    } else {
+      setIsAddActionPopoverOpen(false); // Close if other headers are clicked
+    }
+  };
+
+
   useEffect(() => {
     return () => {
       if (longPressTimerRef.current) {
@@ -520,23 +539,57 @@ export function ProductSearchTable() {
                         />
                     </TableHead>
                   )}
-                  <TableHead className={`w-[60px] py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'}`}>ID</TableHead>
-                  <TableHead className="px-2 md:px-4 py-3">Produto</TableHead>
-                  <TableHead className="px-2 md:px-4 py-3 hidden sm:table-cell">Marca</TableHead>
-                  <TableHead className="px-2 md:px-4 py-3 text-center">Quantidade</TableHead>
-                  <TableHead className="min-w-[130px] text-right px-2 md:px-4 py-3">
-                    <div className="flex items-center justify-end">
-                      Validade
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="ml-4 h-6 w-6"
-                        onClick={() => setIsAddProductDialogOpen(true)}
-                        aria-label="Adicionar novo produto"
-                      >
-                        <PlusCircle className="h-4 w-4 text-primary" />
-                      </Button>
-                    </div>
+                  <TableHead 
+                    className={`w-[60px] py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'} ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={() => handleHeaderClick('id')}
+                  >
+                    ID
+                  </TableHead>
+                  <TableHead 
+                    className={`px-2 md:px-4 py-3 ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={() => handleHeaderClick('produto')}
+                  >
+                    Produto
+                  </TableHead>
+                  <TableHead 
+                    className={`px-2 md:px-4 py-3 hidden sm:table-cell ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={() => handleHeaderClick('marca')}
+                  >
+                    Marca
+                  </TableHead>
+                  <TableHead 
+                    className={`px-2 md:px-4 py-3 text-center ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={() => handleHeaderClick('unidade')}
+                  >
+                    Quantidade
+                  </TableHead>
+                  <TableHead className={`min-w-[130px] text-right px-2 md:px-4 py-3 ${!isSelectionModeActive ? 'hover:bg-muted/50' : ''}`}>
+                    <Popover open={!isSelectionModeActive && isAddActionPopoverOpen} onOpenChange={setIsAddActionPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <div 
+                          className={`inline-flex items-center justify-end w-full h-full ${!isSelectionModeActive ? 'cursor-pointer' : ''}`}
+                          onClick={() => !isSelectionModeActive && handleHeaderClick('validade')}
+                        >
+                          Validade
+                        </div>
+                      </PopoverTrigger>
+                      {!isSelectionModeActive && (
+                        <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent click from bubbling to TableHead/PopoverTrigger
+                              setIsAddProductDialogOpen(true);
+                              setIsAddActionPopoverOpen(false);
+                            }}
+                            aria-label="Adicionar novo produto"
+                          >
+                            <PlusCircle className="h-4 w-4 text-primary" />
+                          </Button>
+                        </PopoverContent>
+                      )}
+                    </Popover>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -839,3 +892,4 @@ export function ProductSearchTable() {
     </>
   );
 }
+
