@@ -22,6 +22,13 @@ const mockProducts: Product[] = [
   { id: '12', produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: 'Caixa 200g', validade: '2024-11-25' },
 ];
 
+// Helper function to normalize strings (remove accents and convert to lowercase)
+const normalizeString = (str: string) => {
+  return str
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+    .toLowerCase(); // Convert to lowercase
+};
 
 export function ProductSearchTable() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,15 +41,16 @@ export function ProductSearchTable() {
 
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm) {
+    const normalizedSearchTerm = normalizeString(searchTerm);
+    if (!normalizedSearchTerm) {
       return clientSideProducts;
     }
     return clientSideProducts.filter(product =>
-      product.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.produto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.unidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.validade.toLowerCase().includes(searchTerm.toLowerCase())
+      normalizeString(product.id).includes(normalizedSearchTerm) ||
+      normalizeString(product.produto).includes(normalizedSearchTerm) ||
+      normalizeString(product.marca).includes(normalizedSearchTerm) ||
+      normalizeString(product.unidade).includes(normalizedSearchTerm) ||
+      normalizeString(product.validade).includes(normalizedSearchTerm)
     );
   }, [searchTerm, clientSideProducts]);
 
