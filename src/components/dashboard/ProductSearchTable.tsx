@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEve
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle, PlusCircle } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -74,6 +74,7 @@ const mockProducts: Product[] = [
 ];
 
 const normalizeString = (str: string) => {
+  if (typeof str !== 'string') return '';
   return str
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -135,12 +136,17 @@ const initialNewProductFormData: Omit<Product, 'id'> = {
   validade: '',
 };
 
+type SortableKey = keyof Product;
+
 export function ProductSearchTable() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(resequenceProducts(mockProducts));
   
+  const [sortBy, setSortBy] = useState<SortableKey | 'none'>('none');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -282,63 +288,72 @@ export function ProductSearchTable() {
   };
 
   const filteredProducts = useMemo(() => {
-    const normalizedSearchTerm = normalizeString(searchTerm);
-    let products = clientSideProducts;
+    const normalizedSearch = normalizeString(searchTerm);
+    let productsToFilter = clientSideProducts;
 
-    if (normalizedSearchTerm) {
-      products = products.filter(product =>
-        normalizeString(product.id).includes(normalizedSearchTerm) ||
-        normalizeString(product.produto).includes(normalizedSearchTerm) ||
-        normalizeString(product.marca).includes(normalizedSearchTerm) ||
-        normalizeString(product.unidade).includes(normalizedSearchTerm) ||
-        normalizeString(product.validade).includes(normalizedSearchTerm)
+    if (normalizedSearch) {
+      productsToFilter = productsToFilter.filter(product =>
+        Object.values(product).some(value =>
+          normalizeString(String(value)).includes(normalizedSearch)
+        )
       );
     }
 
-    if (selectedDateFilter === 'all') {
-      return products;
+    if (selectedDateFilter !== 'all') {
+      const today = startOfDay(new Date());
+      productsToFilter = productsToFilter.filter(product => {
+        const productDate = parseISO(product.validade);
+        if (!isValid(productDate)) return false;
+        const productDateStartOfDay = startOfDay(productDate);
+
+        switch (selectedDateFilter) {
+          case 'today': return isToday(productDateStartOfDay);
+          case 'yesterday': return isYesterday(productDateStartOfDay);
+          case 'tomorrow': return isTomorrow(productDateStartOfDay);
+          case 'expired': return isPast(productDateStartOfDay) && !isToday(productDateStartOfDay);
+          case 'next7': return isWithinInterval(productDateStartOfDay, { start: today, end: endOfDay(addDays(today, 6)) });
+          case 'last7': return isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(today, 6)), end: endOfDay(today) });
+          case 'next14': return isWithinInterval(productDateStartOfDay, { start: today, end: endOfDay(addDays(today, 13)) });
+          case 'last14': return isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(today, 13)), end: endOfDay(today) });
+          case 'thisMonth': return isWithinInterval(productDateStartOfDay, { start: startOfMonth(today), end: endOfMonth(today) });
+          case 'nextMonth': return isWithinInterval(productDateStartOfDay, { start: startOfMonth(addMonths(today, 1)), end: endOfMonth(addMonths(today, 1)) });
+          default: return true;
+        }
+      });
     }
 
-    const today = startOfDay(new Date());
+    if (sortBy && sortBy !== 'none') {
+      productsToFilter.sort((a, b) => {
+        const valA = a[sortBy];
+        const valB = b[sortBy];
+        let comparison = 0;
 
-    return products.filter(product => {
-      const productDate = parseISO(product.validade);
-      if (!isValid(productDate)) return false;
-
-      const productDateStartOfDay = startOfDay(productDate);
-
-      switch (selectedDateFilter) {
-        case 'today':
-          return isToday(productDateStartOfDay);
-        case 'yesterday':
-          return isYesterday(productDateStartOfDay);
-        case 'tomorrow':
-          return isTomorrow(productDateStartOfDay);
-        case 'expired':
-          return isPast(productDateStartOfDay) && !isToday(productDateStartOfDay);
-        case 'next7':
-          return isWithinInterval(productDateStartOfDay, { start: today, end: endOfDay(addDays(today, 6)) });
-        case 'last7':
-          return isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(today, 6)), end: endOfDay(today) });
-        case 'next14':
-          return isWithinInterval(productDateStartOfDay, { start: today, end: endOfDay(addDays(today, 13)) });
-        case 'last14':
-          return isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(today, 13)), end: endOfDay(today) });
-        case 'thisMonth': {
-          const start = startOfMonth(today);
-          const end = endOfMonth(today);
-          return isWithinInterval(productDateStartOfDay, { start, end });
+        if (sortBy === 'validade') {
+          const dateA = parseISO(valA as string);
+          const dateB = parseISO(valB as string);
+          if (isValid(dateA) && isValid(dateB)) {
+            comparison = dateA.getTime() - dateB.getTime();
+          } else if (isValid(dateA)) {
+            comparison = -1;
+          } else if (isValid(dateB)) {
+            comparison = 1;
+          }
+        } else if (sortBy === 'id') {
+          const numA = parseInt(valA as string, 10);
+          const numB = parseInt(valB as string, 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            comparison = numA - numB;
+          } else {
+            comparison = normalizeString(valA as string).localeCompare(normalizeString(valB as string));
+          }
+        } else {
+          comparison = normalizeString(valA as string).localeCompare(normalizeString(valB as string));
         }
-        case 'nextMonth': {
-          const start = startOfMonth(addMonths(today, 1));
-          const end = endOfMonth(addMonths(today, 1));
-          return isWithinInterval(productDateStartOfDay, { start, end });
-        }
-        default:
-          return true;
-      }
-    });
-  }, [searchTerm, clientSideProducts, selectedDateFilter]);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+    return productsToFilter;
+  }, [searchTerm, clientSideProducts, selectedDateFilter, sortBy, sortDirection]);
 
   const handleToggleSelectProduct = (productId: string) => {
     setSelectedProductIds((prevSelected) =>
@@ -394,7 +409,7 @@ export function ProductSearchTable() {
       return;
     }
     const newProduct: Omit<Product, 'id'> = { ...newProductFormData };
-    let updatedProducts = [...clientSideProducts, { ...newProduct, id: '' }]; // Temp ID, will be resequenced
+    let updatedProducts = [...clientSideProducts, { ...newProduct, id: '' }]; 
     updatedProducts = resequenceProducts(updatedProducts);
     setClientSideProducts(updatedProducts);
     toast({ title: "Produto Adicionado", description: `${newProduct.produto} foi adicionado com sucesso.` });
@@ -420,12 +435,12 @@ export function ProductSearchTable() {
       <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 items-end">
-            <div className="relative sm:col-span-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 items-end">
+            <div className="relative sm:col-span-2 md:col-span-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar por ID, Produto, Marca, Unidade ou Validade..."
+                placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-full"
@@ -443,6 +458,28 @@ export function ProductSearchTable() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortableKey | 'none')}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Ordenar por..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Não Ordenar</SelectItem>
+                <SelectItem value="id">ID</SelectItem>
+                <SelectItem value="produto">Produto</SelectItem>
+                <SelectItem value="marca">Marca</SelectItem>
+                <SelectItem value="unidade">Unidade</SelectItem>
+                <SelectItem value="validade">Validade</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')} 
+              className="w-full"
+              disabled={sortBy === 'none'}
+            >
+              {sortDirection === 'asc' ? <ArrowUpAZ className="mr-2 h-4 w-4" /> : <ArrowDownZA className="mr-2 h-4 w-4" />}
+              {sortDirection === 'asc' ? 'A-Z' : 'Z-A'}
+            </Button>
           </div>
           {isSelectionModeActive && (
             <div className="mt-4 flex items-center justify-between">
@@ -741,6 +778,7 @@ export function ProductSearchTable() {
                 value={newProductFormData.produto}
                 onChange={handleNewProductFormChange}
                 className="col-span-3"
+                required
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -778,6 +816,7 @@ export function ProductSearchTable() {
                 value={newProductFormData.validade}
                 onChange={handleNewProductFormChange}
                 className="col-span-3"
+                required
               />
             </div>
           </div>
@@ -792,5 +831,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-    
