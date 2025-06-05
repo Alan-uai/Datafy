@@ -4,4 +4,5 @@ export interface Product {
   marca: string;
   unidade: string;
   validade: string;
+  isExploding?: boolean;
 }

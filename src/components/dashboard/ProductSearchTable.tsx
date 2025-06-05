@@ -5,7 +5,7 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableHeader, TableRow as ShadTableRow } from '@/components/ui/table';
+import { Table, TableBody as ShadTableBody, TableCell, TableHeader, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -99,9 +99,12 @@ const dateFilterOptions = [
   { value: 'nextMonth', label: 'Próximo mês' },
 ];
 
-const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean): string => {
-  const productDate = parseISO(validade);
-  let baseStyle = 'transition-colors duration-150 ease-in-out';
+const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean, isExploding?: boolean): string => {
+  let baseStyle = 'transition-colors duration-150 ease-in-out relative';
+
+  if (isExploding) {
+    return `${baseStyle} bg-transparent`; 
+  }
 
   if (isSelectionModeActive) {
     baseStyle += isSelected ? ' bg-primary/20 dark:bg-primary/30' : ' hover:bg-muted/50 cursor-pointer';
@@ -109,9 +112,9 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
     baseStyle += ' hover:bg-muted/50 cursor-pointer';
   }
   
-  if (!isValid(productDate)) return baseStyle;
+  if (!isValid(parseISO(validade))) return baseStyle;
 
-  const productDateStartOfDay = startOfDay(productDate);
+  const productDateStartOfDay = startOfDay(parseISO(validade));
   const today = startOfDay(new Date());
 
   if (isPast(productDateStartOfDay) && !isToday(productDateStartOfDay)) {
@@ -127,20 +130,63 @@ const resequenceProducts = (products: Product[]): Product[] => {
   return products.map((product, index) => ({
     ...product,
     id: (index + 1).toString(),
+    isExploding: product.isExploding 
   }));
 };
 
 const LONG_PRESS_DURATION = 500; 
 const DRAG_THRESHOLD = 10; 
 
-const initialNewProductFormData: Omit<Product, 'id'> = {
+const initialNewProductFormData: Omit<Product, 'id' | 'isExploding'> = {
   produto: '',
   marca: '',
   unidade: '',
   validade: '',
 };
 
-type SortableKey = keyof Product;
+type SortableKey = keyof Omit<Product, 'isExploding'>;
+
+const Particle = ({ onComplete }: { onComplete: () => void }) => {
+  const numParticles = 20;
+  const animationDuration = 0.7; 
+
+  // Use a ref to track if onComplete has been called to prevent multiple calls
+  const onCompleteCalledRef = useRef(false);
+
+  const handleAnimationComplete = () => {
+    if (!onCompleteCalledRef.current) {
+      onCompleteCalledRef.current = true;
+      onComplete();
+    }
+  };
+
+  return (
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none"
+    >
+      {Array.from({ length: numParticles }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1.5 h-1.5 bg-primary rounded-full"
+          initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+          animate={{
+            x: (Math.random() - 0.5) * 200, 
+            y: (Math.random() - 0.5) * 80,
+            scale: 0,
+            opacity: 0,
+          }}
+          transition={{
+            duration: animationDuration,
+            delay: Math.random() * 0.2, 
+            ease: "easeOut",
+          }}
+          onAnimationComplete={i === numParticles -1 ? handleAnimationComplete : undefined}
+        />
+      ))}
+    </motion.div>
+  );
+};
+
 
 export function ProductSearchTable() {
   const { toast } = useToast();
@@ -156,7 +202,7 @@ export function ProductSearchTable() {
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editFormData, setEditFormData] = useState<Omit<Product, 'id'>>({ ...initialNewProductFormData });
+  const [editFormData, setEditFormData] = useState<Omit<Product, 'id' | 'isExploding'>>({ ...initialNewProductFormData });
   
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
@@ -165,12 +211,30 @@ export function ProductSearchTable() {
   const [activePopoverProductId, setActivePopoverProductId] = useState<string | null>(null);
 
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
-  const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id'>>({ ...initialNewProductFormData });
+  const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id' | 'isExploding'>>({ ...initialNewProductFormData });
   
   const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
   const longPressHeaderTimerRef = useRef<NodeJS.Timeout | null>(null);
   const headerPointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
   const validadeHeaderRef = useRef<HTMLTableCellElement>(null);
+
+
+  const finalizeDeleteProduct = (productId: string) => {
+    setClientSideProducts(prevProducts =>
+      resequenceProducts(prevProducts.filter(p => p.id !== productId))
+    );
+     // Check if this was the last exploding product among the initially selected ones
+    const stillExploding = clientSideProducts.some(p => p.isExploding && p.id !== productId);
+    if (!stillExploding && selectedProductIds.includes(productId)) {
+        // If this product was part of a multi-selection and it's the last one to finish exploding
+        // or if all selected products have been processed.
+        const remainingSelected = selectedProductIds.filter(id => id !== productId);
+        if (remainingSelected.length === 0 || !clientSideProducts.some(p => remainingSelected.includes(p.id) && p.isExploding)) {
+           setSelectedProductIds([]);
+           setIsSelectionModeActive(false);
+        }
+    }
+  };
 
 
   const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
@@ -268,10 +332,12 @@ export function ProductSearchTable() {
       }
     } else if (headerPointerDownPositionRef.current) {
         handleHeaderClick(column); 
+    } else if (!isAddActionPopoverOpen) { // If popover isn't opening, treat as click
+        handleHeaderClick(column);
     }
     
-    if (pointerDownPositionRef.current) { 
-        setIsAddActionPopoverOpen(false);
+    if (pointerDownPositionRef.current && isAddActionPopoverOpen) { 
+        // Do nothing if long press led to popover
     }
     headerPointerDownPositionRef.current = null;
   };
@@ -313,9 +379,11 @@ export function ProductSearchTable() {
 
   const handleDeleteSingleProduct = () => {
     if (selectedProduct) {
-      let updatedProducts = clientSideProducts.filter(p => p.id !== selectedProduct.id);
-      updatedProducts = resequenceProducts(updatedProducts);
-      setClientSideProducts(updatedProducts);
+      setClientSideProducts(prevProducts =>
+        prevProducts.map(p =>
+          p.id === selectedProduct.id ? { ...p, isExploding: true } : p
+        )
+      );
       toast({ title: "Produto excluído", description: `${selectedProduct.produto} foi removido.` });
       setIsDeleteDialogOpen(false);
       if (isSelectionModeActive && selectedProductIds.includes(selectedProduct.id)) {
@@ -333,7 +401,7 @@ export function ProductSearchTable() {
   const handleSaveEdit = () => {
     if (editingProduct) {
       let updatedProducts = clientSideProducts.map(p =>
-        p.id === editingProduct.id ? { ...editingProduct, ...editFormData } : p
+        p.id === editingProduct.id ? { ...editingProduct, ...editFormData, isExploding: p.isExploding } : p
       );
       setClientSideProducts(updatedProducts);
       toast({ title: "Produto atualizado", description: `${editFormData.produto} foi atualizado com sucesso.` });
@@ -346,17 +414,19 @@ export function ProductSearchTable() {
     const normalizedSearch = normalizeString(searchTerm);
     let productsToFilter = [...clientSideProducts];
 
+
     if (normalizedSearch) {
       productsToFilter = productsToFilter.filter(product =>
-        Object.values(product).some(value =>
+        !product.isExploding && Object.values(product).some(value =>
           normalizeString(String(value)).includes(normalizedSearch)
-        )
+        ) || product.isExploding 
       );
     }
 
     if (selectedDateFilter !== 'all') {
       const today = startOfDay(new Date());
       productsToFilter = productsToFilter.filter(product => {
+        if (product.isExploding) return true; 
         const productDate = parseISO(product.validade);
         if (!isValid(productDate)) return false;
         const productDateStartOfDay = startOfDay(productDate);
@@ -376,9 +446,12 @@ export function ProductSearchTable() {
         }
       });
     }
+    
+    const displayableProducts = productsToFilter.filter(p => !p.isExploding);
+    const explodingProducts = productsToFilter.filter(p => p.isExploding);
 
     if (sortBy && sortBy !== 'none') {
-      productsToFilter.sort((a, b) => {
+      displayableProducts.sort((a, b) => {
         const valA = a[sortBy];
         const valB = b[sortBy];
         let comparison = 0;
@@ -407,7 +480,7 @@ export function ProductSearchTable() {
         return sortDirection === 'asc' ? comparison : -comparison;
       });
     }
-    return productsToFilter;
+    return [...displayableProducts, ...explodingProducts];
   }, [searchTerm, clientSideProducts, selectedDateFilter, sortBy, sortDirection]);
 
   const handleToggleSelectProduct = (productId: string) => {
@@ -419,8 +492,9 @@ export function ProductSearchTable() {
   };
 
   const handleSelectAll = (isChecked: boolean | 'indeterminate') => {
+    const visibleProductsNotExploding = filteredProducts.filter(p => !p.isExploding);
     if (isChecked === true) {
-      setSelectedProductIds(filteredProducts.map((p) => p.id));
+      setSelectedProductIds(visibleProductsNotExploding.map((p) => p.id));
     } else {
       setSelectedProductIds([]);
     }
@@ -435,13 +509,13 @@ export function ProductSearchTable() {
   };
 
   const handleDeleteSelected = () => {
-    let remainingProducts = clientSideProducts.filter((p) => !selectedProductIds.includes(p.id));
-    remainingProducts = resequenceProducts(remainingProducts);
-    setClientSideProducts(remainingProducts);
+    setClientSideProducts(prevProducts =>
+      prevProducts.map(p =>
+        selectedProductIds.includes(p.id) ? { ...p, isExploding: true } : p
+      )
+    );
     toast({ title: `${selectedProductIds.length} produto(s) excluído(s)`, description: "Os produtos selecionados foram removidos." });
-    setSelectedProductIds([]);
     setIsDeleteSelectedConfirmOpen(false);
-    setIsSelectionModeActive(false); 
   };
   
   const cancelSelectionMode = () => {
@@ -463,8 +537,8 @@ export function ProductSearchTable() {
       });
       return;
     }
-    const newProduct: Omit<Product, 'id'> = { ...newProductFormData };
-    let updatedProducts = [...clientSideProducts, { ...newProduct, id: '' }]; 
+    const newProduct: Omit<Product, 'id' | 'isExploding'> = { ...newProductFormData };
+    let updatedProducts = [...clientSideProducts, { ...newProduct, id: '', isExploding: false }]; 
     updatedProducts = resequenceProducts(updatedProducts);
     setClientSideProducts(updatedProducts);
     toast({ title: "Produto Adicionado", description: `${newProduct.produto} foi adicionado com sucesso.` });
@@ -472,9 +546,12 @@ export function ProductSearchTable() {
     setNewProductFormData({ ...initialNewProductFormData });
   };
 
-  const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProductIds.includes(p.id));
-  const someFilteredSelected = selectedProductIds.length > 0 && selectedProductIds.some(id => filteredProducts.find(p => p.id === id));
+  const productsForDisplay = useMemo(() => filteredProducts.filter(p => !p.isExploding), [filteredProducts]);
+  const allFilteredSelected = productsForDisplay.length > 0 && productsForDisplay.every(p => selectedProductIds.includes(p.id));
+  const someFilteredSelected = productsForDisplay.length > 0 && selectedProductIds.some(id => productsForDisplay.find(p => p.id === id));
+
   const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
+
 
   const handleHeaderClick = (column: SortableKey) => {
     if (isSelectionModeActive) return; 
@@ -490,6 +567,21 @@ export function ProductSearchTable() {
 
 
   useEffect(() => {
+    const explodingProductStillInList = clientSideProducts.some(p => p.isExploding);
+    if (!explodingProductStillInList && selectedProductIds.length > 0) {
+      // All explosion animations are done, check if any of the originally selected items are now gone
+      const remainingSelectedStillInList = selectedProductIds.every(id => clientSideProducts.find(p => p.id === id && !p.isExploding));
+      if (!remainingSelectedStillInList || selectedProductIds.length === 0) {
+          // If some selected items were deleted and finished exploding, or if selection became empty
+          // and no more items are exploding, then clear selection and mode.
+          if (!clientSideProducts.some(p=> p.isExploding)) { // Ensure no other explosions are pending from single deletes
+            setSelectedProductIds([]);
+            setIsSelectionModeActive(false);
+          }
+      }
+    }
+
+
     return () => {
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
@@ -498,11 +590,11 @@ export function ProductSearchTable() {
         clearTimeout(longPressHeaderTimerRef.current);
       }
     };
-  }, []);
+  }, [clientSideProducts, selectedProductIds]);
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
-    const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'} ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`;
-    const icon = sortBy === column && sortBy !== 'none'
+    const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`;
+    const icon = sortBy === column && sortBy !== 'none' && !isSelectionModeActive
       ? (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)
       : null;
 
@@ -539,7 +631,7 @@ export function ProductSearchTable() {
       <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
-          <div className="mt-4 flex flex-col gap-4">
+           <div className="mt-4 flex flex-col gap-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -550,9 +642,9 @@ export function ProductSearchTable() {
                 className="pl-10 w-full"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 items-end">
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
               <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full sm:w-auto">
                   <SelectValue placeholder="Filtrar por validade..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -601,9 +693,9 @@ export function ProductSearchTable() {
                     </TableHead>
                   )}
                   {renderHeaderCell('id', 'ID', 'w-[60px]')}
-                  {renderHeaderCell('produto', 'Produto', 'px-2 md:px-4')}
-                  {renderHeaderCell('marca', 'Marca', 'px-2 md:px-4 hidden sm:table-cell')}
-                  {renderHeaderCell('unidade', 'Qtde', 'px-2 md:px-4 text-center')}
+                  {renderHeaderCell('produto', 'Produto')}
+                  {renderHeaderCell('marca', 'Marca', 'hidden sm:table-cell')}
+                  {renderHeaderCell('unidade', 'Qtde', 'text-center')}
                   
                   <TableHead 
                     ref={validadeHeaderRef}
@@ -628,14 +720,14 @@ export function ProductSearchTable() {
                      }}
                   >
                     Validade 
-                    {sortBy === 'validade' && sortBy !== 'none' && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
+                    {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
                     <Popover open={isAddActionPopoverOpen && !isSelectionModeActive} onOpenChange={setIsAddActionPopoverOpen}>
                        <PopoverTrigger asChild>
                          <span />
                        </PopoverTrigger>
                        <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]" 
                          anchorRef={validadeHeaderRef}
-                         onOpenAutoFocus={(e) => e.preventDefault()}
+                         onOpenAutoFocus={(e) => e.preventDefault()} 
                        >
                         <Button
                           variant="ghost"
@@ -655,14 +747,13 @@ export function ProductSearchTable() {
                 </ShadTableRow>
               </TableHeader>
               <MotionTableBody layout>
-                <AnimatePresence>
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((product) => (
+                <AnimatePresence initial={false}>
+                  {filteredProducts.map((product) => (
                       <Popover
                         key={product.id} 
-                        open={activePopoverProductId === product.id && !isSelectionModeActive} 
+                        open={activePopoverProductId === product.id && !isSelectionModeActive && !product.isExploding} 
                         onOpenChange={(isOpen) => {
-                          if (isSelectionModeActive) return; 
+                          if (isSelectionModeActive || product.isExploding) return; 
                           if (isOpen) {
                             setSelectedProduct(product);
                             setActivePopoverProductId(product.id);
@@ -673,45 +764,53 @@ export function ProductSearchTable() {
                           }
                         }}
                       >
-                        <PopoverTrigger asChild disabled={isSelectionModeActive}>
+                        <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
                           <MotionTableRow 
                             layout="position"
-                            initial={{ opacity: 0, height: 0 }}
+                            initial={{ opacity: 1, height: 'auto' }}
                             animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
-                            className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive)}
+                            exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }} // For non-exploding exit
+                            className={getRowStyling(product.validade, selectedProductIds.includes(product.id), isSelectionModeActive, product.isExploding)}
                             data-state={selectedProductIds.includes(product.id) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
+                              if (product.isExploding) return;
                                handleRowInteractionStart(product.id, e.clientX, e.clientY);
                             }}
                             onPointerUp={(e: PointerEvent<HTMLTableRowElement>) => {
+                              if (product.isExploding) return;
                               handleRowInteractionEnd(product, e.clientX, e.clientY, e.target);
                             }}
                             onPointerLeave={() => { 
+                              if (product.isExploding) return;
                               if (longPressTimerRef.current) {
                                 clearTimeout(longPressTimerRef.current);
                                 longPressTimerRef.current = null;
                               }
                             }}
                             onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => {
+                              if (product.isExploding) return;
                               handlePointerMove(e.clientX, e.clientY);
                             }}
                             onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
+                              if (product.isExploding) return;
                               if (e.touches.length === 1) { 
                                   handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY);
                               }
                             }}
                             onTouchEnd={(e: TouchEvent<HTMLTableRowElement>) => {
+                              if (product.isExploding) return;
                               if (e.changedTouches.length === 1) {
                                  handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
                               }
                             }}
                             onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
+                               if (product.isExploding) return;
                                if (e.touches.length === 1) {
                                   handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
                                }
                             }}
                             onTouchCancel={() => { 
+                               if (product.isExploding) return;
                                if (longPressTimerRef.current) {
                                 clearTimeout(longPressTimerRef.current);
                                 longPressTimerRef.current = null;
@@ -719,27 +818,35 @@ export function ProductSearchTable() {
                               pointerDownPositionRef.current = null;
                             }}
                           >
-                            {isSelectionModeActive && (
-                              <TableCell data-is-checkbox-cell="true" className="py-0 px-2" onClick={(e) => e.stopPropagation()}>
-                                 <Checkbox
-                                    aria-label={`Selecionar produto ${product.produto}`}
-                                    checked={selectedProductIds.includes(product.id)}
-                                    onCheckedChange={() => handleToggleSelectProduct(product.id)}
-                                  />
+                            {product.isExploding ? (
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 h-[57px]"> 
+                                <Particle onComplete={() => finalizeDeleteProduct(product.id)} />
                               </TableCell>
+                            ) : (
+                              <>
+                                {isSelectionModeActive && (
+                                  <TableCell data-is-checkbox-cell="true" className="py-0 px-2" onClick={(e) => e.stopPropagation()}>
+                                    <Checkbox
+                                        aria-label={`Selecionar produto ${product.produto}`}
+                                        checked={selectedProductIds.includes(product.id)}
+                                        onCheckedChange={() => handleToggleSelectProduct(product.id)}
+                                      />
+                                  </TableCell>
+                                )}
+                                <TableCell className={`font-medium py-3 px-2 md:px-4 ${isSelectionModeActive ? 'pl-1 pr-1' : ''}`}>{product.id}</TableCell>
+                                <TableCell className="py-3 px-2 md:px-4">{product.produto}</TableCell>
+                                <TableCell className="py-3 px-2 md:px-4 hidden sm:table-cell">{product.marca}</TableCell>
+                                <TableCell className="py-3 px-2 md:px-4 text-center">{product.unidade}</TableCell>
+                                <TableCell className="py-3 px-2 md:px-4 text-right">
+                                  {isValid(parseISO(product.validade))
+                                    ? format(parseISO(product.validade), 'dd/MM/yyyy')
+                                    : 'Data inválida'}
+                                </TableCell>
+                              </>
                             )}
-                            <TableCell className={`font-medium py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'}`}>{product.id}</TableCell>
-                            <TableCell className="px-2 md:px-4 py-3">{product.produto}</TableCell>
-                            <TableCell className="px-2 md:px-4 py-3 hidden sm:table-cell">{product.marca}</TableCell>
-                            <TableCell className="px-2 md:px-4 py-3 text-center">{product.unidade}</TableCell>
-                            <TableCell className="text-right px-2 md:px-4 py-3">
-                              {isValid(parseISO(product.validade))
-                                ? format(parseISO(product.validade), 'dd/MM/yyyy')
-                                : 'Data inválida'}
-                            </TableCell>
                           </MotionTableRow>
                         </PopoverTrigger>
-                         {!isSelectionModeActive && (
+                         {!isSelectionModeActive && !product.isExploding && (
                           <PopoverContent side="top" align="end" className="w-auto p-1 z-50" 
                             onOpenAutoFocus={(e) => e.preventDefault()} 
                             onCloseAutoFocus={(e) => e.preventDefault()} 
@@ -756,13 +863,14 @@ export function ProductSearchTable() {
                          )}
                       </Popover>
                     ))
-                  ) : (
-                    <MotionTableRow>
-                      <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
-                        Nenhum produto encontrado com os filtros aplicados.
-                      </TableCell>
-                    </MotionTableRow>
-                  )}
+                  }
+                   {filteredProducts.filter(p => !p.isExploding).length === 0 && !clientSideProducts.some(p => p.isExploding) && (
+                     <MotionTableRow>
+                       <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
+                         Nenhum produto encontrado com os filtros aplicados.
+                       </TableCell>
+                     </MotionTableRow>
+                   )}
                 </AnimatePresence>
               </MotionTableBody>
             </Table>
