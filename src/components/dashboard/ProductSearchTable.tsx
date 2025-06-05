@@ -2,7 +2,7 @@
 "use client";
 
 import type { Product } from '@/types';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   isToday,
   isYesterday,
@@ -101,27 +111,63 @@ export function ProductSearchTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(mockProducts);
+  
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
+
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editFormData, setEditFormData] = useState<Omit<Product, 'id'>>({
+    produto: '',
+    marca: '',
+    unidade: '',
+    validade: '',
+  });
 
   const handleRowClick = (product: Product) => {
     setSelectedProduct(product);
-    setIsDialogOpen(true);
+    setIsActionDialogOpen(true);
   };
 
   const handleEdit = () => {
-    console.log('Edit product:', selectedProduct);
-    setIsDialogOpen(false);
-    // Implement edit functionality here
+    if (selectedProduct) {
+      setEditingProduct(selectedProduct);
+      setEditFormData({
+        produto: selectedProduct.produto,
+        marca: selectedProduct.marca,
+        unidade: selectedProduct.unidade,
+        validade: selectedProduct.validade,
+      });
+      setIsEditDialogOpen(true);
+      setIsActionDialogOpen(false); 
+    }
   };
 
   const handleDelete = () => {
-    console.log('Delete product:', selectedProduct);
-    // Implement delete functionality here:
-    // setClientSideProducts(clientSideProducts.filter(p => p.id !== selectedProduct?.id));
-    setIsDialogOpen(false);
+    if (selectedProduct) {
+      console.log('Delete product:', selectedProduct);
+      setClientSideProducts(clientSideProducts.filter(p => p.id !== selectedProduct.id));
+      setIsActionDialogOpen(false);
+      setSelectedProduct(null);
+    }
   };
 
+  const handleEditFormChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEdit = () => {
+    if (editingProduct) {
+      setClientSideProducts(prevProducts =>
+        prevProducts.map(p =>
+          p.id === editingProduct.id ? { ...editingProduct, ...editFormData } : p
+        )
+      );
+      setIsEditDialogOpen(false);
+      setEditingProduct(null);
+    }
+  };
 
   const filteredProducts = useMemo(() => {
     const normalizedSearchTerm = normalizeString(searchTerm);
@@ -257,7 +303,7 @@ export function ProductSearchTable() {
       </Card>
 
       {selectedProduct && (
-        <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <AlertDialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Ações para: {selectedProduct.produto}</AlertDialogTitle>
@@ -266,19 +312,94 @@ export function ProductSearchTable() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="flex justify-around py-4">
-              <Button variant="outline" size="icon" onClick={handleEdit} aria-label="Editar Produto">
-                <Pencil className="h-5 w-5" />
+              <Button variant="outline" size="lg" onClick={handleEdit} aria-label="Editar Produto">
+                <Pencil className="h-5 w-5 mr-2" /> Editar
               </Button>
-              <Button variant="destructive" size="icon" onClick={handleDelete} aria-label="Excluir Produto">
-                <Trash2 className="h-5 w-5" />
+              <Button variant="destructive" size="lg" onClick={handleDelete} aria-label="Excluir Produto">
+                <Trash2 className="h-5 w-5 mr-2" /> Excluir
               </Button>
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setSelectedProduct(null)}>Cancelar</AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {editingProduct && (
+        <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => {
+          setIsEditDialogOpen(isOpen);
+          if (!isOpen) setEditingProduct(null);
+        }}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Produto: {editingProduct.produto}</DialogTitle>
+              <DialogDescription>
+                Modifique os detalhes do produto abaixo. Clique em salvar para aplicar as mudanças.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="produto" className="text-right">
+                  Produto
+                </Label>
+                <Input
+                  id="produto"
+                  name="produto"
+                  value={editFormData.produto}
+                  onChange={handleEditFormChange}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="marca" className="text-right">
+                  Marca
+                </Label>
+                <Input
+                  id="marca"
+                  name="marca"
+                  value={editFormData.marca}
+                  onChange={handleEditFormChange}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="unidade" className="text-right">
+                  Unidade
+                </Label>
+                <Input
+                  id="unidade"
+                  name="unidade"
+                  value={editFormData.unidade}
+                  onChange={handleEditFormChange}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="validade" className="text-right">
+                  Validade
+                </Label>
+                <Input
+                  id="validade"
+                  name="validade"
+                  type="date"
+                  value={editFormData.validade}
+                  onChange={handleEditFormChange}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">Cancelar</Button>
+              </DialogClose>
+              <Button type="button" onClick={handleSaveEdit}>Salvar Alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
+
+    
