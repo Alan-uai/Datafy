@@ -6,8 +6,19 @@ import { useState, useMemo, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search } from 'lucide-react';
+import { Search, Pencil, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
 import {
   isToday,
   isYesterday,
@@ -77,23 +88,40 @@ const getRowStyling = (validade: string): string => {
   const today = startOfDay(new Date());
 
   if (isPast(productDateStartOfDay) && !isToday(productDateStartOfDay)) {
-    return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40'; // Expired
+    return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200/70 dark:hover:bg-red-800/40 cursor-pointer'; // Expired
   }
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
-    return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40'; // Expiring today or tomorrow
+    return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40 cursor-pointer'; // Expiring today or tomorrow
   }
-  return 'hover:bg-muted/50'; // Default hover
+  return 'hover:bg-muted/50 cursor-pointer'; // Default hover
 };
 
 
 export function ProductSearchTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
-  const [clientSideProducts, setClientSideProducts] = useState<Product[]>([]);
+  const [clientSideProducts, setClientSideProducts] = useState<Product[]>(mockProducts);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  useEffect(() => {
-    setClientSideProducts(mockProducts);
-  }, []);
+  const handleRowClick = (product: Product) => {
+    setSelectedProduct(product);
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = () => {
+    console.log('Edit product:', selectedProduct);
+    setIsDialogOpen(false);
+    // Implement edit functionality here
+  };
+
+  const handleDelete = () => {
+    console.log('Delete product:', selectedProduct);
+    // Implement delete functionality here:
+    // setClientSideProducts(clientSideProducts.filter(p => p.id !== selectedProduct?.id));
+    setIsDialogOpen(false);
+  };
+
 
   const filteredProducts = useMemo(() => {
     const normalizedSearchTerm = normalizeString(searchTerm);
@@ -117,7 +145,7 @@ export function ProductSearchTable() {
 
     return products.filter(product => {
       const productDate = parseISO(product.validade);
-      if (!isValid(productDate)) return false; 
+      if (!isValid(productDate)) return false;
 
       const productDateStartOfDay = startOfDay(productDate);
 
@@ -155,74 +183,102 @@ export function ProductSearchTable() {
   }, [searchTerm, clientSideProducts, selectedDateFilter]);
 
   return (
-    <Card className="shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="relative sm:col-span-2">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar por ID, Produto, Marca, Unidade ou Validade..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
+    <>
+      <Card className="shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-xl font-headline">Lista de Produtos</CardTitle>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="relative sm:col-span-2">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por ID, Produto, Marca, Unidade ou Validade..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+            <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filtrar por validade..." />
+              </SelectTrigger>
+              <SelectContent>
+                {dateFilterOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filtrar por validade..." />
-            </SelectTrigger>
-            <SelectContent>
-              {dateFilterOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">ID</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Marca</TableHead>
-                <TableHead>Unidade</TableHead>
-                <TableHead className="w-[150px]">Validade</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id} className={getRowStyling(product.validade)}>
-                    <TableCell className="font-medium">{product.id}</TableCell>
-                    <TableCell>{product.produto}</TableCell>
-                    <TableCell>{product.marca}</TableCell>
-                    <TableCell>{product.unidade}</TableCell>
-                    <TableCell>
-                      {isValid(parseISO(product.validade)) 
-                        ? format(parseISO(product.validade), 'dd/MM/yyyy')
-                        : 'Data inválida'}
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">ID</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Marca</TableHead>
+                  <TableHead>Unidade</TableHead>
+                  <TableHead className="w-[150px]">Validade</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map((product) => (
+                    <TableRow 
+                      key={product.id} 
+                      className={getRowStyling(product.validade)}
+                      onClick={() => handleRowClick(product)}
+                    >
+                      <TableCell className="font-medium">{product.id}</TableCell>
+                      <TableCell>{product.produto}</TableCell>
+                      <TableCell>{product.marca}</TableCell>
+                      <TableCell>{product.unidade}</TableCell>
+                      <TableCell>
+                        {isValid(parseISO(product.validade))
+                          ? format(parseISO(product.validade), 'dd/MM/yyyy')
+                          : 'Data inválida'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center h-24">
+                      Nenhum produto encontrado com os filtros aplicados.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24">
-                    Nenhum produto encontrado com os filtros aplicados.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedProduct && (
+        <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Ações para: {selectedProduct.produto}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Escolha uma ação para o produto selecionado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex justify-around py-4">
+              <Button variant="outline" size="icon" onClick={handleEdit} aria-label="Editar Produto">
+                <Pencil className="h-5 w-5" />
+              </Button>
+              <Button variant="destructive" size="icon" onClick={handleDelete} aria-label="Excluir Produto">
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
   );
 }
-
-    
