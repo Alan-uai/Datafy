@@ -168,9 +168,9 @@ export function ProductSearchTable() {
   };
 
   const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number) => {
-    const wasLongPress = !longPressTimerRef.current && isSelectionModeActive; // Timer cleared by itself or already in selection mode
+    const wasLongPress = !longPressTimerRef.current && isSelectionModeActive; 
     
-    if (longPressTimerRef.current) { // Short click
+    if (longPressTimerRef.current) { 
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
       
@@ -182,10 +182,9 @@ export function ProductSearchTable() {
         handleToggleSelectProduct(product.id);
       }
     } else if (isSelectionModeActive && !wasLongPress) {
-        // This means a click happened while selection mode was already active (not the one activating it)
         const dx = Math.abs(clientX - (pointerDownPositionRef.current?.x ?? 0));
         const dy = Math.abs(clientY - (pointerDownPositionRef.current?.y ?? 0));
-        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // Ensure it's not a drag release
+        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { 
           handleToggleSelectProduct(product.id);
         }
     }
@@ -251,7 +250,6 @@ export function ProductSearchTable() {
       let updatedProducts = clientSideProducts.map(p =>
         p.id === editingProduct.id ? { ...editingProduct, ...editFormData } : p
       );
-      // No need to resequence on edit, only on delete/add
       setClientSideProducts(updatedProducts);
       toast({ title: "Produto atualizado", description: `${editFormData.produto} foi atualizado com sucesso.` });
       setIsEditDialogOpen(false);
@@ -349,7 +347,7 @@ export function ProductSearchTable() {
     toast({ title: `${selectedProductIds.length} produto(s) excluído(s)`, description: "Os produtos selecionados foram removidos." });
     setSelectedProductIds([]);
     setIsDeleteSelectedConfirmOpen(false);
-    setIsSelectionModeActive(false); // Exit selection mode after deleting
+    setIsSelectionModeActive(false); 
   };
   
   const cancelSelectionMode = () => {
@@ -361,7 +359,6 @@ export function ProductSearchTable() {
   const someFilteredSelected = selectedProductIds.length > 0 && selectedProductIds.some(id => filteredProducts.find(p => p.id === id));
   const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (longPressTimerRef.current) {
@@ -456,7 +453,6 @@ export function ProductSearchTable() {
                       onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
                       onTouchStart={(e) => handleRowInteractionStart(product.id, e.touches[0].clientX, e.touches[0].clientY)}
                       onTouchEnd={(e) => {
-                        // Use changedTouches as targetTouches might be empty if the touch ended
                         if (e.changedTouches.length > 0) {
                            handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
                         }
@@ -509,23 +505,22 @@ export function ProductSearchTable() {
           setIsActionDialogOpen(isOpen);
           if (!isOpen) setSelectedProduct(null);
         }}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Ações para: {selectedProduct.produto}</AlertDialogTitle>
-              <AlertDialogDescription>
-                Escolha uma ação para o produto selecionado.
-              </AlertDialogDescription>
+          <AlertDialogContent className="sm:max-w-xs p-4">
+            <AlertDialogHeader className="mb-2">
+              <AlertDialogTitle className="text-base text-center">
+                Ações: {selectedProduct.produto}
+              </AlertDialogTitle>
             </AlertDialogHeader>
-            <div className="flex justify-around py-4">
-              <Button variant="outline" size="lg" onClick={handleEdit} aria-label="Editar Produto">
-                <Pencil className="h-5 w-5 mr-2" /> Editar
+            <div className="flex justify-center space-x-3 py-2">
+              <Button variant="outline" size="icon" onClick={handleEdit} aria-label="Editar Produto">
+                <Pencil className="h-5 w-5" />
               </Button>
-              <Button variant="destructive" size="lg" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto">
-                <Trash2 className="h-5 w-5 mr-2" /> Excluir
+              <Button variant="destructive" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto">
+                <Trash2 className="h-5 w-5" />
               </Button>
             </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setSelectedProduct(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogFooter className="mt-2 sm:justify-center">
+              <AlertDialogCancel onClick={() => setSelectedProduct(null)} className="h-8 px-3">Cancelar</AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
