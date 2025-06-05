@@ -505,7 +505,7 @@ export function ProductSearchTable() {
             </div>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
