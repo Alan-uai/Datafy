@@ -65,12 +65,12 @@ const mockProducts: Product[] = [
   { id: '10', produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31' },
   { id: '11', produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20' },
   { id: '12', produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25' },
-  { id: '13', produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0] }, // Today
-  { id: '14', produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0] }, // Yesterday
-  { id: '15', produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0] }, // Tomorrow
-  { id: '16', produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01' }, // Expired
-  { id: '17', produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0] }, // Next 7 days
-  { id: '18', produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0] }, // Last 7 days
+  { id: '13', produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0] }, 
+  { id: '14', produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0] }, 
+  { id: '15', produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0] }, 
+  { id: '16', produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01' }, 
+  { id: '17', produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0] }, 
+  { id: '18', produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0] }, 
 ];
 
 const normalizeString = (str: string) => {
@@ -511,7 +511,7 @@ export function ProductSearchTable() {
               <TableHeader>
                 <TableRow>
                   {isSelectionModeActive && (
-                    <TableHead className="w-[50px] px-2">
+                    <TableHead className="w-[50px] px-2 py-3">
                        <Checkbox
                           id="selectAll"
                           aria-label="Selecionar todas as linhas visíveis"
@@ -520,21 +520,23 @@ export function ProductSearchTable() {
                         />
                     </TableHead>
                   )}
-                  <TableHead className={`w-[80px] ${!isSelectionModeActive ? 'pl-4' : 'pl-2'}`}>ID</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Marca</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead className="w-[170px] flex items-center">
-                    Validade
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="ml-4 h-6 w-6"
-                      onClick={() => setIsAddProductDialogOpen(true)}
-                      aria-label="Adicionar novo produto"
-                    >
-                      <PlusCircle className="h-4 w-4 text-primary" />
-                    </Button>
+                  <TableHead className={`w-[60px] py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'}`}>ID</TableHead>
+                  <TableHead className="px-2 md:px-4 py-3">Produto</TableHead>
+                  <TableHead className="px-2 md:px-4 py-3 hidden sm:table-cell">Marca</TableHead>
+                  <TableHead className="px-2 md:px-4 py-3 text-center">Quantidade</TableHead>
+                  <TableHead className="min-w-[130px] text-right px-2 md:px-4 py-3">
+                    <div className="flex items-center justify-end">
+                      Validade
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="ml-4 h-6 w-6"
+                        onClick={() => setIsAddProductDialogOpen(true)}
+                        aria-label="Adicionar novo produto"
+                      >
+                        <PlusCircle className="h-4 w-4 text-primary" />
+                      </Button>
+                    </div>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -607,11 +609,11 @@ export function ProductSearchTable() {
                                 />
                             </TableCell>
                           )}
-                          <TableCell className={`font-medium ${!isSelectionModeActive ? 'pl-4' : 'pl-2'}`}>{product.id}</TableCell>
-                          <TableCell>{product.produto}</TableCell>
-                          <TableCell>{product.marca}</TableCell>
-                          <TableCell>{product.unidade}</TableCell>
-                          <TableCell>
+                          <TableCell className={`font-medium py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'}`}>{product.id}</TableCell>
+                          <TableCell className="px-2 md:px-4 py-3">{product.produto}</TableCell>
+                          <TableCell className="px-2 md:px-4 py-3 hidden sm:table-cell">{product.marca}</TableCell>
+                          <TableCell className="px-2 md:px-4 py-3 text-center">{product.unidade}</TableCell>
+                          <TableCell className="text-right px-2 md:px-4 py-3">
                             {isValid(parseISO(product.validade))
                               ? format(parseISO(product.validade), 'dd/MM/yyyy')
                               : 'Data inválida'}
@@ -637,7 +639,7 @@ export function ProductSearchTable() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24">
+                    <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
                       Nenhum produto encontrado com os filtros aplicados.
                     </TableCell>
                   </TableRow>
@@ -837,5 +839,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-    
