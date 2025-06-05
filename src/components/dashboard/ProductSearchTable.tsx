@@ -162,7 +162,11 @@ export function ProductSearchTable() {
 
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
   const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id'>>({ ...initialNewProductFormData });
+  
   const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
+  const longPressHeaderTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const headerPointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const validadeHeaderRef = useRef<HTMLTableCellElement>(null);
 
 
   const handleRowInteractionStart = (productId: string, clientX: number, clientY: number) => {
@@ -223,17 +227,59 @@ export function ProductSearchTable() {
   };
   
   const handlePointerMove = (clientX: number, clientY: number) => {
-    if (!pointerDownPositionRef.current) return;
+    if (!pointerDownPositionRef.current || !longPressTimerRef.current) return;
 
-    if (longPressTimerRef.current) {
-        const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
-        const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
+    const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
+    const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
 
-        if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-          clearTimeout(longPressTimerRef.current);
-          longPressTimerRef.current = null;
-          pointerDownPositionRef.current = null; 
-        }
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      pointerDownPositionRef.current = null; 
+    }
+  };
+
+  const handleHeaderPointerDown = (clientX: number, clientY: number) => {
+    if (isSelectionModeActive) return;
+    headerPointerDownPositionRef.current = { x: clientX, y: clientY };
+
+    if (longPressHeaderTimerRef.current) {
+      clearTimeout(longPressHeaderTimerRef.current);
+    }
+    longPressHeaderTimerRef.current = setTimeout(() => {
+      if (headerPointerDownPositionRef.current) { // Check if not cleared by drag
+        setIsAddActionPopoverOpen(true);
+        headerPointerDownPositionRef.current = null; // Mark as handled by long press
+      }
+      longPressHeaderTimerRef.current = null;
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handleHeaderPointerUp = (column: SortableKey) => {
+    if (longPressHeaderTimerRef.current) { // Was a short click or drag didn't cancel in time
+      clearTimeout(longPressHeaderTimerRef.current);
+      longPressHeaderTimerRef.current = null;
+      if (headerPointerDownPositionRef.current) { // If not cleared, it's a short click
+        handleHeaderClick(column);
+      }
+    }
+    // Always ensure popover is closed on a short click, regardless of which header
+    if (headerPointerDownPositionRef.current) { 
+        setIsAddActionPopoverOpen(false);
+    }
+    headerPointerDownPositionRef.current = null;
+  };
+
+  const handleHeaderPointerMove = (clientX: number, clientY: number) => {
+    if (!headerPointerDownPositionRef.current || !longPressHeaderTimerRef.current) return;
+    
+    const dx = Math.abs(clientX - headerPointerDownPositionRef.current.x);
+    const dy = Math.abs(clientY - headerPointerDownPositionRef.current.y);
+
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+      clearTimeout(longPressHeaderTimerRef.current);
+      longPressHeaderTimerRef.current = null;
+      headerPointerDownPositionRef.current = null;
     }
   };
 
@@ -425,7 +471,7 @@ export function ProductSearchTable() {
   const selectAllCheckedState = allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false);
 
   const handleHeaderClick = (column: SortableKey) => {
-    if (isSelectionModeActive) return; // Disable sorting/popover when in selection mode
+    if (isSelectionModeActive) return; 
 
     if (sortBy === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -433,12 +479,7 @@ export function ProductSearchTable() {
       setSortBy(column);
       setSortDirection('asc');
     }
-
-    if (column === 'validade') {
-      setIsAddActionPopoverOpen(true);
-    } else {
-      setIsAddActionPopoverOpen(false); // Close if other headers are clicked
-    }
+     // Do not manage isAddActionPopoverOpen here for short clicks anymore
   };
 
 
@@ -447,8 +488,40 @@ export function ProductSearchTable() {
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
       }
+      if (longPressHeaderTimerRef.current) {
+        clearTimeout(longPressHeaderTimerRef.current);
+      }
     };
   }, []);
+
+  const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
+    const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'} ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`;
+    return (
+      <TableHead
+        className={`${baseClasses} ${classNameExt}`}
+        onPointerDown={(e: PointerEvent<HTMLTableCellElement>) => handleHeaderPointerDown(e.clientX, e.clientY)}
+        onPointerUp={() => handleHeaderPointerUp(column)}
+        onPointerLeave={() => {
+          if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+          headerPointerDownPositionRef.current = null;
+        }}
+        onPointerMove={(e: PointerEvent<HTMLTableCellElement>) => handleHeaderPointerMove(e.clientX, e.clientY)}
+        onTouchStart={(e: TouchEvent<HTMLTableCellElement>) => {
+          if (e.touches.length === 1) handleHeaderPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        }}
+        onTouchEnd={() => handleHeaderPointerUp(column)}
+        onTouchCancel={() => {
+           if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+           headerPointerDownPositionRef.current = null;
+        }}
+        onTouchMove={(e: TouchEvent<HTMLTableCellElement>) => {
+          if (e.touches.length === 1) handleHeaderPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }}
+      >
+        {label}
+      </TableHead>
+    );
+  };
 
 
   return (
@@ -539,56 +612,56 @@ export function ProductSearchTable() {
                         />
                     </TableHead>
                   )}
+                  {renderHeaderCell('id', 'ID', 'w-[60px]')}
+                  {renderHeaderCell('produto', 'Produto', 'px-2 md:px-4')}
+                  {renderHeaderCell('marca', 'Marca', 'px-2 md:px-4 hidden sm:table-cell')}
+                  {renderHeaderCell('unidade', 'Quantidade', 'px-2 md:px-4 text-center')}
+                  
                   <TableHead 
-                    className={`w-[60px] py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'pl-4 pr-2'} ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                    onClick={() => handleHeaderClick('id')}
+                    ref={validadeHeaderRef}
+                    className={`min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                     onPointerDown={(e: PointerEvent<HTMLTableCellElement>) => handleHeaderPointerDown(e.clientX, e.clientY)}
+                     onPointerUp={() => handleHeaderPointerUp('validade')}
+                     onPointerLeave={() => {
+                       if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+                       headerPointerDownPositionRef.current = null;
+                     }}
+                     onPointerMove={(e: PointerEvent<HTMLTableCellElement>) => handleHeaderPointerMove(e.clientX, e.clientY)}
+                     onTouchStart={(e: TouchEvent<HTMLTableCellElement>) => {
+                       if (e.touches.length === 1) handleHeaderPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+                     }}
+                     onTouchEnd={() => handleHeaderPointerUp('validade')}
+                     onTouchCancel={() => {
+                        if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+                        headerPointerDownPositionRef.current = null;
+                     }}
+                     onTouchMove={(e: TouchEvent<HTMLTableCellElement>) => {
+                       if (e.touches.length === 1) handleHeaderPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                     }}
                   >
-                    ID
-                  </TableHead>
-                  <TableHead 
-                    className={`px-2 md:px-4 py-3 ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                    onClick={() => handleHeaderClick('produto')}
-                  >
-                    Produto
-                  </TableHead>
-                  <TableHead 
-                    className={`px-2 md:px-4 py-3 hidden sm:table-cell ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                    onClick={() => handleHeaderClick('marca')}
-                  >
-                    Marca
-                  </TableHead>
-                  <TableHead 
-                    className={`px-2 md:px-4 py-3 text-center ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                    onClick={() => handleHeaderClick('unidade')}
-                  >
-                    Quantidade
-                  </TableHead>
-                  <TableHead className={`min-w-[130px] text-right px-2 md:px-4 py-3 ${!isSelectionModeActive ? 'hover:bg-muted/50' : ''}`}>
-                    <Popover open={!isSelectionModeActive && isAddActionPopoverOpen} onOpenChange={setIsAddActionPopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <div 
-                          className={`inline-flex items-center justify-end w-full h-full ${!isSelectionModeActive ? 'cursor-pointer' : ''}`}
-                          onClick={() => !isSelectionModeActive && handleHeaderClick('validade')}
+                    Validade
+                    <Popover open={isAddActionPopoverOpen && !isSelectionModeActive} onOpenChange={setIsAddActionPopoverOpen}>
+                       <PopoverTrigger asChild>
+                         {/* Invisible trigger, Popover controlled by isAddActionPopoverOpen state */}
+                         <span />
+                       </PopoverTrigger>
+                       <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]" 
+                         anchorRef={validadeHeaderRef}
+                         onOpenAutoFocus={(e) => e.preventDefault()}
+                       >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation(); 
+                            setIsAddProductDialogOpen(true);
+                            setIsAddActionPopoverOpen(false);
+                          }}
+                          aria-label="Adicionar novo produto"
                         >
-                          Validade
-                        </div>
-                      </PopoverTrigger>
-                      {!isSelectionModeActive && (
-                        <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent click from bubbling to TableHead/PopoverTrigger
-                              setIsAddProductDialogOpen(true);
-                              setIsAddActionPopoverOpen(false);
-                            }}
-                            aria-label="Adicionar novo produto"
-                          >
-                            <PlusCircle className="h-4 w-4 text-primary" />
-                          </Button>
-                        </PopoverContent>
-                      )}
+                          <PlusCircle className="h-4 w-4 text-primary" />
+                        </Button>
+                      </PopoverContent>
                     </Popover>
                   </TableHead>
                 </TableRow>
