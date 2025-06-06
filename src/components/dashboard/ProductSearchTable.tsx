@@ -53,25 +53,25 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 
-const mockProducts: Product[] = [
-  { id: '1', produto: 'Leite Integral UHT', marca: 'Tirol', unidade: '24', validade: '2024-12-15' },
-  { id: '2', produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: '10', validade: '2024-07-20' },
-  { id: '3', produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: '15', validade: '2025-03-10' },
-  { id: '4', produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: '5', validade: '2025-08-01' },
-  { id: '5', produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: '8', validade: '2025-06-22' },
-  { id: '6', produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: '20', validade: '2024-11-05' },
-  { id: '7', produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: '48', validade: '2024-10-30' },
-  { id: '8', produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: '30', validade: '2024-09-01' },
-  { id: '9', produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: '25', validade: '2026-01-15' },
-  { id: '10', produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31' },
-  { id: '11', produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20' },
-  { id: '12', produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25' },
-  { id: '13', produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0] },
-  { id: '14', produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0] },
-  { id: '15', produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0] },
-  { id: '16', produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01' }, // Expired
-  { id: '17', produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0] },
-  { id: '18', produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0] }, // Expired
+const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
+  { produto: 'Leite Integral UHT', marca: 'Tirol', unidade: '24', validade: '2024-12-15' },
+  { produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: '10', validade: '2024-07-20' },
+  { produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: '15', validade: '2025-03-10' },
+  { produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: '5', validade: '2025-08-01' },
+  { produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: '8', validade: '2025-06-22' },
+  { produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: '20', validade: '2024-11-05' },
+  { produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: '48', validade: '2024-10-30' },
+  { produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: '30', validade: '2024-09-01' },
+  { produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: '25', validade: '2026-01-15' },
+  { produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31' },
+  { produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20' },
+  { produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25' },
+  { produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0] },
+  { produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0] },
+  { produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0] },
+  { produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01' }, // Expired
+  { produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0] },
+  { produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0] }, // Expired
 ];
 
 const MotionTableBody = motion(ShadTableBody);
@@ -101,7 +101,7 @@ const dateFilterOptions = [
 
 const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean, isExploding?: boolean): { styleString: string; particleColorClass: string } => {
   let baseStyle = 'transition-colors duration-150 ease-in-out relative';
-  let particleColorClass = 'bg-primary';
+  let particleColorClass = 'bg-white'; // Default to white for normal exploding rows
 
   if (isExploding) {
      if (!isValid(parseISO(validade))) {
@@ -112,8 +112,6 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
         particleColorClass = 'bg-red-500 dark:bg-red-600';
       } else if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
         particleColorClass = 'bg-orange-400 dark:bg-orange-500';
-      } else {
-         particleColorClass = 'bg-white';
       }
     }
     return { styleString: `${baseStyle} bg-transparent`, particleColorClass };
@@ -135,7 +133,7 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
     return { styleString: `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`, particleColorClass: 'bg-orange-400 dark:bg-orange-500' };
   }
-  return { styleString: baseStyle, particleColorClass: 'bg-white' };
+  return { styleString: baseStyle, particleColorClass: 'bg-white' }; // Default particle color for non-alert, non-exploding rows (used when it *starts* exploding)
 };
 
 
@@ -148,7 +146,10 @@ const resequenceProducts = (products: Product[]): Product[] => {
 
 const LONG_PRESS_DURATION = 500;
 const DRAG_THRESHOLD = 10;
-const SHOCKWAVE_DURATION = 400; // milliseconds
+const SHOCKWAVE_DURATION = 500; // milliseconds for the shockwave itself
+const BASE_DISPLACEMENT_PX = 10; // Max pixels an immediate neighbor moves
+const SHOCKWAVE_MAX_DISTANCE = 3; // How many rows away the wave propagates
+
 
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId'> = {
   produto: '',
@@ -162,7 +163,7 @@ type SortableKey = Exclude<keyof Product, 'isExploding' | 'originalId'>;
 
 const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; particleColorClass: string; }) => {
   const numParticles = 30;
-  const animationDuration = 1.5;
+  const animationDuration = 1.5; // seconds
   const onCompleteCalledRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -187,12 +188,15 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 pointer-events-none" // overflow-hidden removed here
+      className="absolute inset-0 pointer-events-none" 
     >
       {dimensions.width > 0 && Array.from({ length: numParticles }).map((_, i) => {
         const initialX = Math.random() * dimensions.width;
         const initialY = Math.random() * dimensions.height;
-        const travelDistance = Math.random() * 80 + 50;
+        
+        // Diagonal para cima e para a direita
+        const travelDistanceX = (Math.random() * 0.6 + 0.4) * 80 + 50; // Stronger rightward bias
+        const travelDistanceY = (Math.random() * 0.6 + 0.4) * 80 + 50; // Stronger upward bias
 
         return (
           <motion.div
@@ -204,8 +208,8 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
              }}
             initial={{ opacity: 1, scale: 1 }}
             animate={{
-              x: initialX + travelDistance * (Math.random() * 0.6 + 0.2), // More varied rightward
-              y: initialY - travelDistance * (Math.random() * 0.8 + 0.4), // Stronger upward bias
+              x: initialX + travelDistanceX, // Mover para a direita
+              y: initialY - travelDistanceY, // Mover para cima
               scale: 0,
               opacity: 0,
             }}
@@ -222,6 +226,12 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
   );
 };
 
+type ShockwaveTarget = {
+  id: string;
+  distance: number;
+  direction: 'up' | 'down';
+  strength: number;
+};
 
 export function ProductSearchTable() {
   const { toast } = useToast();
@@ -231,8 +241,8 @@ export function ProductSearchTable() {
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(() =>
     mockProducts.map((p, index) => ({
         ...p,
-        originalId: p.id || `mock-${index}-${Date.now()}`,
-        id: (index + 1).toString(),
+        originalId: p.id || `mock-${index}-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, // Ensure unique originalId
+        id: (index + 1).toString(), // Display ID
         isExploding: false
     }))
   );
@@ -262,19 +272,17 @@ export function ProductSearchTable() {
   const headerPointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
   const validadeHeaderRef = useRef<HTMLTableCellElement>(null);
 
-  const [shockwaveTargetIds, setShockwaveTargetIds] = useState<string[]>([]);
-  const shockwaveDirectionsRef = useRef<Map<string, 'up' | 'down'>>(new Map());
+  const [shockwaveTargets, setShockwaveTargets] = useState<ShockwaveTarget[]>([]);
 
 
-  useEffect(() => {
-    if (shockwaveTargetIds.length > 0) {
+ useEffect(() => {
+    if (shockwaveTargets.length > 0) {
       const timer = setTimeout(() => {
-        setShockwaveTargetIds([]);
-        shockwaveDirectionsRef.current.clear();
-      }, SHOCKWAVE_DURATION);
+        setShockwaveTargets([]);
+      }, SHOCKWAVE_DURATION + 300); // Duration of shockwave + a little buffer
       return () => clearTimeout(timer);
     }
-  }, [shockwaveTargetIds]);
+  }, [shockwaveTargets]);
 
 
   const finalizeDeleteProduct = (productOriginalId: string) => {
@@ -284,7 +292,7 @@ export function ProductSearchTable() {
 
         const currentSelectedIds = selectedProductIds.filter(id => id !== productOriginalId);
         setSelectedProductIds(currentSelectedIds);
-
+        
         const stillExplodingCount = resequenced.filter(p => p.isExploding).length;
         const activeSelectionsExist = currentSelectedIds.some(id =>
             resequenced.find(p => p.originalId === id && !p.isExploding)
@@ -435,34 +443,97 @@ export function ProductSearchTable() {
     }
   };
 
-  const triggerShockwave = (deletingOriginalIds: string[]) => {
-    shockwaveDirectionsRef.current.clear();
-    const currentVisibleProducts = filteredProducts;
-    const newShockwaveTargets = new Set<string>();
+const triggerShockwave = (deletedOriginalIds: string[]) => {
+    const productsForAnalysis = [...clientSideProducts]; // Use a stable copy of all products
+    const newShockTargets = new Map<string, ShockwaveTarget>();
 
-    deletingOriginalIds.forEach(deletingId => {
-      const productIndex = currentVisibleProducts.findIndex(p => p.originalId === deletingId);
-      if (productIndex === -1) return;
+    deletedOriginalIds.forEach(deletedId => {
+        const deletedProductActualIndex = productsForAnalysis.findIndex(p => p.originalId === deletedId);
+        if (deletedProductActualIndex === -1) return;
 
-      // Neighbor above
-      if (productIndex > 0) {
-        const neighborAbove = currentVisibleProducts[productIndex - 1];
-        if (neighborAbove && !neighborAbove.isExploding && !deletingOriginalIds.includes(neighborAbove.originalId!)) {
-          newShockwaveTargets.add(neighborAbove.originalId!);
-          shockwaveDirectionsRef.current.set(neighborAbove.originalId!, 'up');
+        // Analyze current filtered/sorted view to determine visual neighbors
+        const visibleProductsAtTimeOfDeletion = filteredProducts; // This is tricky, as it might be stale or about to change
+                                                            // Let's use clientSideProducts and apply current sort/filter to determine visual indices
+        
+        // Re-create the visual order from all products for accurate indexing
+        // This is an approximation as filteredProducts itself is memoized and might not reflect the exact pre-delete visual state
+        // for the purpose of finding neighbors if filters are active.
+        // A more robust way would be to pass the current `filteredProducts` from the render cycle if possible.
+        // For now, we'll work with `clientSideProducts` and sort it like `filteredProducts` for indexing.
+        let tempSortedForAnalysis = [...clientSideProducts].filter(p => !p.isExploding && !deletedOriginalIds.includes(p.originalId!));
+        if (sortBy && sortBy !== 'none') {
+             tempSortedForAnalysis.sort((a, b) => {
+                const valA = a[sortBy!];
+                const valB = b[sortBy!];
+                let comparison = 0;
+                 if (sortBy === 'validade') {
+                    const dateA = parseISO(valA as string);
+                    const dateB = parseISO(valB as string);
+                    if (isValid(dateA) && isValid(dateB)) comparison = dateA.getTime() - dateB.getTime();
+                    else if (isValid(dateA)) comparison = -1; else if (isValid(dateB)) comparison = 1;
+                } else if (sortBy === 'id' || sortBy === 'unidade') {
+                    const numA = parseInt(valA as string, 10); const numB = parseInt(valB as string, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) comparison = numA - numB;
+                    else comparison = String(valA).localeCompare(String(valB));
+                } else {
+                    comparison = String(valA).localeCompare(String(valB));
+                }
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
         }
-      }
-      // Neighbor below
-      if (productIndex < currentVisibleProducts.length - 1) {
-        const neighborBelow = currentVisibleProducts[productIndex + 1];
-         if (neighborBelow && !neighborBelow.isExploding && !deletingOriginalIds.includes(neighborBelow.originalId!)) {
-          newShockwaveTargets.add(neighborBelow.originalId!);
-          shockwaveDirectionsRef.current.set(neighborBelow.originalId!, 'down');
+        // Now find the deleted item's VISUAL index in this temporarily sorted list
+        // The item itself is being deleted, so its direct neighbors are in this tempSortedForAnalysis
+        // relative to where the deleted item *would have been*.
+        // This part is the most complex to get "perfectly" right with dynamic filters.
+        // We'll determine neighbors from the `clientSideProducts` list relative to the actual index of the deleted item.
+        // This may not perfectly match visual neighbors if filters are very active, but it's a more stable source.
+
+        // Propagate upwards from actual deletedProductIndex in clientSideProducts
+        for (let dist = 1; dist <= SHOCKWAVE_MAX_DISTANCE; dist++) {
+            const neighborActualIndex = deletedProductActualIndex - dist;
+            if (neighborActualIndex < 0) break;
+            const neighborProduct = productsForAnalysis[neighborActualIndex];
+            if (neighborProduct && !neighborProduct.isExploding && !deletedOriginalIds.includes(neighborProduct.originalId!)) {
+                 const existingTarget = newShockTargets.get(neighborProduct.originalId!);
+                 if (!existingTarget || dist < existingTarget.distance) {
+                    newShockTargets.set(neighborProduct.originalId!, {
+                        id: neighborProduct.originalId!,
+                        distance: dist,
+                        direction: 'up',
+                        strength: BASE_DISPLACEMENT_PX / dist,
+                    });
+                 }
+            } else if (!neighborProduct || neighborProduct.isExploding || deletedOriginalIds.includes(neighborProduct.originalId!)) {
+                // If neighbor is exploding or also being deleted, wave might stop or weaken here.
+                // For now, let's just break if it's not a valid candidate.
+                // Or, if we want wave to pass through other deleting items, we'd need more complex logic.
+                continue; // Or break if we don't want the wave to "jump" over other deleting items
+            }
         }
-      }
+
+        // Propagate downwards
+        for (let dist = 1; dist <= SHOCKWAVE_MAX_DISTANCE; dist++) {
+            const neighborActualIndex = deletedProductActualIndex + dist;
+            if (neighborActualIndex >= productsForAnalysis.length) break;
+            const neighborProduct = productsForAnalysis[neighborActualIndex];
+            if (neighborProduct && !neighborProduct.isExploding && !deletedOriginalIds.includes(neighborProduct.originalId!)) {
+                const existingTarget = newShockTargets.get(neighborProduct.originalId!);
+                if (!existingTarget || dist < existingTarget.distance) {
+                    newShockTargets.set(neighborProduct.originalId!, {
+                        id: neighborProduct.originalId!,
+                        distance: dist,
+                        direction: 'down',
+                        strength: BASE_DISPLACEMENT_PX / dist,
+                    });
+                }
+            } else if (!neighborProduct || neighborProduct.isExploding || deletedOriginalIds.includes(neighborProduct.originalId!)) {
+                continue;
+            }
+        }
     });
-    setShockwaveTargetIds(Array.from(newShockwaveTargets));
-  };
+    setShockwaveTargets(Array.from(newShockTargets.values()));
+};
+
 
   const handleDeleteSingleProduct = () => {
     if (selectedProduct && selectedProduct.originalId) {
@@ -499,11 +570,14 @@ export function ProductSearchTable() {
   };
 
  const filteredProducts = useMemo(() => {
-    const normalizedSearch = normalizeString(searchTerm);
     let productsToFilter = [...clientSideProducts];
+    
+    const explodingProducts = productsToFilter.filter(p => p.isExploding);
+    let nonExplodingProducts = productsToFilter.filter(p => !p.isExploding);
 
     // Apply textual and date filters only to non-exploding products
-    const nonExplodingProducts = productsToFilter.filter(product => !product.isExploding).filter(product => {
+    nonExplodingProducts = nonExplodingProducts.filter(product => {
+        const normalizedSearch = normalizeString(searchTerm);
         if (normalizedSearch) {
             if (!Object.values(product).some(value => normalizeString(String(value)).includes(normalizedSearch))) {
                 return false;
@@ -512,7 +586,7 @@ export function ProductSearchTable() {
         if (selectedDateFilter !== 'all') {
             const productDate = parseISO(product.validade);
             if (!isValid(productDate)) {
-                 return selectedDateFilter === 'all'; // Or false if invalid dates should be excluded by specific filters
+                 return selectedDateFilter === 'all'; 
             }
             const productDateStartOfDay = startOfDay(productDate);
             const todayDate = startOfDay(new Date());
@@ -534,18 +608,15 @@ export function ProductSearchTable() {
         return true;
     });
 
-    // Get exploding products separately to add them back without filtering
-    const explodingProducts = productsToFilter.filter(product => product.isExploding);
-
-    // Combine filtered non-exploding products with all exploding products
-    let combinedProducts = [...nonExplodingProducts, ...explodingProducts];
-
+    let combinedAndSortedProducts = [...nonExplodingProducts, ...explodingProducts];
 
     if (sortBy && sortBy !== 'none') {
-        combinedProducts.sort((a, b) => {
-            // If one is exploding and the other isn't, keep exploding items in their relative sort order (don't push to end)
-            // This ensures they animate out from their original sorted position.
-            // The primary sort key should take precedence.
+        combinedAndSortedProducts.sort((a, b) => {
+            // Keep exploding items effectively "in place" relative to sort until they are removed.
+            // This means if an item is exploding, its sort key should still be considered.
+            // However, active sorting should primarily apply to non-exploding items.
+            // For simplicity, we sort all, and exploding items will animate out from their sorted position.
+            
             const valA = a[sortBy];
             const valB = b[sortBy];
             let comparison = 0;
@@ -558,28 +629,24 @@ export function ProductSearchTable() {
 
               if (aIsValid && bIsValid) {
                 comparison = dateA.getTime() - dateB.getTime();
-              } else if (aIsValid && !bIsValid) { // Valid dates come before invalid ones
-                comparison = -1;
-              } else if (!aIsValid && bIsValid) { // Invalid dates come after valid ones
-                comparison = 1;
-              } else { // Both invalid or other fallback
-                comparison = 0;
-              }
+              } else if (aIsValid && !bIsValid) { comparison = sortDirection === 'asc' ? -1 : 1; } 
+              else if (!aIsValid && bIsValid) { comparison = sortDirection === 'asc' ? 1 : -1; } 
+              else { comparison = 0; }
             } else if (sortBy === 'id' || sortBy === 'unidade') {
               const numA = parseInt(valA as string, 10);
               const numB = parseInt(valB as string, 10);
               if (!isNaN(numA) && !isNaN(numB)) {
                 comparison = numA - numB;
-              } else { // Fallback for non-numeric or mixed
-                comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
-              }
+              } else if (!isNaN(numA)) { comparison = -1; } 
+              else if (!isNaN(numB)) { comparison = 1; }
+              else { comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));}
             } else {
               comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
             }
             return sortDirection === 'asc' ? comparison : -comparison;
         });
     }
-    return combinedProducts;
+    return combinedAndSortedProducts;
   }, [searchTerm, clientSideProducts, selectedDateFilter, sortBy, sortDirection]);
 
 
@@ -609,7 +676,7 @@ export function ProductSearchTable() {
   };
 
   const handleDeleteSelected = () => {
-    triggerShockwave(selectedProductIds);
+    triggerShockwave([...selectedProductIds]); // Pass a copy
     setClientSideProducts(prevProducts =>
       prevProducts.map(p =>
         selectedProductIds.includes(p.originalId!) ? { ...p, isExploding: true } : p
@@ -617,6 +684,7 @@ export function ProductSearchTable() {
     );
     toast({ title: `${selectedProductIds.length} produto(s) marcado(s) para exclusão.` });
     setIsDeleteSelectedConfirmOpen(false);
+    // Don't clear selectedProductIds here, finalizeDeleteProduct will handle it individually
   };
 
   const cancelSelectionMode = () => {
@@ -677,13 +745,14 @@ export function ProductSearchTable() {
 
   useEffect(() => {
     if (isSelectionModeActive) {
-        const activeSelectionsExist = selectedProductIds.some(id =>
+        const activeSelectionsStillPresent = selectedProductIds.some(id =>
             clientSideProducts.find(p => p.originalId === id && !p.isExploding)
         );
-        const anyProductIsExploding = clientSideProducts.some(p => p.isExploding);
+        const anyProductIsCurrentlyExploding = clientSideProducts.some(p => p.isExploding);
 
-        if (!activeSelectionsExist && !anyProductIsExploding) {
+        if (!activeSelectionsStillPresent && !anyProductIsCurrentlyExploding) {
             setIsSelectionModeActive(false);
+            setSelectedProductIds([]); // Clear selection if no active or exploding items selected
         }
     }
 
@@ -857,19 +926,23 @@ export function ProductSearchTable() {
                 </ShadTableRow>
               </TableHeader>
               <MotionTableBody layout>
-                <AnimatePresence initial={false}>
+                <AnimatePresence initial={false} mode="popLayout">
                   {filteredProducts.map((product) => {
                     const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
                     const currentProductKey = product.originalId!;
-                    const isShockwaveTarget = shockwaveTargetIds.includes(currentProductKey);
-                    const shockwaveDirection = shockwaveDirectionsRef.current.get(currentProductKey);
                     
-                    let shockwaveAnimation = {};
-                    if (isShockwaveTarget && !product.isExploding && shockwaveDirection) {
-                        const yAnimation = shockwaveDirection === 'up' ? [0, -7, 3, -1, 0] : [0, 7, -3, 1, 0];
-                        shockwaveAnimation = { y: yAnimation, scaleY: [1, 1.03, 0.97, 1.01, 1] };
-                    } else {
-                        shockwaveAnimation = { y: 0, scaleY: 1 };
+                    const shockwaveInfo = shockwaveTargets.find(t => t.id === currentProductKey);
+                    let shockwaveAnimProps: any = { y: 0, scaleY: 1 };
+
+                    if (shockwaveInfo && !product.isExploding) {
+                        const displacement = shockwaveInfo.strength;
+                        const ySequence = shockwaveInfo.direction === 'up'
+                            ? [0, -displacement, displacement * 0.5, -displacement * 0.25, 0]
+                            : [0, displacement, -displacement * 0.5, displacement * 0.25, 0];
+                        const scaleYBaseEffect = 0.02; // Max 2% scale change for immediate neighbor
+                        const scaleEffect = 1 + (scaleYBaseEffect / shockwaveInfo.distance);
+                        const scaleYSequence = [1, scaleEffect, 1 - (scaleEffect - 1)/1.5, scaleEffect - (scaleEffect - 1)/2, 1];
+                        shockwaveAnimProps = { y: ySequence, scaleY: scaleYSequence };
                     }
 
 
@@ -891,11 +964,11 @@ export function ProductSearchTable() {
                       >
                         <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
                           <MotionTableRow
-                            layout 
+                            layoutId={currentProductKey}
                             initial={{ opacity: 1 }}
-                            animate={shockwaveAnimation}
-                            exit={{ opacity: 0, height: 0, transition: {duration: 0.2, type: "tween" } }}
-                            transition={{ duration: SHOCKWAVE_DURATION / 1000, type: "spring", stiffness: 260, damping: 20  }}
+                            animate={shockwaveAnimProps}
+                            exit={{ opacity: 0, height: 0, transition: {duration: 0.3, type: "tween" } }}
+                            transition={{ duration: SHOCKWAVE_DURATION / 1000, type: "spring", stiffness: 300, damping: 25  }}
                             className={styleString}
                             data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
@@ -945,7 +1018,7 @@ export function ProductSearchTable() {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]">
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]"> {/* Ensure consistent height */}
                                 <Particle
                                   onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
@@ -1198,3 +1271,4 @@ export function ProductSearchTable() {
   );
 }
 
+    
