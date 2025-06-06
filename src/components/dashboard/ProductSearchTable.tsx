@@ -5,7 +5,7 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableHeader, TableBody as ShadTableBody, TableCell, TableHead, TableRow as ShadTableRow } from '@/components/ui/table';
+import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -149,8 +149,8 @@ const resequenceProducts = (products: Product[]): Product[] => {
 const LONG_PRESS_DURATION = 500;
 const DRAG_THRESHOLD = 10;
 const SHOCKWAVE_DURATION = 700; 
-const SHOCKWAVE_MAX_DISTANCE = 3;
-const BASE_SHOCKWAVE_STRENGTH_PX = 15;
+const SHOCKWAVE_MAX_DISTANCE = 3; // Max number of rows outward the shockwave attempts to check
+const BASE_SHOCKWAVE_STRENGTH_PX = 15; // Max displacement for immediate neighbor
 
 
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId'> = {
@@ -283,7 +283,7 @@ export function ProductSearchTable() {
     if (shockwaveTargets.length > 0) {
       const timer = setTimeout(() => {
         setShockwaveTargets([]);
-      }, SHOCKWAVE_DURATION + 100); // Duration of shockwave + a little buffer
+      }, SHOCKWAVE_DURATION + 100); 
       return () => clearTimeout(timer);
     }
   }, [shockwaveTargets]);
@@ -450,43 +450,47 @@ export function ProductSearchTable() {
     }
   };
 
-  const triggerShockwave = (deletedOriginalIds: string[]) => {
-    const currentVisibleProducts = filteredProducts; // Capture the current visual layout at the time of deletion
+ const triggerShockwave = (deletedOriginalIds: string[]) => {
+    const currentVisibleProducts = filteredProducts; 
     const newShockwaveTargetsMap = new Map<string, ShockwaveTarget>();
+    const MIN_STRENGTH_THRESHOLD = 0.5; // Stop propagation if strength is below this
 
     deletedOriginalIds.forEach(deletedId => {
-      const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
-      if (deletedProductVisualIndex === -1) return; // Should not happen if IDs are consistent
+        const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
+        if (deletedProductVisualIndex === -1) return;
 
-      // Iterate outwards from the deleted item
-      for (let i = 1; i <= SHOCKWAVE_MAX_DISTANCE; i++) {
-        const processNeighbor = (index: number, direction: 'up' | 'down') => {
-          if (index >= 0 && index < currentVisibleProducts.length) {
-            const neighbor = currentVisibleProducts[index];
-            // Ensure neighbor is not itself exploding or one of the items being deleted in this batch
-            if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
-              const strength = BASE_SHOCKWAVE_STRENGTH_PX / i; // Diminishing strength
-              
-              const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
-              // If this neighbor is already targeted (e.g., by another deleted item closer to it),
-              // only update if this new shock is from a closer deleted item (smaller 'i').
-              if (!existingTarget || i < existingTarget.distance) {
-                newShockwaveTargetsMap.set(neighbor.originalId!, {
-                  id: neighbor.originalId!,
-                  distance: i,
-                  direction,
-                  strength,
-                });
-              }
+        for (let distance = 1; distance <= SHOCKWAVE_MAX_DISTANCE; distance++) {
+            const strength = BASE_SHOCKWAVE_STRENGTH_PX / distance;
+            if (strength < MIN_STRENGTH_THRESHOLD && distance > 1) { // Ensure immediate neighbors are always considered if MAX_DISTANCE=1
+                break; // Stop propagating if force is too weak
             }
-          }
-        };
 
-        // Process neighbor above
-        processNeighbor(deletedProductVisualIndex - i, 'up');
-        // Process neighbor below
-        processNeighbor(deletedProductVisualIndex + i, 'down');
-      }
+            const processNeighbor = (index: number, direction: 'up' | 'down') => {
+                if (index >= 0 && index < currentVisibleProducts.length) {
+                    const neighbor = currentVisibleProducts[index];
+                    if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
+                        const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
+                        if (!existingTarget || distance < existingTarget.distance) {
+                            newShockwaveTargetsMap.set(neighbor.originalId!, {
+                                id: neighbor.originalId!,
+                                distance: distance,
+                                direction,
+                                strength,
+                            });
+                        } else if (existingTarget && distance === existingTarget.distance && strength > existingTarget.strength) {
+                             newShockwaveTargetsMap.set(neighbor.originalId!, {
+                                id: neighbor.originalId!,
+                                distance: distance,
+                                direction, // Keep original direction from closest, or decide (e.g. prioritize 'down')
+                                strength: strength,
+                            });
+                        }
+                    }
+                }
+            };
+            processNeighbor(deletedProductVisualIndex - distance, 'up');
+            processNeighbor(deletedProductVisualIndex + distance, 'down');
+        }
     });
     setShockwaveTargets(Array.from(newShockwaveTargetsMap.values()));
 };
@@ -890,9 +894,15 @@ export function ProductSearchTable() {
                         const { strength, direction, distance } = shockwaveTargetInfo;
                         const displacementFactor = direction === 'up' ? -1 : 1;
                         
+                        const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
+                        const baseScaleMagnitude = 0.05; 
+                        const currentScaleMagnitude = distance > 0 ? baseScaleMagnitude / distance : baseScaleMagnitude;
+                        const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
+
+
                         shockwaveAnimProps = {
-                            y: [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0],
-                            scale: [1, 1 + (0.05 / distance), 1 - (0.03 / distance), 1 + (0.01 / distance), 1],
+                            y: ySequence,
+                            scale: scaleSequence,
                             transition: { duration: SHOCKWAVE_DURATION / 1000, ease: "easeInOut" }
                         };
                     }
