@@ -5,7 +5,7 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableRow as ShadTableRow } from '@/components/ui/table';
+import { Table, TableHeader, TableBody as ShadTableBody, TableCell, TableHead, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,24 +54,24 @@ import { useToast } from "@/hooks/use-toast";
 
 
 const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
-  { produto: 'Leite Integral UHT', marca: 'Tirol', unidade: '24', validade: '2024-12-15' },
-  { produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: '10', validade: '2024-07-20' },
-  { produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: '15', validade: '2025-03-10' },
-  { produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: '5', validade: '2025-08-01' },
-  { produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: '8', validade: '2025-06-22' },
-  { produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: '20', validade: '2024-11-05' },
-  { produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: '48', validade: '2024-10-30' },
-  { produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: '30', validade: '2024-09-01' },
-  { produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: '25', validade: '2026-01-15' },
-  { produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31' },
-  { produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20' },
-  { produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25' },
-  { produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0] },
-  { produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0] },
-  { produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0] },
-  { produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01' }, // Expired
-  { produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0] },
-  { produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0] }, // Expired
+  { produto: 'Leite Integral UHT', marca: 'Tirol', unidade: '24', validade: '2024-12-15', originalId: 'Leite Integral UHTTirol0' + Math.random().toString(36).substring(2,11) },
+  { produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: '10', validade: '2024-07-20', originalId: 'Pão de Forma TradicionalSeven Boys1'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: '15', validade: '2025-03-10', originalId: 'Café Torrado e Moído3 Corações2'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: '5', validade: '2025-08-01', originalId: 'Arroz Branco Tipo 1Camil3'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: '8', validade: '2025-06-22', originalId: 'Feijão Carioca Tipo 1Kicaldo4'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: '20', validade: '2024-11-05', originalId: 'Óleo de Soja RefinadoSoya5'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: '48', validade: '2024-10-30', originalId: 'Refrigerante GuaranáAntarctica6'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: '30', validade: '2024-09-01', originalId: 'Biscoito Cream CrackerVitarella7'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: '25', validade: '2026-01-15', originalId: 'Macarrão EspagueteBarilla8'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31', originalId: 'Açúcar RefinadoUnião9'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20', originalId: 'Leite CondensadoMoça10'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25', originalId: 'Creme de Leite UHTPiracanjuba11'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0], originalId: 'Iogurte NaturalBatavo12'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0], originalId: 'Queijo Minas FrescalPolenghi13'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0], originalId: 'Suco de Laranja IntegralDel Valle14'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01', originalId: 'Manteiga com SalAviação15'+ Math.random().toString(36).substring(2,11) }, // Expired
+  { produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0], originalId: 'Requeijão CremosoVigor16'+ Math.random().toString(36).substring(2,11) },
+  { produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0], originalId: 'Doce de LeiteItambé17'+ Math.random().toString(36).substring(2,11) }, // Expired
 ];
 
 const MotionTableBody = motion(ShadTableBody);
@@ -135,7 +135,7 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
     return { styleString: `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`, particleColorClass: 'bg-orange-400 dark:bg-orange-500' };
   }
-  return { styleString: baseStyle, particleColorClass: 'bg-white' };
+  return { styleString: baseStyle, particleColorClass };
 };
 
 
@@ -149,8 +149,8 @@ const resequenceProducts = (products: Product[]): Product[] => {
 const LONG_PRESS_DURATION = 500;
 const DRAG_THRESHOLD = 10;
 const SHOCKWAVE_DURATION = 700; 
-const SHOCKWAVE_MAX_DISTANCE = 3; // Max number of rows outward the shockwave attempts to check
-const BASE_SHOCKWAVE_STRENGTH_PX = 15; // Max displacement for immediate neighbor
+const SHOCKWAVE_MAX_DISTANCE = 3; 
+const BASE_SHOCKWAVE_STRENGTH_PX = 15;
 
 
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId'> = {
@@ -245,7 +245,7 @@ export function ProductSearchTable() {
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(() =>
     mockProducts.map((p, index) => ({
         ...p,
-        originalId: p.produto + p.marca + index + Math.random().toString(36).substring(2,11), 
+        originalId: p.originalId || (p.produto + p.marca + index + Math.random().toString(36).substring(2,11)), 
         id: (index + 1).toString(), 
         isExploding: false
     }))
@@ -453,16 +453,16 @@ export function ProductSearchTable() {
  const triggerShockwave = (deletedOriginalIds: string[]) => {
     const currentVisibleProducts = filteredProducts; 
     const newShockwaveTargetsMap = new Map<string, ShockwaveTarget>();
-    const MIN_STRENGTH_THRESHOLD = 0.5; // Stop propagation if strength is below this
+    const MIN_STRENGTH_THRESHOLD = 0.5; 
 
     deletedOriginalIds.forEach(deletedId => {
         const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
         if (deletedProductVisualIndex === -1) return;
 
         for (let distance = 1; distance <= SHOCKWAVE_MAX_DISTANCE; distance++) {
-            const strength = BASE_SHOCKWAVE_STRENGTH_PX / distance;
-            if (strength < MIN_STRENGTH_THRESHOLD && distance > 1) { // Ensure immediate neighbors are always considered if MAX_DISTANCE=1
-                break; // Stop propagating if force is too weak
+            let strength = BASE_SHOCKWAVE_STRENGTH_PX / distance;
+            if (strength < MIN_STRENGTH_THRESHOLD) {
+                 break; 
             }
 
             const processNeighbor = (index: number, direction: 'up' | 'down') => {
@@ -481,7 +481,7 @@ export function ProductSearchTable() {
                              newShockwaveTargetsMap.set(neighbor.originalId!, {
                                 id: neighbor.originalId!,
                                 distance: distance,
-                                direction, // Keep original direction from closest, or decide (e.g. prioritize 'down')
+                                direction,
                                 strength: strength,
                             });
                         }
@@ -895,8 +895,15 @@ export function ProductSearchTable() {
                         const displacementFactor = direction === 'up' ? -1 : 1;
                         
                         const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
+                        
                         const baseScaleMagnitude = 0.05; 
-                        const currentScaleMagnitude = distance > 0 ? baseScaleMagnitude / distance : baseScaleMagnitude;
+                        let currentScaleMagnitude = 0;
+                        if (SHOCKWAVE_MAX_DISTANCE > 1) {
+                           currentScaleMagnitude = distance > 0 ? baseScaleMagnitude * ((SHOCKWAVE_MAX_DISTANCE - distance) / (SHOCKWAVE_MAX_DISTANCE -1.0)) : baseScaleMagnitude;
+                           currentScaleMagnitude = Math.max(0, currentScaleMagnitude); // Ensure non-negative
+                        } else if (SHOCKWAVE_MAX_DISTANCE === 1 && distance === 1) {
+                           currentScaleMagnitude = baseScaleMagnitude;
+                        }
                         const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
 
 
