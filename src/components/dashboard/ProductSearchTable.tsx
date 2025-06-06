@@ -101,7 +101,7 @@ const dateFilterOptions = [
 
 const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean, isExploding?: boolean): { styleString: string; particleColorClass: string } => {
   let baseStyle = 'transition-colors duration-150 ease-in-out relative';
-  let particleColorClass = 'bg-white'; // Default to white for normal exploding rows
+  let particleColorClass = 'bg-white'; 
 
   if (isExploding) {
      if (!isValid(parseISO(validade))) {
@@ -112,6 +112,8 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
         particleColorClass = 'bg-red-500 dark:bg-red-600';
       } else if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
         particleColorClass = 'bg-orange-400 dark:bg-orange-500';
+      } else {
+        particleColorClass = 'bg-white';
       }
     }
     return { styleString: `${baseStyle} bg-transparent`, particleColorClass };
@@ -133,22 +135,20 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
     return { styleString: `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`, particleColorClass: 'bg-orange-400 dark:bg-orange-500' };
   }
-  return { styleString: baseStyle, particleColorClass: 'bg-white' }; // Default particle color for non-alert, non-exploding rows (used when it *starts* exploding)
+  return { styleString: baseStyle, particleColorClass: 'bg-white' };
 };
 
 
 const resequenceProducts = (products: Product[]): Product[] => {
   return products.map((product, index) => ({
     ...product,
-    id: (index + 1).toString(), // This is the display ID
+    id: (index + 1).toString(), 
   }));
 };
 
 const LONG_PRESS_DURATION = 500;
 const DRAG_THRESHOLD = 10;
-const SHOCKWAVE_DURATION = 500; // milliseconds for the shockwave itself
-const BASE_DISPLACEMENT_PX = 10; // Max pixels an immediate neighbor moves
-const SHOCKWAVE_MAX_DISTANCE = 3; // How many rows away the wave propagates
+const SHOCKWAVE_DURATION = 700; 
 
 
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId'> = {
@@ -163,7 +163,7 @@ type SortableKey = Exclude<keyof Product, 'isExploding' | 'originalId'>;
 
 const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; particleColorClass: string; }) => {
   const numParticles = 30;
-  const animationDuration = 1.5; // seconds
+  const animationDuration = 1.5; 
   const onCompleteCalledRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -194,9 +194,11 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
         const initialX = Math.random() * dimensions.width;
         const initialY = Math.random() * dimensions.height;
         
-        // Diagonal para cima e para a direita
-        const travelDistanceX = (Math.random() * 0.6 + 0.4) * 80 + 50; // Stronger rightward bias
-        const travelDistanceY = (Math.random() * 0.6 + 0.4) * 80 + 50; // Stronger upward bias
+        const travelDistanceXBase = dimensions.width * 0.3; 
+        const travelDistanceYBase = dimensions.height * 1.5;
+
+        const travelDistanceX = (Math.random() * 0.6 + 0.4) * travelDistanceXBase; 
+        const travelDistanceY = (Math.random() * 0.6 + 0.4) * travelDistanceYBase; 
 
         return (
           <motion.div
@@ -206,10 +208,10 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
               top: `${initialY}px`,
               left: `${initialX}px`,
              }}
-            initial={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 1, scale: Math.random() * 0.5 + 0.5 }}
             animate={{
-              x: initialX + travelDistanceX, // Mover para a direita
-              y: initialY - travelDistanceY, // Mover para cima
+              x: initialX + travelDistanceX, 
+              y: initialY - travelDistanceY, 
               scale: 0,
               opacity: 0,
             }}
@@ -226,12 +228,6 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
   );
 };
 
-type ShockwaveTarget = {
-  id: string;
-  distance: number;
-  direction: 'up' | 'down';
-  strength: number;
-};
 
 export function ProductSearchTable() {
   const { toast } = useToast();
@@ -241,8 +237,8 @@ export function ProductSearchTable() {
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(() =>
     mockProducts.map((p, index) => ({
         ...p,
-        originalId: p.id || `mock-${index}-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, // Ensure unique originalId
-        id: (index + 1).toString(), // Display ID
+        originalId: p.produto + p.marca + index + Math.random().toString(36).substring(2,9), 
+        id: (index + 1).toString(), 
         isExploding: false
     }))
   );
@@ -272,17 +268,17 @@ export function ProductSearchTable() {
   const headerPointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
   const validadeHeaderRef = useRef<HTMLTableCellElement>(null);
 
-  const [shockwaveTargets, setShockwaveTargets] = useState<ShockwaveTarget[]>([]);
+  const [shockwaveTargetIds, setShockwaveTargetIds] = useState<string[]>([]);
 
 
  useEffect(() => {
-    if (shockwaveTargets.length > 0) {
+    if (shockwaveTargetIds.length > 0) {
       const timer = setTimeout(() => {
-        setShockwaveTargets([]);
-      }, SHOCKWAVE_DURATION + 300); // Duration of shockwave + a little buffer
+        setShockwaveTargetIds([]);
+      }, SHOCKWAVE_DURATION + 100); // Duration of shockwave + a little buffer
       return () => clearTimeout(timer);
     }
-  }, [shockwaveTargets]);
+  }, [shockwaveTargetIds]);
 
 
   const finalizeDeleteProduct = (productOriginalId: string) => {
@@ -300,6 +296,9 @@ export function ProductSearchTable() {
 
         if (stillExplodingCount === 0 && !activeSelectionsExist) {
             setIsSelectionModeActive(false);
+            if (currentSelectedIds.length === 0) { // only clear if no other selections were made
+                setSelectedProductIds([]);
+            }
         }
         return resequenced;
     });
@@ -444,94 +443,29 @@ export function ProductSearchTable() {
   };
 
 const triggerShockwave = (deletedOriginalIds: string[]) => {
-    const productsForAnalysis = [...clientSideProducts]; // Use a stable copy of all products
-    const newShockTargets = new Map<string, ShockwaveTarget>();
+    const newShockwaveNeighbors = new Set<string>();
+    const currentVisibleProducts = filteredProducts; // Use the currently visible/sorted list
 
     deletedOriginalIds.forEach(deletedId => {
-        const deletedProductActualIndex = productsForAnalysis.findIndex(p => p.originalId === deletedId);
-        if (deletedProductActualIndex === -1) return;
+        const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
+        if (deletedProductVisualIndex === -1) return;
 
-        // Analyze current filtered/sorted view to determine visual neighbors
-        const visibleProductsAtTimeOfDeletion = filteredProducts; // This is tricky, as it might be stale or about to change
-                                                            // Let's use clientSideProducts and apply current sort/filter to determine visual indices
-        
-        // Re-create the visual order from all products for accurate indexing
-        // This is an approximation as filteredProducts itself is memoized and might not reflect the exact pre-delete visual state
-        // for the purpose of finding neighbors if filters are active.
-        // A more robust way would be to pass the current `filteredProducts` from the render cycle if possible.
-        // For now, we'll work with `clientSideProducts` and sort it like `filteredProducts` for indexing.
-        let tempSortedForAnalysis = [...clientSideProducts].filter(p => !p.isExploding && !deletedOriginalIds.includes(p.originalId!));
-        if (sortBy && sortBy !== 'none') {
-             tempSortedForAnalysis.sort((a, b) => {
-                const valA = a[sortBy!];
-                const valB = b[sortBy!];
-                let comparison = 0;
-                 if (sortBy === 'validade') {
-                    const dateA = parseISO(valA as string);
-                    const dateB = parseISO(valB as string);
-                    if (isValid(dateA) && isValid(dateB)) comparison = dateA.getTime() - dateB.getTime();
-                    else if (isValid(dateA)) comparison = -1; else if (isValid(dateB)) comparison = 1;
-                } else if (sortBy === 'id' || sortBy === 'unidade') {
-                    const numA = parseInt(valA as string, 10); const numB = parseInt(valB as string, 10);
-                    if (!isNaN(numA) && !isNaN(numB)) comparison = numA - numB;
-                    else comparison = String(valA).localeCompare(String(valB));
-                } else {
-                    comparison = String(valA).localeCompare(String(valB));
-                }
-                return sortDirection === 'asc' ? comparison : -comparison;
-            });
-        }
-        // Now find the deleted item's VISUAL index in this temporarily sorted list
-        // The item itself is being deleted, so its direct neighbors are in this tempSortedForAnalysis
-        // relative to where the deleted item *would have been*.
-        // This part is the most complex to get "perfectly" right with dynamic filters.
-        // We'll determine neighbors from the `clientSideProducts` list relative to the actual index of the deleted item.
-        // This may not perfectly match visual neighbors if filters are very active, but it's a more stable source.
-
-        // Propagate upwards from actual deletedProductIndex in clientSideProducts
-        for (let dist = 1; dist <= SHOCKWAVE_MAX_DISTANCE; dist++) {
-            const neighborActualIndex = deletedProductActualIndex - dist;
-            if (neighborActualIndex < 0) break;
-            const neighborProduct = productsForAnalysis[neighborActualIndex];
-            if (neighborProduct && !neighborProduct.isExploding && !deletedOriginalIds.includes(neighborProduct.originalId!)) {
-                 const existingTarget = newShockTargets.get(neighborProduct.originalId!);
-                 if (!existingTarget || dist < existingTarget.distance) {
-                    newShockTargets.set(neighborProduct.originalId!, {
-                        id: neighborProduct.originalId!,
-                        distance: dist,
-                        direction: 'up',
-                        strength: BASE_DISPLACEMENT_PX / dist,
-                    });
-                 }
-            } else if (!neighborProduct || neighborProduct.isExploding || deletedOriginalIds.includes(neighborProduct.originalId!)) {
-                // If neighbor is exploding or also being deleted, wave might stop or weaken here.
-                // For now, let's just break if it's not a valid candidate.
-                // Or, if we want wave to pass through other deleting items, we'd need more complex logic.
-                continue; // Or break if we don't want the wave to "jump" over other deleting items
+        // Neighbor above
+        if (deletedProductVisualIndex > 0) {
+            const neighborAbove = currentVisibleProducts[deletedProductVisualIndex - 1];
+            if (neighborAbove && !neighborAbove.isExploding && !deletedOriginalIds.includes(neighborAbove.originalId!)) {
+                newShockwaveNeighbors.add(neighborAbove.originalId!);
             }
         }
-
-        // Propagate downwards
-        for (let dist = 1; dist <= SHOCKWAVE_MAX_DISTANCE; dist++) {
-            const neighborActualIndex = deletedProductActualIndex + dist;
-            if (neighborActualIndex >= productsForAnalysis.length) break;
-            const neighborProduct = productsForAnalysis[neighborActualIndex];
-            if (neighborProduct && !neighborProduct.isExploding && !deletedOriginalIds.includes(neighborProduct.originalId!)) {
-                const existingTarget = newShockTargets.get(neighborProduct.originalId!);
-                if (!existingTarget || dist < existingTarget.distance) {
-                    newShockTargets.set(neighborProduct.originalId!, {
-                        id: neighborProduct.originalId!,
-                        distance: dist,
-                        direction: 'down',
-                        strength: BASE_DISPLACEMENT_PX / dist,
-                    });
-                }
-            } else if (!neighborProduct || neighborProduct.isExploding || deletedOriginalIds.includes(neighborProduct.originalId!)) {
-                continue;
+        // Neighbor below
+        if (deletedProductVisualIndex < currentVisibleProducts.length - 1) {
+            const neighborBelow = currentVisibleProducts[deletedProductVisualIndex + 1];
+            if (neighborBelow && !neighborBelow.isExploding && !deletedOriginalIds.includes(neighborBelow.originalId!)) {
+                newShockwaveNeighbors.add(neighborBelow.originalId!);
             }
         }
     });
-    setShockwaveTargets(Array.from(newShockTargets.values()));
+    setShockwaveTargetIds(Array.from(newShockwaveNeighbors));
 };
 
 
@@ -572,11 +506,11 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
  const filteredProducts = useMemo(() => {
     let productsToFilter = [...clientSideProducts];
     
-    const explodingProducts = productsToFilter.filter(p => p.isExploding);
-    let nonExplodingProducts = productsToFilter.filter(p => !p.isExploding);
+    // Apply textual and date filters only to non-exploding products before sorting
+    // Exploding products should remain in the list to animate out from their current sorted position.
+    let displayableProducts = productsToFilter.filter(product => {
+        if (product.isExploding) return true; // Keep exploding products for animation
 
-    // Apply textual and date filters only to non-exploding products
-    nonExplodingProducts = nonExplodingProducts.filter(product => {
         const normalizedSearch = normalizeString(searchTerm);
         if (normalizedSearch) {
             if (!Object.values(product).some(value => normalizeString(String(value)).includes(normalizedSearch))) {
@@ -608,15 +542,11 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
         return true;
     });
 
-    let combinedAndSortedProducts = [...nonExplodingProducts, ...explodingProducts];
 
     if (sortBy && sortBy !== 'none') {
-        combinedAndSortedProducts.sort((a, b) => {
-            // Keep exploding items effectively "in place" relative to sort until they are removed.
-            // This means if an item is exploding, its sort key should still be considered.
-            // However, active sorting should primarily apply to non-exploding items.
-            // For simplicity, we sort all, and exploding items will animate out from their sorted position.
-            
+        displayableProducts.sort((a, b) => {
+            // When sorting, if one item is exploding, try to keep its relative order or treat it as "last" to avoid jumpiness
+            // This part is tricky with layout animations. For now, sort all, exploding items will animate from their sorted spot.
             const valA = a[sortBy];
             const valB = b[sortBy];
             let comparison = 0;
@@ -631,7 +561,10 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
                 comparison = dateA.getTime() - dateB.getTime();
               } else if (aIsValid && !bIsValid) { comparison = sortDirection === 'asc' ? -1 : 1; } 
               else if (!aIsValid && bIsValid) { comparison = sortDirection === 'asc' ? 1 : -1; } 
-              else { comparison = 0; }
+              else { // both invalid or equal
+                const idA = parseInt(a.id, 10); const idB = parseInt(b.id, 10);
+                if (!isNaN(idA) && !isNaN(idB)) comparison = idA - idB; else comparison = 0;
+              }
             } else if (sortBy === 'id' || sortBy === 'unidade') {
               const numA = parseInt(valA as string, 10);
               const numB = parseInt(valB as string, 10);
@@ -646,7 +579,7 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
             return sortDirection === 'asc' ? comparison : -comparison;
         });
     }
-    return combinedAndSortedProducts;
+    return displayableProducts;
   }, [searchTerm, clientSideProducts, selectedDateFilter, sortBy, sortDirection]);
 
 
@@ -676,7 +609,7 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
   };
 
   const handleDeleteSelected = () => {
-    triggerShockwave([...selectedProductIds]); // Pass a copy
+    triggerShockwave([...selectedProductIds]); 
     setClientSideProducts(prevProducts =>
       prevProducts.map(p =>
         selectedProductIds.includes(p.originalId!) ? { ...p, isExploding: true } : p
@@ -684,7 +617,6 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
     );
     toast({ title: `${selectedProductIds.length} produto(s) marcado(s) para exclusão.` });
     setIsDeleteSelectedConfirmOpen(false);
-    // Don't clear selectedProductIds here, finalizeDeleteProduct will handle it individually
   };
 
   const cancelSelectionMode = () => {
@@ -706,7 +638,7 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
       });
       return;
     }
-    const newOriginalId = `new-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const newOriginalId = newProductFormData.produto + newProductFormData.marca + Date.now() + Math.random().toString(36).substring(2,9);
     const newProductData: Product = {
         ...newProductFormData,
         id: '', 
@@ -752,7 +684,7 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
 
         if (!activeSelectionsStillPresent && !anyProductIsCurrentlyExploding) {
             setIsSelectionModeActive(false);
-            setSelectedProductIds([]); // Clear selection if no active or exploding items selected
+            setSelectedProductIds([]); 
         }
     }
 
@@ -931,18 +863,15 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
                     const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
                     const currentProductKey = product.originalId!;
                     
-                    const shockwaveInfo = shockwaveTargets.find(t => t.id === currentProductKey);
-                    let shockwaveAnimProps: any = { y: 0, scaleY: 1 };
+                    let shockwaveAnimProps: any = {};
+                    const isShockwaveTarget = !product.isExploding && shockwaveTargetIds.includes(currentProductKey);
 
-                    if (shockwaveInfo && !product.isExploding) {
-                        const displacement = shockwaveInfo.strength;
-                        const ySequence = shockwaveInfo.direction === 'up'
-                            ? [0, -displacement, displacement * 0.5, -displacement * 0.25, 0]
-                            : [0, displacement, -displacement * 0.5, displacement * 0.25, 0];
-                        const scaleYBaseEffect = 0.02; // Max 2% scale change for immediate neighbor
-                        const scaleEffect = 1 + (scaleYBaseEffect / shockwaveInfo.distance);
-                        const scaleYSequence = [1, scaleEffect, 1 - (scaleEffect - 1)/1.5, scaleEffect - (scaleEffect - 1)/2, 1];
-                        shockwaveAnimProps = { y: ySequence, scaleY: scaleYSequence };
+                    if (isShockwaveTarget) {
+                        shockwaveAnimProps = {
+                            y: [0, -5, 5, -2, 0],
+                            scale: [1, 1.02, 0.98, 1.01, 1],
+                            transition: { duration: SHOCKWAVE_DURATION / 1000, ease: "easeInOut" }
+                        };
                     }
 
 
@@ -968,7 +897,7 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
                             initial={{ opacity: 1 }}
                             animate={shockwaveAnimProps}
                             exit={{ opacity: 0, height: 0, transition: {duration: 0.3, type: "tween" } }}
-                            transition={{ duration: SHOCKWAVE_DURATION / 1000, type: "spring", stiffness: 300, damping: 25  }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25  }}
                             className={styleString}
                             data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
@@ -1018,7 +947,7 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]"> {/* Ensure consistent height */}
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]"> 
                                 <Particle
                                   onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
