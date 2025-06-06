@@ -149,6 +149,8 @@ const resequenceProducts = (products: Product[]): Product[] => {
 const LONG_PRESS_DURATION = 500;
 const DRAG_THRESHOLD = 10;
 const SHOCKWAVE_DURATION = 700; 
+const SHOCKWAVE_MAX_DISTANCE = 3;
+const BASE_SHOCKWAVE_STRENGTH_PX = 15;
 
 
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId'> = {
@@ -160,6 +162,12 @@ const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalI
 
 type SortableKey = Exclude<keyof Product, 'isExploding' | 'originalId'>;
 
+interface ShockwaveTarget {
+  id: string;
+  distance: number;
+  direction: 'up' | 'down';
+  strength: number;
+}
 
 const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; particleColorClass: string; }) => {
   const numParticles = 30;
@@ -237,7 +245,7 @@ export function ProductSearchTable() {
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(() =>
     mockProducts.map((p, index) => ({
         ...p,
-        originalId: p.produto + p.marca + index + Math.random().toString(36).substring(2,9), 
+        originalId: p.produto + p.marca + index + Math.random().toString(36).substring(2,11), 
         id: (index + 1).toString(), 
         isExploding: false
     }))
@@ -268,17 +276,17 @@ export function ProductSearchTable() {
   const headerPointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
   const validadeHeaderRef = useRef<HTMLTableCellElement>(null);
 
-  const [shockwaveTargetIds, setShockwaveTargetIds] = useState<string[]>([]);
+  const [shockwaveTargets, setShockwaveTargets] = useState<ShockwaveTarget[]>([]);
 
 
  useEffect(() => {
-    if (shockwaveTargetIds.length > 0) {
+    if (shockwaveTargets.length > 0) {
       const timer = setTimeout(() => {
-        setShockwaveTargetIds([]);
+        setShockwaveTargets([]);
       }, SHOCKWAVE_DURATION + 100); // Duration of shockwave + a little buffer
       return () => clearTimeout(timer);
     }
-  }, [shockwaveTargetIds]);
+  }, [shockwaveTargets]);
 
 
   const finalizeDeleteProduct = (productOriginalId: string) => {
@@ -296,7 +304,7 @@ export function ProductSearchTable() {
 
         if (stillExplodingCount === 0 && !activeSelectionsExist) {
             setIsSelectionModeActive(false);
-            if (currentSelectedIds.length === 0) { // only clear if no other selections were made
+            if (currentSelectedIds.length === 0) { 
                 setSelectedProductIds([]);
             }
         }
@@ -442,30 +450,45 @@ export function ProductSearchTable() {
     }
   };
 
-const triggerShockwave = (deletedOriginalIds: string[]) => {
-    const newShockwaveNeighbors = new Set<string>();
-    const currentVisibleProducts = filteredProducts; // Use the currently visible/sorted list
+  const triggerShockwave = (deletedOriginalIds: string[]) => {
+    const currentVisibleProducts = filteredProducts; // Capture the current visual layout at the time of deletion
+    const newShockwaveTargetsMap = new Map<string, ShockwaveTarget>();
 
     deletedOriginalIds.forEach(deletedId => {
-        const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
-        if (deletedProductVisualIndex === -1) return;
+      const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
+      if (deletedProductVisualIndex === -1) return; // Should not happen if IDs are consistent
 
-        // Neighbor above
-        if (deletedProductVisualIndex > 0) {
-            const neighborAbove = currentVisibleProducts[deletedProductVisualIndex - 1];
-            if (neighborAbove && !neighborAbove.isExploding && !deletedOriginalIds.includes(neighborAbove.originalId!)) {
-                newShockwaveNeighbors.add(neighborAbove.originalId!);
+      // Iterate outwards from the deleted item
+      for (let i = 1; i <= SHOCKWAVE_MAX_DISTANCE; i++) {
+        const processNeighbor = (index: number, direction: 'up' | 'down') => {
+          if (index >= 0 && index < currentVisibleProducts.length) {
+            const neighbor = currentVisibleProducts[index];
+            // Ensure neighbor is not itself exploding or one of the items being deleted in this batch
+            if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
+              const strength = BASE_SHOCKWAVE_STRENGTH_PX / i; // Diminishing strength
+              
+              const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
+              // If this neighbor is already targeted (e.g., by another deleted item closer to it),
+              // only update if this new shock is from a closer deleted item (smaller 'i').
+              if (!existingTarget || i < existingTarget.distance) {
+                newShockwaveTargetsMap.set(neighbor.originalId!, {
+                  id: neighbor.originalId!,
+                  distance: i,
+                  direction,
+                  strength,
+                });
+              }
             }
-        }
-        // Neighbor below
-        if (deletedProductVisualIndex < currentVisibleProducts.length - 1) {
-            const neighborBelow = currentVisibleProducts[deletedProductVisualIndex + 1];
-            if (neighborBelow && !neighborBelow.isExploding && !deletedOriginalIds.includes(neighborBelow.originalId!)) {
-                newShockwaveNeighbors.add(neighborBelow.originalId!);
-            }
-        }
+          }
+        };
+
+        // Process neighbor above
+        processNeighbor(deletedProductVisualIndex - i, 'up');
+        // Process neighbor below
+        processNeighbor(deletedProductVisualIndex + i, 'down');
+      }
     });
-    setShockwaveTargetIds(Array.from(newShockwaveNeighbors));
+    setShockwaveTargets(Array.from(newShockwaveTargetsMap.values()));
 };
 
 
@@ -506,10 +529,8 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
  const filteredProducts = useMemo(() => {
     let productsToFilter = [...clientSideProducts];
     
-    // Apply textual and date filters only to non-exploding products before sorting
-    // Exploding products should remain in the list to animate out from their current sorted position.
     let displayableProducts = productsToFilter.filter(product => {
-        if (product.isExploding) return true; // Keep exploding products for animation
+        if (product.isExploding) return true; 
 
         const normalizedSearch = normalizeString(searchTerm);
         if (normalizedSearch) {
@@ -545,8 +566,6 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
 
     if (sortBy && sortBy !== 'none') {
         displayableProducts.sort((a, b) => {
-            // When sorting, if one item is exploding, try to keep its relative order or treat it as "last" to avoid jumpiness
-            // This part is tricky with layout animations. For now, sort all, exploding items will animate from their sorted spot.
             const valA = a[sortBy];
             const valB = b[sortBy];
             let comparison = 0;
@@ -561,9 +580,10 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
                 comparison = dateA.getTime() - dateB.getTime();
               } else if (aIsValid && !bIsValid) { comparison = sortDirection === 'asc' ? -1 : 1; } 
               else if (!aIsValid && bIsValid) { comparison = sortDirection === 'asc' ? 1 : -1; } 
-              else { // both invalid or equal
-                const idA = parseInt(a.id, 10); const idB = parseInt(b.id, 10);
-                if (!isNaN(idA) && !isNaN(idB)) comparison = idA - idB; else comparison = 0;
+              else { 
+                const originalIdA = a.originalId || '';
+                const originalIdB = b.originalId || '';
+                comparison = originalIdA.localeCompare(originalIdB);
               }
             } else if (sortBy === 'id' || sortBy === 'unidade') {
               const numA = parseInt(valA as string, 10);
@@ -638,7 +658,7 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
       });
       return;
     }
-    const newOriginalId = newProductFormData.produto + newProductFormData.marca + Date.now() + Math.random().toString(36).substring(2,9);
+    const newOriginalId = newProductFormData.produto + newProductFormData.marca + Date.now() + Math.random().toString(36).substring(2,11);
     const newProductData: Product = {
         ...newProductFormData,
         id: '', 
@@ -864,12 +884,15 @@ const triggerShockwave = (deletedOriginalIds: string[]) => {
                     const currentProductKey = product.originalId!;
                     
                     let shockwaveAnimProps: any = {};
-                    const isShockwaveTarget = !product.isExploding && shockwaveTargetIds.includes(currentProductKey);
+                    const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
 
-                    if (isShockwaveTarget) {
+                    if (shockwaveTargetInfo) {
+                        const { strength, direction, distance } = shockwaveTargetInfo;
+                        const displacementFactor = direction === 'up' ? -1 : 1;
+                        
                         shockwaveAnimProps = {
-                            y: [0, -5, 5, -2, 0],
-                            scale: [1, 1.02, 0.98, 1.01, 1],
+                            y: [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0],
+                            scale: [1, 1 + (0.05 / distance), 1 - (0.03 / distance), 1 + (0.01 / distance), 1],
                             transition: { duration: SHOCKWAVE_DURATION / 1000, ease: "easeInOut" }
                         };
                     }
