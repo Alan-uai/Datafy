@@ -5,7 +5,7 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableHeader, TableBody as ShadTableBody, TableCell, TableHead, TableRow as ShadTableRow } from '@/components/ui/table';
+import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,24 +54,24 @@ import { useToast } from "@/hooks/use-toast";
 
 
 const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
-  { produto: 'Leite Integral UHT', marca: 'Tirol', unidade: '24', validade: '2024-12-15', originalId: 'Leite Integral UHTTirol0' + Math.random().toString(36).substring(2,11) },
-  { produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: '10', validade: '2024-07-20', originalId: 'Pão de Forma TradicionalSeven Boys1'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: '15', validade: '2025-03-10', originalId: 'Café Torrado e Moído3 Corações2'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: '5', validade: '2025-08-01', originalId: 'Arroz Branco Tipo 1Camil3'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: '8', validade: '2025-06-22', originalId: 'Feijão Carioca Tipo 1Kicaldo4'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: '20', validade: '2024-11-05', originalId: 'Óleo de Soja RefinadoSoya5'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: '48', validade: '2024-10-30', originalId: 'Refrigerante GuaranáAntarctica6'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: '30', validade: '2024-09-01', originalId: 'Biscoito Cream CrackerVitarella7'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: '25', validade: '2026-01-15', originalId: 'Macarrão EspagueteBarilla8'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31', originalId: 'Açúcar RefinadoUnião9'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20', originalId: 'Leite CondensadoMoça10'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25', originalId: 'Creme de Leite UHTPiracanjuba11'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0], originalId: 'Iogurte NaturalBatavo12'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0], originalId: 'Queijo Minas FrescalPolenghi13'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0], originalId: 'Suco de Laranja IntegralDel Valle14'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01', originalId: 'Manteiga com SalAviação15'+ Math.random().toString(36).substring(2,11) }, // Expired
-  { produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0], originalId: 'Requeijão CremosoVigor16'+ Math.random().toString(36).substring(2,11) },
-  { produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0], originalId: 'Doce de LeiteItambé17'+ Math.random().toString(36).substring(2,11) }, // Expired
+  { produto: 'Leite Integral UHT', marca: 'Tirol', unidade: '24', validade: '2024-12-15' },
+  { produto: 'Pão de Forma Tradicional', marca: 'Seven Boys', unidade: '10', validade: '2024-07-20' },
+  { produto: 'Café Torrado e Moído', marca: '3 Corações', unidade: '15', validade: '2025-03-10' },
+  { produto: 'Arroz Branco Tipo 1', marca: 'Camil', unidade: '5', validade: '2025-08-01' },
+  { produto: 'Feijão Carioca Tipo 1', marca: 'Kicaldo', unidade: '8', validade: '2025-06-22' },
+  { produto: 'Óleo de Soja Refinado', marca: 'Soya', unidade: '20', validade: '2024-11-05' },
+  { produto: 'Refrigerante Guaraná', marca: 'Antarctica', unidade: '48', validade: '2024-10-30' },
+  { produto: 'Biscoito Cream Cracker', marca: 'Vitarella', unidade: '30', validade: '2024-09-01' },
+  { produto: 'Macarrão Espaguete', marca: 'Barilla', unidade: '25', validade: '2026-01-15' },
+  { produto: 'Açúcar Refinado', marca: 'União', unidade: '18', validade: '2025-12-31' },
+  { produto: 'Leite Condensado', marca: 'Moça', unidade: '36', validade: '2025-02-20' },
+  { produto: 'Creme de Leite UHT', marca: 'Piracanjuba', unidade: '40', validade: '2024-11-25' },
+  { produto: 'Iogurte Natural', marca: 'Batavo', unidade: '12', validade: new Date().toISOString().split('T')[0] },
+  { produto: 'Queijo Minas Frescal', marca: 'Polenghi', unidade: '6', validade: subDays(new Date(), 1).toISOString().split('T')[0] },
+  { produto: 'Suco de Laranja Integral', marca: 'Del Valle', unidade: '9', validade: addDays(new Date(), 1).toISOString().split('T')[0] },
+  { produto: 'Manteiga com Sal', marca: 'Aviação', unidade: '3', validade: '2023-01-01' },
+  { produto: 'Requeijão Cremoso', marca: 'Vigor', unidade: '7', validade: addDays(new Date(), 3).toISOString().split('T')[0] },
+  { produto: 'Doce de Leite', marca: 'Itambé', unidade: '4', validade: subDays(new Date(), 5).toISOString().split('T')[0] },
 ];
 
 const MotionTableBody = motion(ShadTableBody);
@@ -101,7 +101,7 @@ const dateFilterOptions = [
 
 const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean, isExploding?: boolean): { styleString: string; particleColorClass: string } => {
   let baseStyle = 'transition-colors duration-150 ease-in-out relative';
-  let particleColorClass = 'bg-white'; 
+  let particleColorClass = 'bg-white';
 
   if (isExploding) {
      if (!isValid(parseISO(validade))) {
@@ -142,15 +142,15 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
 const resequenceProducts = (products: Product[]): Product[] => {
   return products.map((product, index) => ({
     ...product,
-    id: (index + 1).toString(), 
+    id: (index + 1).toString(),
   }));
 };
 
 const LONG_PRESS_DURATION = 500;
 const DRAG_THRESHOLD = 10;
-const SHOCKWAVE_DURATION = 700; 
-const SHOCKWAVE_MAX_DISTANCE = 3; 
+const SHOCKWAVE_DURATION = 700;
 const BASE_SHOCKWAVE_STRENGTH_PX = 15;
+const SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP = 5; // Strength decreases by this amount for each row away
 
 
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId'> = {
@@ -171,7 +171,7 @@ interface ShockwaveTarget {
 
 const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; particleColorClass: string; }) => {
   const numParticles = 30;
-  const animationDuration = 1.5; 
+  const animationDuration = 1.5;
   const onCompleteCalledRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -196,17 +196,17 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 pointer-events-none" 
+      className="absolute inset-0 pointer-events-none"
     >
       {dimensions.width > 0 && Array.from({ length: numParticles }).map((_, i) => {
         const initialX = Math.random() * dimensions.width;
         const initialY = Math.random() * dimensions.height;
-        
-        const travelDistanceXBase = dimensions.width * 0.3; 
+
+        const travelDistanceXBase = dimensions.width * 0.3;
         const travelDistanceYBase = dimensions.height * 1.5;
 
-        const travelDistanceX = (Math.random() * 0.6 + 0.4) * travelDistanceXBase; 
-        const travelDistanceY = (Math.random() * 0.6 + 0.4) * travelDistanceYBase; 
+        const travelDistanceX = (Math.random() * 0.6 + 0.4) * travelDistanceXBase;
+        const travelDistanceY = (Math.random() * 0.6 + 0.4) * travelDistanceYBase;
 
         return (
           <motion.div
@@ -218,8 +218,8 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
              }}
             initial={{ opacity: 1, scale: Math.random() * 0.5 + 0.5 }}
             animate={{
-              x: initialX + travelDistanceX, 
-              y: initialY - travelDistanceY, 
+              x: initialX + travelDistanceX,
+              y: initialY - travelDistanceY,
               scale: 0,
               opacity: 0,
             }}
@@ -245,8 +245,8 @@ export function ProductSearchTable() {
   const [clientSideProducts, setClientSideProducts] = useState<Product[]>(() =>
     mockProducts.map((p, index) => ({
         ...p,
-        originalId: p.originalId || (p.produto + p.marca + index + Math.random().toString(36).substring(2,11)), 
-        id: (index + 1).toString(), 
+        originalId: p.produto + p.marca + index + Math.random().toString(36).substring(2,11),
+        id: (index + 1).toString(),
         isExploding: false
     }))
   );
@@ -283,7 +283,7 @@ export function ProductSearchTable() {
     if (shockwaveTargets.length > 0) {
       const timer = setTimeout(() => {
         setShockwaveTargets([]);
-      }, SHOCKWAVE_DURATION + 100); 
+      }, SHOCKWAVE_DURATION + 100);
       return () => clearTimeout(timer);
     }
   }, [shockwaveTargets]);
@@ -296,7 +296,7 @@ export function ProductSearchTable() {
 
         const currentSelectedIds = selectedProductIds.filter(id => id !== productOriginalId);
         setSelectedProductIds(currentSelectedIds);
-        
+
         const stillExplodingCount = resequenced.filter(p => p.isExploding).length;
         const activeSelectionsExist = currentSelectedIds.some(id =>
             resequenced.find(p => p.originalId === id && !p.isExploding)
@@ -304,7 +304,7 @@ export function ProductSearchTable() {
 
         if (stillExplodingCount === 0 && !activeSelectionsExist) {
             setIsSelectionModeActive(false);
-            if (currentSelectedIds.length === 0) { 
+            if (currentSelectedIds.length === 0) {
                 setSelectedProductIds([]);
             }
         }
@@ -451,45 +451,55 @@ export function ProductSearchTable() {
   };
 
  const triggerShockwave = (deletedOriginalIds: string[]) => {
-    const currentVisibleProducts = filteredProducts; 
+    const currentVisibleProducts = filteredProducts;
     const newShockwaveTargetsMap = new Map<string, ShockwaveTarget>();
-    const MIN_STRENGTH_THRESHOLD = 0.5; 
 
     deletedOriginalIds.forEach(deletedId => {
         const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
         if (deletedProductVisualIndex === -1) return;
 
-        for (let distance = 1; distance <= SHOCKWAVE_MAX_DISTANCE; distance++) {
-            let strength = BASE_SHOCKWAVE_STRENGTH_PX / distance;
-            if (strength < MIN_STRENGTH_THRESHOLD) {
-                 break; 
-            }
+        // Propagate shockwave upwards
+        for (let distance = 1; ; distance++) {
+            const neighborIndex = deletedProductVisualIndex - distance;
+            if (neighborIndex < 0) break;
 
-            const processNeighbor = (index: number, direction: 'up' | 'down') => {
-                if (index >= 0 && index < currentVisibleProducts.length) {
-                    const neighbor = currentVisibleProducts[index];
-                    if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
-                        const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
-                        if (!existingTarget || distance < existingTarget.distance) {
-                            newShockwaveTargetsMap.set(neighbor.originalId!, {
-                                id: neighbor.originalId!,
-                                distance: distance,
-                                direction,
-                                strength,
-                            });
-                        } else if (existingTarget && distance === existingTarget.distance && strength > existingTarget.strength) {
-                             newShockwaveTargetsMap.set(neighbor.originalId!, {
-                                id: neighbor.originalId!,
-                                distance: distance,
-                                direction,
-                                strength: strength,
-                            });
-                        }
-                    }
+            const strength = BASE_SHOCKWAVE_STRENGTH_PX - (distance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+            if (strength <= 0) break;
+
+            const neighbor = currentVisibleProducts[neighborIndex];
+            if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
+                const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
+                if (!existingTarget || strength > existingTarget.strength) { // Prioritize stronger shock from closer explosion
+                    newShockwaveTargetsMap.set(neighbor.originalId!, {
+                        id: neighbor.originalId!,
+                        distance: distance,
+                        direction: 'up',
+                        strength,
+                    });
                 }
-            };
-            processNeighbor(deletedProductVisualIndex - distance, 'up');
-            processNeighbor(deletedProductVisualIndex + distance, 'down');
+            }
+        }
+
+        // Propagate shockwave downwards
+        for (let distance = 1; ; distance++) {
+            const neighborIndex = deletedProductVisualIndex + distance;
+            if (neighborIndex >= currentVisibleProducts.length) break;
+
+            const strength = BASE_SHOCKWAVE_STRENGTH_PX - (distance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+            if (strength <= 0) break;
+
+            const neighbor = currentVisibleProducts[neighborIndex];
+            if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
+                 const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
+                 if (!existingTarget || strength > existingTarget.strength) {
+                    newShockwaveTargetsMap.set(neighbor.originalId!, {
+                        id: neighbor.originalId!,
+                        distance: distance,
+                        direction: 'down',
+                        strength,
+                    });
+                }
+            }
         }
     });
     setShockwaveTargets(Array.from(newShockwaveTargetsMap.values()));
@@ -532,9 +542,9 @@ export function ProductSearchTable() {
 
  const filteredProducts = useMemo(() => {
     let productsToFilter = [...clientSideProducts];
-    
+
     let displayableProducts = productsToFilter.filter(product => {
-        if (product.isExploding) return true; 
+        if (product.isExploding) return true;
 
         const normalizedSearch = normalizeString(searchTerm);
         if (normalizedSearch) {
@@ -545,7 +555,7 @@ export function ProductSearchTable() {
         if (selectedDateFilter !== 'all') {
             const productDate = parseISO(product.validade);
             if (!isValid(productDate)) {
-                 return selectedDateFilter === 'all'; 
+                 return selectedDateFilter === 'all';
             }
             const productDateStartOfDay = startOfDay(productDate);
             const todayDate = startOfDay(new Date());
@@ -582,9 +592,9 @@ export function ProductSearchTable() {
 
               if (aIsValid && bIsValid) {
                 comparison = dateA.getTime() - dateB.getTime();
-              } else if (aIsValid && !bIsValid) { comparison = sortDirection === 'asc' ? -1 : 1; } 
-              else if (!aIsValid && bIsValid) { comparison = sortDirection === 'asc' ? 1 : -1; } 
-              else { 
+              } else if (aIsValid && !bIsValid) { comparison = sortDirection === 'asc' ? -1 : 1; }
+              else if (!aIsValid && bIsValid) { comparison = sortDirection === 'asc' ? 1 : -1; }
+              else {
                 const originalIdA = a.originalId || '';
                 const originalIdB = b.originalId || '';
                 comparison = originalIdA.localeCompare(originalIdB);
@@ -594,7 +604,7 @@ export function ProductSearchTable() {
               const numB = parseInt(valB as string, 10);
               if (!isNaN(numA) && !isNaN(numB)) {
                 comparison = numA - numB;
-              } else if (!isNaN(numA)) { comparison = -1; } 
+              } else if (!isNaN(numA)) { comparison = -1; }
               else if (!isNaN(numB)) { comparison = 1; }
               else { comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));}
             } else {
@@ -633,7 +643,7 @@ export function ProductSearchTable() {
   };
 
   const handleDeleteSelected = () => {
-    triggerShockwave([...selectedProductIds]); 
+    triggerShockwave([...selectedProductIds]);
     setClientSideProducts(prevProducts =>
       prevProducts.map(p =>
         selectedProductIds.includes(p.originalId!) ? { ...p, isExploding: true } : p
@@ -665,7 +675,7 @@ export function ProductSearchTable() {
     const newOriginalId = newProductFormData.produto + newProductFormData.marca + Date.now() + Math.random().toString(36).substring(2,11);
     const newProductData: Product = {
         ...newProductFormData,
-        id: '', 
+        id: '',
         originalId: newOriginalId,
         isExploding: false
     };
@@ -708,7 +718,7 @@ export function ProductSearchTable() {
 
         if (!activeSelectionsStillPresent && !anyProductIsCurrentlyExploding) {
             setIsSelectionModeActive(false);
-            setSelectedProductIds([]); 
+            setSelectedProductIds([]);
         }
     }
 
@@ -810,7 +820,7 @@ export function ProductSearchTable() {
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <TableHeader>
+              <thead className="[&_tr]:border-b">
                 <ShadTableRow>
                   {isSelectionModeActive && (
                     <TableHead className="w-[50px] px-2 py-3">
@@ -880,30 +890,31 @@ export function ProductSearchTable() {
                     </Popover>
                   </TableHead>
                 </ShadTableRow>
-              </TableHeader>
+              </thead>
               <MotionTableBody layout>
                 <AnimatePresence initial={false} mode="popLayout">
                   {filteredProducts.map((product) => {
                     const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
                     const currentProductKey = product.originalId!;
-                    
+
                     let shockwaveAnimProps: any = {};
                     const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
 
                     if (shockwaveTargetInfo) {
                         const { strength, direction, distance } = shockwaveTargetInfo;
                         const displacementFactor = direction === 'up' ? -1 : 1;
-                        
+
                         const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
-                        
-                        const baseScaleMagnitude = 0.05; 
+
+                        const baseScaleMagnitude = 0.05;
                         let currentScaleMagnitude = 0;
-                        if (SHOCKWAVE_MAX_DISTANCE > 1) {
-                           currentScaleMagnitude = distance > 0 ? baseScaleMagnitude * ((SHOCKWAVE_MAX_DISTANCE - distance) / (SHOCKWAVE_MAX_DISTANCE -1.0)) : baseScaleMagnitude;
-                           currentScaleMagnitude = Math.max(0, currentScaleMagnitude); // Ensure non-negative
-                        } else if (SHOCKWAVE_MAX_DISTANCE === 1 && distance === 1) {
-                           currentScaleMagnitude = baseScaleMagnitude;
+                        if (strength > 0) {
+                           const maxPossibleStrengthForDistance1 = BASE_SHOCKWAVE_STRENGTH_PX;
+                           const strengthRatio = strength / maxPossibleStrengthForDistance1;
+                           currentScaleMagnitude = baseScaleMagnitude * strengthRatio;
                         }
+                        currentScaleMagnitude = Math.max(0, currentScaleMagnitude);
+
                         const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
 
 
@@ -987,7 +998,7 @@ export function ProductSearchTable() {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]"> 
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]">
                                 <Particle
                                   onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
@@ -1239,5 +1250,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-    
