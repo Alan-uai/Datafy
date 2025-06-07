@@ -52,7 +52,7 @@ import {
   format,
 } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { Scanner } from 'react-zxing/Scanner';
+import { Scanner } from 'react-zxing';
 
 
 const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
@@ -565,9 +565,9 @@ export function ProductSearchTable() {
                 let sortValA = String(valA);
                 let sortValB = String(valB);
 
-                if (sortValA.toLowerCase() === '3 corações') sortValA = 'tres coracoes';
-                if (sortValB.toLowerCase() === '3 corações') sortValB = 'tres coracoes';
-
+                if (normalizeString(sortValA) === '3 coracoes') sortValA = 'tres coracoes';
+                if (normalizeString(sortValB) === '3 coracoes') sortValB = 'tres coracoes';
+                
                 comparison = normalizeString(sortValA).localeCompare(normalizeString(sortValB));
             }
              else { 
@@ -866,7 +866,7 @@ export function ProductSearchTable() {
                     
                     <Popover
                         open={isAddActionPopoverOpen && !isSelectionModeActive}
-                        onOpenChange={(isOpen) => {
+                         onOpenChange={(isOpen) => {
                            if (!isOpen && isAddActionPopoverOpen) {
                              setIsAddActionPopoverOpen(false);
                            }
@@ -1321,3 +1321,7 @@ export function ProductSearchTable() {
     </>
   );
 }
+
+    
+
+    
