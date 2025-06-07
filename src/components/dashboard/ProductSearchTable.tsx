@@ -9,7 +9,7 @@ import {
   Table,
   TableBody as ShadTableBody,
   TableCell,
-  TableHeader,
+  TableHeader as ShadTableHeader,
   TableRow as ShadTableRow,
   TableHead as ShadTableHeaderComponent,
 } from '@/components/ui/table';
@@ -285,6 +285,7 @@ export function ProductSearchTable() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const activeStreamRef = useRef<MediaStream | null>(null);
 
 
   useEffect(() => {
@@ -303,7 +304,7 @@ export function ProductSearchTable() {
       clientSideProducts.some(p => p.originalId === id && !p.isExploding)
     );
 
-    const newIsSelectionModeActive = validSelectedIds.length > 0 || clientSideProducts.some(p => p.isExploding);
+    const newIsSelectionModeActive = validSelectedIds.length > 0;
 
     const didSelectedIdsChange = JSON.stringify(validSelectedIds) !== JSON.stringify(currentSelectedIds);
     const didSelectionModeChange = newIsSelectionModeActive !== currentIsSelectionModeActive;
@@ -380,6 +381,8 @@ export function ProductSearchTable() {
             handleToggleSelectProduct(product.originalId);
           }
         } else {
+          // This is where a regular click/tap would open the popover if not in selection mode
+          // The PopoverTrigger handles this, but we ensure we don't interfere if it was a short tap.
         }
       }
     }
@@ -729,7 +732,7 @@ export function ProductSearchTable() {
       if (isScannerActive && hasCameraPermission === null) {
         try {
           const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          tempStream.getTracks().forEach(track => track.stop());
+          tempStream.getTracks().forEach(track => track.stop()); // Stop temp stream immediately
           setHasCameraPermission(true);
         } catch (error) {
           console.error('Error accessing camera:', error);
@@ -739,88 +742,86 @@ export function ProductSearchTable() {
             title: 'Camera Access Denied',
             description: 'Please enable camera permissions in your browser settings to use the barcode scanner.',
           });
-          setIsScannerActive(false);
+          setIsScannerActive(false); // Turn off scanner if permission denied
         }
       }
     };
     getCameraPermission();
   }, [isScannerActive, hasCameraPermission, toast]);
 
+
   useEffect(() => {
-    let stream: MediaStream | null = null;
-    const codeReader = new BrowserMultiFormatReader();
-    codeReaderRef.current = codeReader;
-
-    const startScanner = async () => {
-      if (isScannerActive && hasCameraPermission === true && videoRef.current) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-          videoRef.current.srcObject = stream;
-
-          videoRef.current.onloadedmetadata = () => {
-            if (videoRef.current && codeReaderRef.current && isScannerActive) {
-              codeReaderRef.current.decodeFromVideoDevice(undefined, videoRef.current, (result, error) => {
-                if (result) {
-                  setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
-                  setIsScannerActive(false);
-                  toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
-                } else if (error && !(error instanceof NotFoundException)) {
-                  console.error('Barcode scanner error:', error);
-                  toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
-                  // setIsScannerActive(false); // Optionally stop scanner on other errors
-                }
-              }).catch(err => {
-                // This catch is for the decodeFromVideoDevice promise itself, though the callback handles most cases.
-                if (!(err instanceof NotFoundException)) {
-                    console.error("Error in decodeFromVideoDevice promise: ", err);
-                    toast({ variant: "destructive", title: "Erro crítico no Scanner", description: "Ocorreu um erro ao tentar decodificar."});
-                    setIsScannerActive(false);
-                }
-              });
-            }
-          };
-          // Add an error handler for the video element itself.
-          videoRef.current.onerror = (e) => {
-            console.error("Video element error:", e);
-            toast({ variant: "destructive", title: "Erro de Vídeo", description: "Não foi possível carregar o vídeo da câmera."});
-            setIsScannerActive(false);
-          }
-        } catch (err) {
-          console.error('Error starting scanner:', err);
-          setHasCameraPermission(false);
-          toast({
-            variant: 'destructive',
-            title: 'Erro ao iniciar câmera',
-            description: 'Não foi possível acessar a câmera. Verifique as permissões.',
-          });
-          setIsScannerActive(false);
-        }
-      }
-    };
-
-    if (isScannerActive && hasCameraPermission === true) {
-        startScanner();
-    } else if (!isScannerActive || hasCameraPermission === false) {
-        codeReaderRef.current?.reset();
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
-    }
-
-    return () => {
+    const cleanupScanner = () => {
       codeReaderRef.current?.reset();
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (activeStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach(track => track.stop());
+        activeStreamRef.current = null;
       }
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
     };
-  }, [isScannerActive, hasCameraPermission, toast]);
+
+    if (isScannerActive && hasCameraPermission === true) {
+      const codeReader = codeReaderRef.current || new BrowserMultiFormatReader();
+      codeReaderRef.current = codeReader;
+
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+          activeStreamRef.current = stream;
+          if (videoRef.current && isScannerActive) { // Re-check isScannerActive
+            videoRef.current.srcObject = stream;
+            videoRef.current.onloadedmetadata = () => {
+              if (videoRef.current && codeReaderRef.current && isScannerActive) { // Re-check isScannerActive
+                codeReaderRef.current.decodeFromVideoDevice(undefined, videoRef.current, (result, error) => {
+                  if (result) {
+                    setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
+                    toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
+                    cleanupScanner(); 
+                    setIsScannerActive(false); 
+                  } else if (error && !(error instanceof NotFoundException)) {
+                    console.error('Barcode scanner error:', error);
+                    toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
+                  }
+                }).catch(err => {
+                  if (!(err instanceof NotFoundException)) {
+                    console.error("Error in decodeFromVideoDevice promise: ", err);
+                    toast({ variant: "destructive", title: "Erro crítico no Scanner", description: "Ocorreu um erro ao tentar decodificar."});
+                    cleanupScanner();
+                    setIsScannerActive(false);
+                  }
+                });
+              } else {
+                cleanupScanner(); // State changed or ref missing
+              }
+            };
+            videoRef.current.onerror = (e) => {
+              console.error("Video element error:", e);
+              toast({ variant: "destructive", title: "Erro de Vídeo", description: "Não foi possível carregar o vídeo da câmera."});
+              cleanupScanner();
+              setIsScannerActive(false);
+            };
+          } else {
+             cleanupScanner(); // Scanner became inactive or videoRef not available
+          }
+        })
+        .catch(err => {
+          console.error('Error starting scanner:', err);
+          toast({
+            variant: 'destructive',
+            title: 'Erro ao iniciar câmera',
+            description: 'Não foi possível acessar a câmera. Verifique as permissões.',
+          });
+          cleanupScanner();
+          setHasCameraPermission(false); 
+          setIsScannerActive(false);     
+        });
+    } else {
+      cleanupScanner(); 
+    }
+
+    return cleanupScanner;
+  }, [isScannerActive, hasCameraPermission]);
 
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "", isSortable: boolean = true) => {
@@ -899,7 +900,7 @@ export function ProductSearchTable() {
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <TableHeader>
+              <ShadTableHeader>
                 <ShadTableRow
                   onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
                   onPointerUp={handleHeaderRowPointerUp}
@@ -983,8 +984,8 @@ export function ProductSearchTable() {
                     </Popover>
                   </ShadTableHeaderComponent>
                 </ShadTableRow>
-              </TableHeader>
-              <MotionTableBody>
+              </ShadTableHeader>
+              <MotionTableBody layout>
                 <AnimatePresence>
                   {filteredProducts.map((product) => {
                     const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
@@ -1272,8 +1273,8 @@ export function ProductSearchTable() {
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
-            setIsScannerActive(false); // Ensure scanner is reset when dialog closes
-            setHasCameraPermission(null); // Reset camera permission status
+            setIsScannerActive(false); 
+            setHasCameraPermission(null); 
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1298,13 +1299,13 @@ export function ProductSearchTable() {
                   </AlertDescription>
                 </Alert>
               )}
-              {hasCameraPermission === null && (
+              {hasCameraPermission === null && !videoRef.current?.srcObject && ( // Improved loading state
                 <div className="my-2 flex flex-col items-center justify-center p-4 border rounded-md min-h-[200px]">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p className="mt-2 text-sm text-muted-foreground">Solicitando acesso à câmera...</p>
                 </div>
               )}
-              <Button variant="outline" className="w-full mt-2" onClick={() => { setIsScannerActive(false); setHasCameraPermission(null); }}>Cancelar Scan</Button>
+              <Button variant="outline" className="w-full mt-2" onClick={() => { setIsScannerActive(false); }}>Cancelar Scan</Button>
             </div>
           ) : (
             <>
@@ -1368,7 +1369,7 @@ export function ProductSearchTable() {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                        setHasCameraPermission(null);
+                        setHasCameraPermission(null); // Reset to trigger permission request flow
                         setIsScannerActive(true);
                     }}
                     className="w-full sm:w-auto"
@@ -1389,3 +1390,5 @@ export function ProductSearchTable() {
     </>
   );
 }
+
+    
