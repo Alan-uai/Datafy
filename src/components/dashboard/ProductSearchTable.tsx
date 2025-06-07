@@ -52,7 +52,7 @@ import {
   format,
 } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { Scanner } from 'react-zxing';
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 
 const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
@@ -276,6 +276,8 @@ export function ProductSearchTable() {
 
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
 
 
   useEffect(() => {
@@ -715,26 +717,102 @@ export function ProductSearchTable() {
     headerPointerDownPositionRef.current = null; 
   };
 
-
   useEffect(() => {
     const getCameraPermission = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use the barcode scanner.',
-        });
+      if (isScannerActive && hasCameraPermission === null) {
+        try {
+          const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          tempStream.getTracks().forEach(track => track.stop());
+          setHasCameraPermission(true);
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use the barcode scanner.',
+          });
+          setIsScannerActive(false); 
+        }
+      }
+    };
+    getCameraPermission();
+  }, [isScannerActive, hasCameraPermission, toast]);
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    const codeReader = new BrowserMultiFormatReader();
+    codeReaderRef.current = codeReader;
+
+    const startScanner = async () => {
+      if (isScannerActive && hasCameraPermission === true && videoRef.current) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          videoRef.current.srcObject = stream;
+          
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current && codeReaderRef.current && isScannerActive) { 
+              codeReaderRef.current.decodeFromVideoDevice(undefined, videoRef.current, (result, error) => {
+                if (result) {
+                  setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
+                  setIsScannerActive(false); 
+                  toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
+                } else if (error && !(error instanceof NotFoundException)) {
+                  console.error('Barcode scanner error:', error);
+                  toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
+                  // setIsScannerActive(false); // Optionally stop scanner on other errors
+                }
+              }).catch(err => {
+                // This catch is for the decodeFromVideoDevice promise itself, though the callback handles most cases.
+                if (!(err instanceof NotFoundException)) {
+                    console.error("Error in decodeFromVideoDevice promise: ", err);
+                    toast({ variant: "destructive", title: "Erro crítico no Scanner", description: "Ocorreu um erro ao tentar decodificar."});
+                    setIsScannerActive(false);
+                }
+              });
+            }
+          };
+          // Add an error handler for the video element itself.
+          videoRef.current.onerror = (e) => {
+            console.error("Video element error:", e);
+            toast({ variant: "destructive", title: "Erro de Vídeo", description: "Não foi possível carregar o vídeo da câmera."});
+            setIsScannerActive(false);
+          }
+        } catch (err) {
+          console.error('Error starting scanner:', err);
+          setHasCameraPermission(false); 
+          toast({
+            variant: 'destructive',
+            title: 'Erro ao iniciar câmera',
+            description: 'Não foi possível acessar a câmera. Verifique as permissões.',
+          });
+          setIsScannerActive(false);
+        }
       }
     };
 
-    if (isScannerActive && hasCameraPermission === null) {
-      getCameraPermission();
+    if (isScannerActive && hasCameraPermission === true) {
+        startScanner();
+    } else if (!isScannerActive || hasCameraPermission === false) {
+        codeReaderRef.current?.reset();
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
     }
+    
+    return () => {
+      codeReaderRef.current?.reset();
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
   }, [isScannerActive, hasCameraPermission, toast]);
 
 
@@ -1187,8 +1265,8 @@ export function ProductSearchTable() {
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
-            setIsScannerActive(false);
-            setHasCameraPermission(null);
+            setIsScannerActive(false); // Ensure scanner is reset when dialog closes
+            setHasCameraPermission(null); // Reset camera permission status
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1203,24 +1281,7 @@ export function ProductSearchTable() {
           {isScannerActive ? (
             <div className="py-4">
               {hasCameraPermission === true && (
-                <div className="w-full aspect-video rounded-md overflow-hidden border my-2 bg-muted">
-                  <Scanner
-                    onScan={(result) => { 
-                      if (result) {
-                        setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
-                        setIsScannerActive(false);
-                        setHasCameraPermission(null); 
-                        toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
-                      }
-                    }}
-                    onError={(error) => { 
-                      console.error('Barcode scanner error:', error);
-                      toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
-                      setIsScannerActive(false);
-                      setHasCameraPermission(null);
-                    }}
-                  />
-                </div>
+                 <video ref={videoRef} className="w-full aspect-video rounded-md border my-2 bg-muted" autoPlay muted playsInline />
               )}
               {hasCameraPermission === false && (
                 <Alert variant="destructive" className="my-2">
