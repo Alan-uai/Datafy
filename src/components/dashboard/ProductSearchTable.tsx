@@ -343,6 +343,7 @@ export function ProductSearchTable() {
           }
         } else {
           // Popover opening is handled by Popover's onOpenChange via its trigger
+          // when not in selection mode.
         }
       }
     }
@@ -431,13 +432,16 @@ export function ProductSearchTable() {
         for (let direction of [-1, 1]) { 
             for (let distance = 1; ; distance++) { 
                 let calculatedStrength = BASE_SHOCKWAVE_STRENGTH_PX - (distance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+                
                 if (calculatedStrength <= 0) {
-                    calculatedStrength = 0; 
-                     break; 
+                     calculatedStrength = 0; 
                 }
 
                 const neighborIndex = deletedProductVisualIndex + (distance * direction);
-                if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) break; 
+                if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) {
+                     if (calculatedStrength <= 0) break; 
+                     continue; 
+                }
                 
                 const neighbor = currentVisibleProducts[neighborIndex];
                 if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
@@ -688,19 +692,29 @@ export function ProductSearchTable() {
         clientSideProducts.some(p => p.originalId === id && !p.isExploding)
     );
 
+    let didSelectedIdsChange = false;
     if (validSelectedIds.length !== currentSelectedIds.length) {
-        setSelectedProductIds(validSelectedIds);
-        currentSelectedIds = validSelectedIds; // Use updated value for subsequent checks in this effect run
+        currentSelectedIds = validSelectedIds; 
+        didSelectedIdsChange = true;
     }
-
+    
     const anyProductExploding = clientSideProducts.some(p => p.isExploding);
     const activeSelectionsStillExist = currentSelectedIds.length > 0;
 
+    let newIsSelectionModeActive = currentIsSelectionModeActive;
     if (currentIsSelectionModeActive) {
         if (!activeSelectionsStillExist && !anyProductExploding) {
-            setIsSelectionModeActive(false);
+            newIsSelectionModeActive = false;
         }
     }
+
+    if (didSelectedIdsChange) {
+        setSelectedProductIds(currentSelectedIds);
+    }
+    if (newIsSelectionModeActive !== currentIsSelectionModeActive) {
+        setIsSelectionModeActive(newIsSelectionModeActive);
+    }
+
   }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
 
   useEffect(() => {
@@ -830,7 +844,9 @@ export function ProductSearchTable() {
                     className={`min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive && !isAddActionPopoverOpen ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                     onClick={(e) => {
                         e.stopPropagation();
-                        handleHeaderClick('validade');
+                        if (!isSelectionModeActive) {
+                            handleHeaderClick('validade');
+                        }
                     }}
                   >
                     Validade
@@ -839,12 +855,14 @@ export function ProductSearchTable() {
                     <Popover 
                         open={isAddActionPopoverOpen && !isSelectionModeActive} 
                         onOpenChange={(isOpen) => {
-                            setIsAddActionPopoverOpen(isOpen);
                             if (!isOpen) {
+                                setIsAddActionPopoverOpen(false);
                                 if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
                                 longPressHeaderTimerRef.current = null;
                                 headerPointerDownPositionRef.current = null;
                             }
+                            // Do not set isAddActionPopoverOpen to true here.
+                            // Opening is handled exclusively by the long press.
                         }}
                     >
                        <PopoverTrigger asChild>
@@ -891,8 +909,8 @@ export function ProductSearchTable() {
                         const baseScaleMagnitude = 0.05; 
                         let currentScaleMagnitude = 0;
                         if (strength > 0) {
-                           const maxPossibleStrengthForDistance1 = BASE_SHOCKWAVE_STRENGTH_PX - (1 - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
-                           const strengthRatio = maxPossibleStrengthForDistance1 > 0 ? Math.max(0, strength / maxPossibleStrengthForDistance1) : 0; 
+                           const initialStrengthForDistance1 = BASE_SHOCKWAVE_STRENGTH_PX - (1 - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+                           const strengthRatio = initialStrengthForDistance1 > 0 ? Math.max(0, strength / initialStrengthForDistance1) : 0; 
                            currentScaleMagnitude = baseScaleMagnitude * strengthRatio;
                         }
                         const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
@@ -1232,3 +1250,4 @@ export function ProductSearchTable() {
     </>
   );
 }
+
