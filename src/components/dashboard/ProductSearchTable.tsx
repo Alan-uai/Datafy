@@ -337,6 +337,7 @@ export function ProductSearchTable() {
   const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number, target: EventTarget | null) => {
     if (longPressInitiatedSelectionRef.current) {
         longPressInitiatedSelectionRef.current = false; 
+        pointerDownPositionRef.current = null;
         return; 
     }
 
@@ -347,14 +348,21 @@ export function ProductSearchTable() {
 
     const isClickOnCheckboxCell = target instanceof HTMLElement && !!target.closest('[data-is-checkbox-cell="true"]');
     
-    if (isSelectionModeActive && !isClickOnCheckboxCell && product.originalId && pointerDownPositionRef.current) {
-        const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
-        const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
-        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+    if (pointerDownPositionRef.current) {
+      const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
+      const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
+      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // It's a tap
+        if (isSelectionModeActive) {
+          if (!isClickOnCheckboxCell && product.originalId) {
             handleToggleSelectProduct(product.originalId);
+          }
+        } else {
+          // This is where the popover for edit/delete would be triggered.
+          // It's now handled by Popover's onOpenChange.
+          // No direct call to setActivePopoverProductId here.
         }
+      }
     }
-    
     pointerDownPositionRef.current = null; 
   };
 
@@ -383,19 +391,20 @@ export function ProductSearchTable() {
         setIsAddActionPopoverOpen(true); 
       }
       longPressHeaderTimerRef.current = null; 
+      headerPointerDownPositionRef.current = null; 
     }, LONG_PRESS_DURATION);
   };
 
   const handleHeaderRowPointerUp = (event: PointerEvent<HTMLTableRowElement> | TouchEvent<HTMLTableRowElement>) => {
-    // If a long press was in progress and it's now ending, clear the timer
     if (longPressHeaderTimerRef.current) {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
     }
-    // Clear the initial position for the next header interaction
+    // If it wasn't a long press that already set the popover open,
+    // or if a drag occurred, we ensure the popover isn't opened.
+    // The click on individual TableHead cells will handle sorting.
+    // This primarily clears the timer if the pointer is released before the long press duration.
     headerPointerDownPositionRef.current = null; 
-    // Note: Individual header clicks for sorting are handled by `onClick` on each TableHead.
-    // This function primarily ensures that a drag or the end of a long press on the row itself doesn't trigger unintended actions.
   };
 
   const handleHeaderRowPointerMove = (clientX: number, clientY: number) => {
@@ -407,6 +416,7 @@ export function ProductSearchTable() {
     if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
+      // No need to clear headerPointerDownPositionRef here, as a drag means it wasn't a successful long press for the popover
     }
   };
 
@@ -438,19 +448,20 @@ export function ProductSearchTable() {
 
     deletedOriginalIds.forEach(deletedId => {
         const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
-        if (deletedProductVisualIndex === -1) return;
+        if (deletedProductVisualIndex === -1) return; // Should not happen if called correctly
 
         for (let direction of [-1, 1]) { // -1 for up, 1 for down
             for (let distance = 1; ; distance++) { 
                 const calculatedStrength = BASE_SHOCKWAVE_STRENGTH_PX - (distance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
-                if (calculatedStrength <= 0) break;
+                if (calculatedStrength <= 0) break; // Stop propagation if strength is zero or less
 
                 const neighborIndex = deletedProductVisualIndex + (distance * direction);
-                if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) break;
+                if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) break; // Out of bounds
                 
                 const neighbor = currentVisibleProducts[neighborIndex];
                 if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
                     const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
+                    // If this neighbor is already a target, only update if the new shockwave is stronger (closer)
                     if (!existingTarget || calculatedStrength > existingTarget.strength) { 
                          newShockwaveTargetsMap.set(neighbor.originalId!, {
                             id: neighbor.originalId!,
@@ -538,7 +549,16 @@ export function ProductSearchTable() {
               else { 
                 comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
               }
-            } else { 
+            } else if (sortBy === 'marca') {
+                let sortValA = String(valA);
+                let sortValB = String(valB);
+
+                if (sortValA === '3 Corações') sortValA = 'Três Corações';
+                if (sortValB === '3 Corações') sortValB = 'Três Corações';
+
+                comparison = normalizeString(sortValA).localeCompare(normalizeString(sortValB));
+            }
+             else { // For 'produto' or any other generic string sort
               comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
             }
             return sortDirection === 'asc' ? comparison : -comparison;
@@ -668,7 +688,6 @@ export function ProductSearchTable() {
 
 
   const handleHeaderClick = (column: SortableKey) => {
-    // Do not sort if selection mode is active or if the add action popover is open (which is triggered by long press on header row)
     if (isSelectionModeActive || isAddActionPopoverOpen) return;
 
     if (sortBy === column) {
@@ -706,7 +725,7 @@ export function ProductSearchTable() {
         clearTimeout(longPressHeaderTimerRef.current);
       }
     };
-  }, [clientSideProducts, isSelectionModeActive]); 
+  }, [clientSideProducts, isSelectionModeActive, selectedProductIds]); 
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
     const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${!isSelectionModeActive && !isAddActionPopoverOpen ? 'cursor-pointer hover:bg-muted/50' : ''}`;
@@ -718,7 +737,7 @@ export function ProductSearchTable() {
       <TableHead
         className={`${baseClasses} ${classNameExt}`}
         onClick={(e) => {
-            e.stopPropagation(); // Prevent click from bubbling to the row's long press handler
+            e.stopPropagation(); 
             handleHeaderClick(column);
         }}
       >
@@ -802,7 +821,6 @@ export function ProductSearchTable() {
                   onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
                     if (e.touches.length === 1) handleHeaderRowPointerMove(e.touches[0].clientX, e.touches[0].clientY);
                   }}
-                  // This row is for long-press detection across all headers
                 >
                   {isSelectionModeActive && (
                     <TableHead className="w-[50px] px-2 py-3">
@@ -829,12 +847,10 @@ export function ProductSearchTable() {
                     Validade
                     {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && !isAddActionPopoverOpen && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
                     
-                    {/* Popover is attached here but controlled by isAddActionPopoverOpen state, which is set by long-press on the TableRow */}
                     <Popover 
                         open={isAddActionPopoverOpen && !isSelectionModeActive} 
                         onOpenChange={(isOpen) => {
                             setIsAddActionPopoverOpen(isOpen);
-                            // If popover is closed (e.g. by clicking outside), ensure timer/position refs are cleared
                             if (!isOpen) {
                                 if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
                                 longPressHeaderTimerRef.current = null;
@@ -843,9 +859,6 @@ export function ProductSearchTable() {
                         }}
                     >
                        <PopoverTrigger asChild>
-                         {/* This is an invisible trigger that the Popover uses for positioning. 
-                             The actual opening is controlled by `isAddActionPopoverOpen` state.
-                             It's a common pattern when the visual trigger and logical trigger are decoupled. */}
                          <span className="absolute right-0 top-0 h-full w-full" data-popover-anchor-for="add-action" />
                        </PopoverTrigger>
                        <PopoverContent 
@@ -853,15 +866,15 @@ export function ProductSearchTable() {
                          align="end" 
                          className="w-auto p-1 z-[60]" 
                          onOpenAutoFocus={(e) => e.preventDefault()} 
-                         onClick={(e) => e.stopPropagation()} // Prevent clicks inside popover from closing it due to row interactions
+                         onClick={(e) => e.stopPropagation()} 
                        >
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => { // This click is specific to the button inside the popover
+                          onClick={(e) => { 
                             e.stopPropagation(); 
                             setIsAddProductDialogOpen(true);
-                            setIsAddActionPopoverOpen(false); // Close popover after action
+                            setIsAddActionPopoverOpen(false); 
                           }}
                           aria-label="Adicionar novo produto"
                         >
@@ -872,8 +885,8 @@ export function ProductSearchTable() {
                   </TableHead>
                 </ShadTableRow>
               </ShadTableHeaderComponent>
-              <MotionTableBody layout>
-                <AnimatePresence initial={false}>
+              <MotionTableBody>
+                <AnimatePresence>
                   {filteredProducts.map((product) => {
                     const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
                     const currentProductKey = product.originalId!;
@@ -882,7 +895,7 @@ export function ProductSearchTable() {
                     const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
 
                     if (shockwaveTargetInfo) {
-                        const { strength, direction } = shockwaveTargetInfo;
+                        const { strength, direction, distance } = shockwaveTargetInfo;
                         const displacementFactor = direction === 'up' ? -1 : 1;
                         const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
                         
@@ -916,7 +929,10 @@ export function ProductSearchTable() {
                              setSelectedProduct(product);
                              setActivePopoverProductId(currentProductKey);
                            } else {
-                             if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
+                             if (activePopoverProductId === currentProductKey) {
+                               setActivePopoverProductId(null);
+                               setSelectedProduct(null);
+                             }
                            }
                         }}
                       >
@@ -1227,6 +1243,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-
-    
