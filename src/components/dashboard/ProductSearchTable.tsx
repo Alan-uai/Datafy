@@ -285,22 +285,7 @@ export function ProductSearchTable() {
   const finalizeDeleteProduct = (productOriginalId: string) => {
     setClientSideProducts(prevProducts => {
         const productsAfterExplosion = prevProducts.filter(p => p.originalId !== productOriginalId);
-        const resequenced = resequenceProducts(productsAfterExplosion);
-
-        const currentSelectedIds = selectedProductIds.filter(id => {
-            return resequenced.some(p => p.originalId === id);
-        });
-        
-        const stillExplodingCount = resequenced.filter(p => p.isExploding).length;
-        const activeSelectionsExist = currentSelectedIds.length > 0;
-        
-        if (stillExplodingCount === 0 && !activeSelectionsExist) {
-            setIsSelectionModeActive(false);
-            setSelectedProductIds([]);
-        } else {
-            setSelectedProductIds(currentSelectedIds);
-        }
-        return resequenced;
+        return resequenceProducts(productsAfterExplosion);
     });
   };
 
@@ -351,15 +336,13 @@ export function ProductSearchTable() {
     if (pointerDownPositionRef.current) {
       const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
       const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
-      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // It's a tap
+      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { 
         if (isSelectionModeActive) {
           if (!isClickOnCheckboxCell && product.originalId) {
             handleToggleSelectProduct(product.originalId);
           }
         } else {
-          // This is where the popover for edit/delete would be triggered.
-          // It's now handled by Popover's onOpenChange.
-          // No direct call to setActivePopoverProductId here.
+          // Popover opening is handled by Popover's onOpenChange via its trigger
         }
       }
     }
@@ -400,10 +383,6 @@ export function ProductSearchTable() {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
     }
-    // If it wasn't a long press that already set the popover open,
-    // or if a drag occurred, we ensure the popover isn't opened.
-    // The click on individual TableHead cells will handle sorting.
-    // This primarily clears the timer if the pointer is released before the long press duration.
     headerPointerDownPositionRef.current = null; 
   };
 
@@ -416,7 +395,6 @@ export function ProductSearchTable() {
     if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
-      // No need to clear headerPointerDownPositionRef here, as a drag means it wasn't a successful long press for the popover
     }
   };
 
@@ -448,20 +426,22 @@ export function ProductSearchTable() {
 
     deletedOriginalIds.forEach(deletedId => {
         const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
-        if (deletedProductVisualIndex === -1) return; // Should not happen if called correctly
+        if (deletedProductVisualIndex === -1) return; 
 
-        for (let direction of [-1, 1]) { // -1 for up, 1 for down
+        for (let direction of [-1, 1]) { 
             for (let distance = 1; ; distance++) { 
-                const calculatedStrength = BASE_SHOCKWAVE_STRENGTH_PX - (distance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
-                if (calculatedStrength <= 0) break; // Stop propagation if strength is zero or less
+                let calculatedStrength = BASE_SHOCKWAVE_STRENGTH_PX - (distance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+                if (calculatedStrength <= 0) {
+                    calculatedStrength = 0; 
+                     break; 
+                }
 
                 const neighborIndex = deletedProductVisualIndex + (distance * direction);
-                if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) break; // Out of bounds
+                if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) break; 
                 
                 const neighbor = currentVisibleProducts[neighborIndex];
                 if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
                     const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
-                    // If this neighbor is already a target, only update if the new shockwave is stronger (closer)
                     if (!existingTarget || calculatedStrength > existingTarget.strength) { 
                          newShockwaveTargetsMap.set(neighbor.originalId!, {
                             id: neighbor.originalId!,
@@ -471,6 +451,7 @@ export function ProductSearchTable() {
                         });
                     }
                 }
+                 if (calculatedStrength <= 0) break; 
             }
         }
     });
@@ -558,7 +539,7 @@ export function ProductSearchTable() {
 
                 comparison = normalizeString(sortValA).localeCompare(normalizeString(sortValB));
             }
-             else { // For 'produto' or any other generic string sort
+             else { 
               comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
             }
             return sortDirection === 'asc' ? comparison : -comparison;
@@ -700,32 +681,41 @@ export function ProductSearchTable() {
 
 
   useEffect(() => {
-    if (selectedProductIds.length > 0) {
-        setSelectedProductIds(prevIds => prevIds.filter(id => 
-            clientSideProducts.some(p => p.originalId === id && !p.isExploding)
-        ));
+    let currentSelectedIds = [...selectedProductIds];
+    let currentIsSelectionModeActive = isSelectionModeActive;
+
+    const validSelectedIds = currentSelectedIds.filter(id =>
+        clientSideProducts.some(p => p.originalId === id && !p.isExploding)
+    );
+
+    if (validSelectedIds.length !== currentSelectedIds.length) {
+        setSelectedProductIds(validSelectedIds);
+        currentSelectedIds = validSelectedIds; // Use updated value for subsequent checks in this effect run
     }
 
-    if (isSelectionModeActive) {
-        const activeSelectionsStillPresent = selectedProductIds.some(id =>
-            clientSideProducts.find(p => p.originalId === id && !p.isExploding)
-        );
-        const anyProductIsCurrentlyExploding = clientSideProducts.some(p => p.isExploding);
+    const anyProductExploding = clientSideProducts.some(p => p.isExploding);
+    const activeSelectionsStillExist = currentSelectedIds.length > 0;
 
-        if (!activeSelectionsStillPresent && !anyProductIsCurrentlyExploding) {
+    if (currentIsSelectionModeActive) {
+        if (!activeSelectionsStillExist && !anyProductExploding) {
             setIsSelectionModeActive(false);
         }
     }
-    
+  }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
+
+  useEffect(() => {
     return () => {
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
       }
       if (longPressHeaderTimerRef.current) {
         clearTimeout(longPressHeaderTimerRef.current);
+        longPressHeaderTimerRef.current = null;
       }
     };
-  }, [clientSideProducts, isSelectionModeActive, selectedProductIds]); 
+  }, []);
+
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
     const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${!isSelectionModeActive && !isAddActionPopoverOpen ? 'cursor-pointer hover:bg-muted/50' : ''}`;
@@ -807,7 +797,6 @@ export function ProductSearchTable() {
                   onPointerUp={(e) => handleHeaderRowPointerUp(e)}
                   onPointerLeave={() => { 
                     if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
-                    // Do not clear headerPointerDownPositionRef.current here, onPointerUp will handle it or it's needed for the timer
                   }}
                   onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerMove(e.clientX, e.clientY)}
                   onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
@@ -902,8 +891,8 @@ export function ProductSearchTable() {
                         const baseScaleMagnitude = 0.05; 
                         let currentScaleMagnitude = 0;
                         if (strength > 0) {
-                           const maxPossibleStrengthForDistance1 = BASE_SHOCKWAVE_STRENGTH_PX; 
-                           const strengthRatio = Math.max(0, strength / maxPossibleStrengthForDistance1); 
+                           const maxPossibleStrengthForDistance1 = BASE_SHOCKWAVE_STRENGTH_PX - (1 - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+                           const strengthRatio = maxPossibleStrengthForDistance1 > 0 ? Math.max(0, strength / maxPossibleStrengthForDistance1) : 0; 
                            currentScaleMagnitude = baseScaleMagnitude * strengthRatio;
                         }
                         const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
