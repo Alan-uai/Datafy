@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableHeader as ShadTableHeaderComponent, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -29,6 +29,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -51,6 +52,7 @@ import {
   format,
 } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { Scanner } from 'react-zxing';
 
 
 const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
@@ -271,6 +273,9 @@ export function ProductSearchTable() {
   const [shockwaveTargets, setShockwaveTargets] = useState<ShockwaveTarget[]>([]);
   const longPressInitiatedSelectionRef = useRef(false);
 
+  const [isScannerActive, setIsScannerActive] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+
 
  useEffect(() => {
     if (shockwaveTargets.length > 0) {
@@ -283,7 +288,7 @@ export function ProductSearchTable() {
 
 
   const finalizeDeleteProduct = (productOriginalId: string) => {
-    setClientSideProducts(prevProducts => {
+     setClientSideProducts(prevProducts => {
         const productsAfterExplosion = prevProducts.filter(p => p.originalId !== productOriginalId);
         return resequenceProducts(productsAfterExplosion);
     });
@@ -342,8 +347,7 @@ export function ProductSearchTable() {
             handleToggleSelectProduct(product.originalId);
           }
         } else {
-          // Popover opening is handled by Popover's onOpenChange via its trigger
-          // when not in selection mode.
+          // Popover opening/closing is now managed by Popover's onOpenChange
         }
       }
     }
@@ -435,11 +439,11 @@ export function ProductSearchTable() {
                 
                 if (calculatedStrength <= 0) {
                      calculatedStrength = 0; 
+                     break; 
                 }
 
                 const neighborIndex = deletedProductVisualIndex + (distance * direction);
                 if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) {
-                     if (calculatedStrength <= 0) break; 
                      continue; 
                 }
                 
@@ -455,7 +459,6 @@ export function ProductSearchTable() {
                         });
                     }
                 }
-                 if (calculatedStrength <= 0) break; 
             }
         }
     });
@@ -662,6 +665,8 @@ export function ProductSearchTable() {
     toast({ title: "Produto Adicionado", description: `${newProductFormData.produto} foi adicionado com sucesso.` });
     setIsAddProductDialogOpen(false);
     setNewProductFormData({ ...initialNewProductFormData });
+    setIsScannerActive(false);
+    setHasCameraPermission(null);
   };
 
   const productsForDisplay = useMemo(() => filteredProducts.filter(p => !p.isExploding), [filteredProducts]);
@@ -682,7 +687,6 @@ export function ProductSearchTable() {
       setSortDirection('asc');
     }
   };
-
 
   useEffect(() => {
     let currentSelectedIds = [...selectedProductIds];
@@ -721,14 +725,33 @@ export function ProductSearchTable() {
     return () => {
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
-        longPressTimerRef.current = null;
       }
       if (longPressHeaderTimerRef.current) {
         clearTimeout(longPressHeaderTimerRef.current);
-        longPressHeaderTimerRef.current = null;
       }
     };
   }, []);
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use the barcode scanner.',
+        });
+      }
+    };
+
+    if (isScannerActive && hasCameraPermission === null) {
+      getCameraPermission();
+    }
+  }, [isScannerActive, hasCameraPermission, toast]);
 
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
@@ -855,14 +878,12 @@ export function ProductSearchTable() {
                     <Popover 
                         open={isAddActionPopoverOpen && !isSelectionModeActive} 
                         onOpenChange={(isOpen) => {
-                            if (!isOpen) {
+                           if (!isOpen && isAddActionPopoverOpen) {
                                 setIsAddActionPopoverOpen(false);
                                 if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
                                 longPressHeaderTimerRef.current = null;
                                 headerPointerDownPositionRef.current = null;
                             }
-                            // Do not set isAddActionPopoverOpen to true here.
-                            // Opening is handled exclusively by the long press.
                         }}
                     >
                        <PopoverTrigger asChild>
@@ -902,7 +923,7 @@ export function ProductSearchTable() {
                     const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
 
                     if (shockwaveTargetInfo) {
-                        const { strength, direction, distance } = shockwaveTargetInfo;
+                        const { strength, direction } = shockwaveTargetInfo;
                         const displacementFactor = direction === 'up' ? -1 : 1;
                         const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
                         
@@ -1175,76 +1196,137 @@ export function ProductSearchTable() {
 
       <Dialog open={isAddProductDialogOpen} onOpenChange={(isOpen) => {
         setIsAddProductDialogOpen(isOpen);
-        if (!isOpen) setNewProductFormData({ ...initialNewProductFormData });
+        if (!isOpen) {
+            setNewProductFormData({ ...initialNewProductFormData });
+            setIsScannerActive(false);
+            setHasCameraPermission(null); 
+        }
       }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Adicionar Novo Produto</DialogTitle>
-            <DialogDescription>
-              Preencha os detalhes do novo produto abaixo.
-            </DialogDescription>
+             {!isScannerActive && (
+                <DialogDescription>
+                Preencha os detalhes do novo produto abaixo ou escaneie um código de barras.
+                </DialogDescription>
+            )}
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-produto" className="text-right">
-                Produto
-              </Label>
-              <Input
-                id="new-produto"
-                name="produto"
-                value={newProductFormData.produto}
-                onChange={handleNewProductFormChange}
-                className="col-span-3"
-                required
-              />
+          {isScannerActive ? (
+            <div className="py-4">
+              {hasCameraPermission === true && (
+                <div className="w-full aspect-video rounded-md overflow-hidden border my-2 bg-muted">
+                  <Scanner
+                    onResult={(result) => {
+                      if (result) {
+                        setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
+                        setIsScannerActive(false);
+                        setHasCameraPermission(null); 
+                        toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
+                      }
+                    }}
+                    onError={(error) => {
+                      console.error('Barcode scanner error:', error);
+                      toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
+                      setIsScannerActive(false);
+                      setHasCameraPermission(null);
+                    }}
+                  />
+                </div>
+              )}
+              {hasCameraPermission === false && (
+                <Alert variant="destructive" className="my-2">
+                  <AlertTitle>Acesso à Câmera Necessário</AlertTitle>
+                  <AlertDescription>
+                    Por favor, permita o acesso à câmera nas configurações do seu navegador para usar o scanner de código de barras. Pode ser necessário atualizar a página após conceder a permissão.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {hasCameraPermission === null && (
+                <div className="my-2 flex flex-col items-center justify-center p-4 border rounded-md min-h-[200px]">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="mt-2 text-sm text-muted-foreground">Solicitando acesso à câmera...</p>
+                </div>
+              )}
+              <Button variant="outline" className="w-full mt-2" onClick={() => { setIsScannerActive(false); setHasCameraPermission(null); }}>Cancelar Scan</Button>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-marca" className="text-right">
-                Marca
-              </Label>
-              <Input
-                id="new-marca"
-                name="marca"
-                value={newProductFormData.marca}
-                onChange={handleNewProductFormChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-unidade" className="text-right">
-                Qtde
-              </Label>
-              <Input
-                id="new-unidade"
-                name="unidade"
-                value={newProductFormData.unidade}
-                onChange={handleNewProductFormChange}
-                className="col-span-3"
-                type="number"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-validade" className="text-right">
-                Validade
-              </Label>
-              <Input
-                id="new-validade"
-                name="validade"
-                type="date"
-                value={newProductFormData.validade}
-                onChange={handleNewProductFormChange}
-                className="col-span-3"
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Cancelar</Button>
-            </DialogClose>
-            <Button type="button" onClick={handleAddNewProduct}>Salvar Produto</Button>
-          </DialogFooter>
+          ) : (
+            <>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="new-produto" className="text-right">
+                    Produto
+                  </Label>
+                  <Input
+                    id="new-produto"
+                    name="produto"
+                    value={newProductFormData.produto}
+                    onChange={handleNewProductFormChange}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="new-marca" className="text-right">
+                    Marca
+                  </Label>
+                  <Input
+                    id="new-marca"
+                    name="marca"
+                    value={newProductFormData.marca}
+                    onChange={handleNewProductFormChange}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="new-unidade" className="text-right">
+                    Qtde
+                  </Label>
+                  <Input
+                    id="new-unidade"
+                    name="unidade"
+                    value={newProductFormData.unidade}
+                    onChange={handleNewProductFormChange}
+                    className="col-span-3"
+                    type="number"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="new-validade" className="text-right">
+                    Validade
+                  </Label>
+                  <Input
+                    id="new-validade"
+                    name="validade"
+                    type="date"
+                    value={newProductFormData.validade}
+                    onChange={handleNewProductFormChange}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                        setHasCameraPermission(null); // Reset permission status
+                        setIsScannerActive(true);
+                    }} 
+                    className="w-full sm:w-auto"
+                >
+                    <Camera className="mr-2 h-4 w-4" /> Escanear Código
+                </Button>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 sm:gap-0">
+                    <DialogClose asChild>
+                        <Button type="button" variant="outline" className="w-full sm:w-auto">Cancelar</Button>
+                    </DialogClose>
+                    <Button type="button" onClick={handleAddNewProduct} className="w-full sm:w-auto">Salvar Produto</Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>
