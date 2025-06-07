@@ -65,21 +65,6 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
 
   useEffect(() => {
     const requestCameraPermissionAndStart = async () => {
-      if (!videoRef.current) {
-          console.error("Video element ref not available during permission request.");
-          onScanError("Elemento de vídeo não está pronto.");
-          setHasCameraPermission(false); // Indicate failure
-          setIsLoading(false);
-          return;
-      }
-      if (!codeReaderRef.current) {
-          console.error("CodeReader ref not available during permission request.");
-          onScanError("Leitor de código não está pronto.");
-          setHasCameraPermission(false); // Indicate failure
-          setIsLoading(false);
-          return;
-      }
-
       if (!isScanning) {
         cleanupStream();
         return;
@@ -88,6 +73,21 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
       setIsLoading(true);
       setHasCameraPermission(null); // Reset while attempting
       decodingRef.current = false;
+
+      if (!videoRef.current) {
+          console.error("Video element ref not available during permission request.");
+          onScanError("Elemento de vídeo não está pronto.");
+          setHasCameraPermission(false); // Indicate failure
+          setIsLoading(false); // Ensure loading state is reset
+          return;
+      }
+      if (!codeReaderRef.current) {
+          console.error("CodeReader ref not available during permission request.");
+          onScanError("Leitor de código não está pronto.");
+          setHasCameraPermission(false); // Indicate failure
+          setIsLoading(false); // Ensure loading state is reset
+          return;
+      }
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -138,7 +138,7 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
                     await videoRef.current.play(); // Try playing fallback
                     setHasCameraPermission(true); 
                     toast({ title: 'Usando Câmera Reserva', description: 'Não foi possível usar a resolução ideal, usando configurações padrão da câmera.' });
-                    setIsLoading(false);
+                    setIsLoading(false); // Crucial: Reset loading state after fallback attempt
                     return; 
                 }
             } catch (fallbackError) {
@@ -270,19 +270,22 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
         autoPlay // Try to autoplay
       />
       
-      {isScanning && isLoading && (
+      {isScanning && isLoading && ( // Covers both permission request and video starting
          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white p-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
-            Iniciando câmera...
+            {hasCameraPermission === null ? "Solicitando permissão da câmera..." : "Iniciando câmera..."}
         </div>
       )}
 
-      {isScanning && !isLoading && hasCameraPermission === null && ( // Requesting permission state
+      {/* This state is covered by isLoading or hasCameraPermission === false. 
+          If !isLoading and hasCameraPermission === null, it implies an issue in requestCameraPermissionAndStart logic.
+      {isScanning && !isLoading && hasCameraPermission === null && ( 
          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white p-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
-            Solicitando permissão da câmera...
+            Verificando permissão da câmera...
         </div>
       )}
+      */}
 
       {hasCameraPermission === false && ( // Show error if permission denied or playback failed
         <div className="absolute inset-0 flex items-center justify-center p-4 bg-background/90">
@@ -298,4 +301,3 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
   );
 }
 
-    
