@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import {
   Table,
-  TableHeader, // Added for <thead>
+  TableHeader,
   TableBody as ShadTableBody,
   TableCell,
-  TableHead as ShadTableHeaderComponent, // This is <th>
+  TableHead as ShadTableHeaderComponent,
   TableRow as ShadTableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,7 +59,7 @@ import {
   format,
 } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
+import { BrowserMultiFormatReader, NotFoundException, DecodeHintType, BarcodeFormat } from '@zxing/library';
 
 
 const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
@@ -200,9 +200,9 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 pointer-events-none overflow-hidden"
+      className="absolute inset-0 pointer-events-none overflow-hidden w-full h-full"
     >
-      {dimensions.width > 0 && Array.from({ length: numParticles }).map((_, i) => {
+      {dimensions.width > 0 && dimensions.height > 0 && Array.from({ length: numParticles }).map((_, i) => {
         const initialX = Math.random() * dimensions.width;
         const initialY = Math.random() * dimensions.height;
 
@@ -381,8 +381,7 @@ export function ProductSearchTable() {
             handleToggleSelectProduct(product.originalId);
           }
         } else {
-          // This is where a regular click/tap would open the popover if not in selection mode
-          // The PopoverTrigger handles this, but we ensure we don't interfere if it was a short tap.
+          // Popover is handled by PopoverTrigger
         }
       }
     }
@@ -701,8 +700,7 @@ export function ProductSearchTable() {
     toast({ title: "Produto Adicionado", description: `${newProductFormData.produto} foi adicionado com sucesso.` });
     setIsAddProductDialogOpen(false);
     setNewProductFormData({ ...initialNewProductFormData });
-    setIsScannerActive(false); // Ensure scanner is turned off
-    // setHasCameraPermission(null); // Reset permission status
+    setIsScannerActive(false);
   };
 
   const productsForDisplay = useMemo(() => filteredProducts.filter(p => !p.isExploding), [filteredProducts]);
@@ -729,15 +727,14 @@ export function ProductSearchTable() {
 
   useEffect(() => {
     const getCameraPermission = async () => {
-      if (isScannerActive && hasCameraPermission === null) {
+      if (isScannerActive && hasCameraPermission === null) { // Only request if status unknown
         try {
           const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          // Stop temp stream immediately, only used for permission check
           tempStream.getTracks().forEach(track => track.stop());
           setHasCameraPermission(true);
         } catch (error) {
           console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
+          setHasCameraPermission(false); // Explicitly set to false on denial
           toast({
             variant: 'destructive',
             title: 'Acesso à Câmera Negado',
@@ -764,55 +761,66 @@ export function ProductSearchTable() {
     };
 
     if (isScannerActive && hasCameraPermission === true) {
+      const hints = new Map();
+      const formats = [
+        BarcodeFormat.QR_CODE,
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.ITF,
+        BarcodeFormat.DATA_MATRIX,
+      ];
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+      // hints.set(DecodeHintType.TRY_HARDER, true); // Optional: Can be slower
+
       if (!codeReaderRef.current) {
-        codeReaderRef.current = new BrowserMultiFormatReader();
+        codeReaderRef.current = new BrowserMultiFormatReader(hints);
       }
       const codeReader = codeReaderRef.current;
 
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
-          if (!isScannerActive) { // Check again in case state changed
+          if (!isScannerActive) {
             stream.getTracks().forEach(track => track.stop());
             return;
           }
           activeStreamRef.current = stream;
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            // Ensure onloadedmetadata is only attached once or handled carefully
             const onMetadataLoaded = () => {
-                if (videoRef.current && codeReader && isScannerActive && activeStreamRef.current) {
+                if (videoRef.current && codeReader && isScannerActive && activeStreamRef.current) { // Ensure all refs and states are still valid
                   codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, error) => {
-                    if (!isScannerActive) return; // Check again
+                    if (!isScannerActive) return; 
                     if (result) {
                       setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
                       toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
-                      cleanupScanner();
-                      setIsScannerActive(false);
+                      // cleanupScanner(); // Cleanup is handled by parent useEffect's cleanup or when isScannerActive turns false
+                      setIsScannerActive(false); // This will trigger the cleanup in the parent useEffect
                     } else if (error && !(error instanceof NotFoundException)) {
                       console.error('Barcode scanner error:', error);
                       toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
-                       //cleanupScanner(); // Optionally cleanup on non-NotFound errors
-                       //setIsScannerActive(false);
                     }
-                  }).catch(err => {
-                    if (!(err instanceof NotFoundException)) {
-                      console.error("Error in decodeFromVideoDevice promise: ", err);
-                      toast({ variant: "destructive", title: "Erro crítico no Scanner", description: "Ocorreu um erro ao tentar decodificar."});
-                      cleanupScanner();
-                      setIsScannerActive(false);
+                  }).catch(err => { // Catch errors from the promise returned by decodeFromVideoDevice
+                    if (!(err instanceof NotFoundException)) { // Ignore NotFoundException as it's part of normal operation
+                        console.error("Error in decodeFromVideoDevice promise: ", err);
+                        toast({ variant: "destructive", title: "Erro crítico no Scanner", description: "Ocorreu um erro ao tentar decodificar."});
+                        setIsScannerActive(false); // This will trigger cleanup
                     }
                   });
                 }
             };
-            videoRef.current.onloadedmetadata = onMetadataLoaded;
+            videoRef.current.onloadedmetadata = onMetadataLoaded; // Assign directly
             videoRef.current.onerror = (e) => {
               console.error("Video element error:", e);
               toast({ variant: "destructive", title: "Erro de Vídeo", description: "Não foi possível carregar o vídeo da câmera."});
-              cleanupScanner();
-              setIsScannerActive(false);
+              setIsScannerActive(false); // This will trigger cleanup
             };
           } else {
-             cleanupScanner();
+             // Should not happen if videoRef is correctly assigned, but good for safety
+             stream.getTracks().forEach(track => track.stop());
           }
         })
         .catch(err => {
@@ -820,17 +828,16 @@ export function ProductSearchTable() {
           toast({
             variant: 'destructive',
             title: 'Erro ao iniciar câmera',
-            description: 'Não foi possível acessar a câmera. Verifique as permissões.',
+            description: 'Não foi possível acessar a câmera. Verifique as permissões e se outra aplicação não a está utilizando.',
           });
-          cleanupScanner();
-          setHasCameraPermission(false);
-          setIsScannerActive(false);
+          setHasCameraPermission(false); // Set permission to false on error
+          setIsScannerActive(false); // This will trigger cleanup
         });
     } else {
-      cleanupScanner();
+      cleanupScanner(); // Cleanup if scanner is not active or no permission
     }
 
-    return cleanupScanner;
+    return cleanupScanner; // This is the main cleanup for the useEffect
   }, [isScannerActive, hasCameraPermission]);
 
 
@@ -910,7 +917,7 @@ export function ProductSearchTable() {
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <TableHeader> {/* Changed from ShadTableHeaderComponent to TableHeader (thead) */}
+              <TableHeader>
                 <ShadTableRow
                   onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
                   onPointerUp={handleHeaderRowPointerUp}
@@ -943,7 +950,7 @@ export function ProductSearchTable() {
                     </ShadTableHeaderComponent>
                   ) : <ShadTableHeaderComponent className="w-[50px] px-2 py-3"></ShadTableHeaderComponent>
                   }
-                  {renderHeaderCell('id', 'ID', 'w-[60px]')}
+                  {renderHeaderCell('id', 'ID', 'w-[60px] px-2 text-center')}
                   {renderHeaderCell('produto', 'Produto')}
                   {renderHeaderCell('marca', 'Marca')}
                   {renderHeaderCell('unidade', 'Qtde', 'text-center')}
@@ -1104,7 +1111,7 @@ export function ProductSearchTable() {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative"> {/* Removed h-[57px] */}
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 py-3 relative">
                                 <Particle
                                   onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
@@ -1121,7 +1128,7 @@ export function ProductSearchTable() {
                                       />
                                   </TableCell>
                                 ): <TableCell className="py-0 px-2"></TableCell>}
-                                <TableCell className={`font-medium py-3 px-2 md:px-4 ${isSelectionModeActive ? 'pl-1 pr-1' : ''}`}>{product.id}</TableCell>
+                                <TableCell className={`font-medium py-3 px-2 text-center ${isSelectionModeActive ? 'pl-1 pr-1' : ''}`}>{product.id}</TableCell>
                                 <TableCell className="py-3 px-2 md:px-4">{product.produto}</TableCell>
                                 <TableCell className="py-3 px-2 md:px-4">{product.marca}</TableCell>
                                 <TableCell className="py-3 px-2 md:px-4 text-center">{product.unidade}</TableCell>
@@ -1284,8 +1291,6 @@ export function ProductSearchTable() {
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
             setIsScannerActive(false);
-            // Do not reset hasCameraPermission here, let the useEffects manage it
-            // based on isScannerActive. If user granted perm, it should persist.
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1378,7 +1383,7 @@ export function ProductSearchTable() {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                        setHasCameraPermission(null); // Reset to trigger permission request flow
+                        setHasCameraPermission(null); 
                         setIsScannerActive(true);
                     }}
                     className="w-full sm:w-auto"
@@ -1399,3 +1404,4 @@ export function ProductSearchTable() {
     </>
   );
 }
+
