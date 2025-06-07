@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import {
   Table,
-  TableHeader,
+  TableHeader, // Correctly aliased for <thead>
   TableBody as ShadTableBody,
   TableCell,
   TableHead as ShadTableHeaderComponent, // This is <th>
@@ -725,12 +725,12 @@ export function ProductSearchTable() {
   const handleScanSuccess = useCallback((data: string) => {
     setNewProductFormData(prev => ({ ...prev, produto: data }));
     toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${data}` });
-    setIsScannerActive(false);
+    setIsScannerActive(false); // Stop scanning on success from parent
   }, [toast]);
 
   const handleScanError = useCallback((message: string) => {
     toast({ variant: "destructive", title: "Erro no Scanner", description: message });
-    // Consider if you want to setIsScannerActive(false) here or allow retry
+    // setIsScannerActive(false); // Optionally stop scanning on error, or let user retry
   }, [toast]);
 
 
@@ -741,7 +741,7 @@ export function ProductSearchTable() {
       : null;
 
     return (
-      <ShadTableHeaderComponent // This is <th>
+      <ShadTableHeaderComponent
         className={`${baseClasses} ${classNameExt}`}
         onClick={(e) => {
             if (!isSelectionModeActive && isSortable) {
@@ -810,7 +810,7 @@ export function ProductSearchTable() {
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <TableHeader> {/* This is <thead> */}
+              <TableHeader>
                 <ShadTableRow
                   onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
                   onPointerUp={handleHeaderRowPointerUp}
@@ -858,7 +858,6 @@ export function ProductSearchTable() {
                   >
                     Validade
                     {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
-
                     <Popover
                         open={isAddActionPopoverOpen && !isSelectionModeActive}
                          onOpenChange={(isOpen) => {
@@ -1003,7 +1002,7 @@ export function ProductSearchTable() {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 py-3 relative"> {/* Ensure padding for height */}
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 py-3 relative">
                                 <Particle
                                   onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
@@ -1182,7 +1181,7 @@ export function ProductSearchTable() {
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
-            setIsScannerActive(false); // Ensure scanner is turned off when dialog closes
+            setIsScannerActive(false);
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1202,7 +1201,9 @@ export function ProductSearchTable() {
                 isScanning={isScannerActive}
                 setIsScanning={setIsScannerActive}
               />
-              <Button variant="outline" className="w-full mt-4" onClick={() => { setIsScannerActive(false); }}>Cancelar Scan</Button>
+               <Button variant="outline" className="w-full mt-4" onClick={() => { 
+                  setIsScannerActive(false);
+                }}>Cancelar Scan</Button>
             </div>
           ) : (
             <>
