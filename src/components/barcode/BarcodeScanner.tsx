@@ -114,7 +114,8 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
             // If 'granted' or 'prompt', we will proceed to getUserMedia
             // If 'granted', hasCameraPermission will effectively be true soon.
             // If 'prompt', getUserMedia will trigger it.
-            setHasCameraPermission(cameraPermission.state === 'granted'); // Tentatively set based on query
+            // Tentatively set based on query, but final confirmation depends on video play
+            // setHasCameraPermission(cameraPermission.state === 'granted'); 
 
           } catch (e) {
             console.warn("Permissions API query failed:", e);
@@ -149,9 +150,11 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
             cleanupStream(); 
             // Error will be re-thrown by the outer catch, or handled if we don't re-throw from here
             // For now, let the finally block handle isLoading
+            setIsLoading(false); // ensure loading is false on play error path
             return; // Exit as video playback failed
           }
         } else {
+           setHasCameraPermission(false);
            throw new Error("Video element reference became null unexpectedly.");
         }
 
@@ -165,7 +168,7 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
           if (error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError") {
             title = 'Problema com a Resolução';
             description = "Não foi possível usar a resolução ideal da câmera. Verifique se outra aplicação está usando a câmera ou tente uma resolução menor.";
-            // Attempt fallback (simplified here, original logic can be kept if preferred)
+            // Attempt fallback
             try {
                 const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 streamRef.current = fallbackStream;
@@ -176,9 +179,12 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
                     toast({ title: 'Usando Câmera Reserva', description: 'Não foi possível usar a resolução ideal, usando configurações padrão da câmera.' });
                     setIsLoading(false); // Crucial: Reset loading state after fallback attempt
                     return; 
+                } else {
+                  setHasCameraPermission(false);
                 }
             } catch (fallbackError) {
                 console.error('Error accessing camera with fallback constraints:', fallbackError);
+                setHasCameraPermission(false);
             }
           } else if (error.name === "NotAllowedError") {
             // Default message is fine for permission denied by user prompt
@@ -204,14 +210,14 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
       cleanupStream();
     }
     
+    // Cleanup function for the useEffect
     return () => { 
       cleanupStream();
-      // Clean up permission onchange listener if any was attached
-      // This requires storing the PermissionStatus object itself, not just its state.
-      // For simplicity, this example doesn't store the object to remove 'onchange'.
-      // In a more complex app, you might want to manage this.
+      // In a more complex app, one might want to remove the cameraPermission.onchange listener here
+      // by storing the cameraPermission object. For this example, it's omitted for brevity.
     };
-  }, [isScanning, onScanError, toast, cleanupStream, setIsScanning]); // hasCameraPermission removed as it's managed internally
+  // Removed hasCameraPermission and setIsScanning from dependencies as they are managed internally or are stable setters
+  }, [isScanning, onScanError, toast, cleanupStream, setIsScanning]); 
 
 
   useEffect(() => {
@@ -228,6 +234,7 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
 
     const decodeLoop = async () => {
       if (!isScanning || decodingRef.current || !videoElement || videoElement.readyState < videoElement.HAVE_METADATA || videoElement.paused) {
+        // If still scanning and conditions met, request next frame, otherwise stop.
         if (isScanning && !decodingRef.current && videoElement && (videoElement.readyState >= videoElement.HAVE_METADATA) && !videoElement.paused) {
             animationFrameIdRef.current = requestAnimationFrame(decodeLoop);
         }
@@ -237,12 +244,13 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
       decodingRef.current = true;
       try {
         if (videoElement.videoWidth > 0 && videoElement.videoHeight > 0) {
+          // Use decodeOnceFromVideoElement for continuous scanning in a loop
           const result = await codeReader.decodeOnceFromVideoElement(videoElement); 
-          if (result && isScanning) { 
+          if (result && isScanning) { // Check isScanning again in case it changed during await
             onScanSuccess(result.getText());
             // setIsScanning(false); // Let parent decide if scanning stops
-            decodingRef.current = false;
-            return; 
+            decodingRef.current = false; // Reset before returning
+            return; // Stop loop on success
           }
         }
       } catch (error) {
@@ -252,14 +260,16 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
           // console.warn('Minor barcode decoding error:', error.message);
         } else {
           // console.error('Major barcode detection error:', error);
+          // Potentially call onScanError for major, non-recoverable errors
         }
       }
       decodingRef.current = false;
-      if (isScanning) {
+      if (isScanning) { // Only continue loop if still scanning
         animationFrameIdRef.current = requestAnimationFrame(decodeLoop);
       }
     };
     
+    // Start the decoding loop if video can play
     const onCanPlay = () => {
       if (videoElement.videoWidth > 0 && isScanning && !animationFrameIdRef.current && !decodingRef.current) {
         animationFrameIdRef.current = requestAnimationFrame(decodeLoop);
@@ -267,9 +277,10 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
     };
 
     videoElement.addEventListener('canplay', onCanPlay);
-    videoElement.addEventListener('loadedmetadata', onCanPlay);
-    videoElement.addEventListener('playing', onCanPlay);
+    videoElement.addEventListener('loadedmetadata', onCanPlay); // Can also trigger start
+    videoElement.addEventListener('playing', onCanPlay); // Another good trigger
 
+    // If video is already ready and playing (e.g. on re-render with existing stream)
     if (videoElement.readyState >= videoElement.HAVE_ENOUGH_DATA && !videoElement.paused && videoElement.videoWidth > 0 && isScanning && !animationFrameIdRef.current && !decodingRef.current) {
         animationFrameIdRef.current = requestAnimationFrame(decodeLoop);
     }
@@ -279,23 +290,27 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
         cancelAnimationFrame(animationFrameIdRef.current);
         animationFrameIdRef.current = null;
       }
-      if (videoElement) { 
+      if (videoElement) { // Check if videoElement exists before removing listeners
         videoElement.removeEventListener('canplay', onCanPlay);
         videoElement.removeEventListener('loadedmetadata', onCanPlay);
         videoElement.removeEventListener('playing', onCanPlay);
       }
-      decodingRef.current = false; 
+      decodingRef.current = false; // Ensure decoding flag is reset
     };
-  }, [isScanning, hasCameraPermission, isLoading, onScanSuccess, onScanError]); // Removed setIsScanning from here
+  // Removed setIsScanning from here as it's typically a stable setter and shouldn't drive re-execution.
+  // onScanError is included if its definition might change and affect the loop behavior.
+  }, [isScanning, hasCameraPermission, isLoading, onScanSuccess, onScanError]); 
 
 
   // Render logic
   if (!isScanning && hasCameraPermission !== false) {
-    return null; // Don't render if not scanning, unless permission was explicitly denied (to show alert)
+    // Don't render if not scanning, unless permission was explicitly denied (to show alert)
+    return null;
   }
 
   return (
     <div className="relative w-full aspect-[4/3] bg-muted rounded-md overflow-hidden border">
+      {/* Video element always rendered when isScanning is true to avoid remounting issues */}
       <video
         ref={videoRef}
         className="w-full h-full object-cover"
@@ -304,6 +319,7 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
         autoPlay 
       />
       
+      {/* Loading indicator shown while camera/permission is being initialized */}
       {isScanning && isLoading && ( 
          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white p-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
@@ -311,6 +327,7 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
         </div>
       )}
 
+      {/* Alert shown if camera permission is denied or if camera fails to start */}
       {hasCameraPermission === false && ( 
         <div className="absolute inset-0 flex items-center justify-center p-4 bg-background/90">
             <Alert variant="destructive" className="w-full">
@@ -324,5 +341,7 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
     </div>
   );
 }
+
+    
 
     
