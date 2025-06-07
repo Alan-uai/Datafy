@@ -7,11 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import {
   Table,
+  TableHeader, // Added for <thead>
   TableBody as ShadTableBody,
   TableCell,
-  TableHeader as ShadTableHeader,
+  TableHead as ShadTableHeaderComponent, // This is <th>
   TableRow as ShadTableRow,
-  TableHead as ShadTableHeaderComponent,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2 } from 'lucide-react';
@@ -701,8 +701,8 @@ export function ProductSearchTable() {
     toast({ title: "Produto Adicionado", description: `${newProductFormData.produto} foi adicionado com sucesso.` });
     setIsAddProductDialogOpen(false);
     setNewProductFormData({ ...initialNewProductFormData });
-    setIsScannerActive(false);
-    setHasCameraPermission(null);
+    setIsScannerActive(false); // Ensure scanner is turned off
+    // setHasCameraPermission(null); // Reset permission status
   };
 
   const productsForDisplay = useMemo(() => filteredProducts.filter(p => !p.isExploding), [filteredProducts]);
@@ -732,22 +732,23 @@ export function ProductSearchTable() {
       if (isScannerActive && hasCameraPermission === null) {
         try {
           const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          tempStream.getTracks().forEach(track => track.stop()); // Stop temp stream immediately
+          // Stop temp stream immediately, only used for permission check
+          tempStream.getTracks().forEach(track => track.stop());
           setHasCameraPermission(true);
         } catch (error) {
           console.error('Error accessing camera:', error);
           setHasCameraPermission(false);
           toast({
             variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings to use the barcode scanner.',
+            title: 'Acesso à Câmera Negado',
+            description: 'Por favor, habilite a permissão da câmera nas configurações do seu navegador para usar o scanner.',
           });
           setIsScannerActive(false); // Turn off scanner if permission denied
         }
       }
     };
     getCameraPermission();
-  }, [isScannerActive, hasCameraPermission, toast]);
+  }, [isScannerActive, hasCameraPermission]);
 
 
   useEffect(() => {
@@ -763,38 +764,47 @@ export function ProductSearchTable() {
     };
 
     if (isScannerActive && hasCameraPermission === true) {
-      const codeReader = codeReaderRef.current || new BrowserMultiFormatReader();
-      codeReaderRef.current = codeReader;
+      if (!codeReaderRef.current) {
+        codeReaderRef.current = new BrowserMultiFormatReader();
+      }
+      const codeReader = codeReaderRef.current;
 
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
+          if (!isScannerActive) { // Check again in case state changed
+            stream.getTracks().forEach(track => track.stop());
+            return;
+          }
           activeStreamRef.current = stream;
-          if (videoRef.current && isScannerActive) { // Re-check isScannerActive
+          if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            videoRef.current.onloadedmetadata = () => {
-              if (videoRef.current && codeReaderRef.current && isScannerActive) { // Re-check isScannerActive
-                codeReaderRef.current.decodeFromVideoDevice(undefined, videoRef.current, (result, error) => {
-                  if (result) {
-                    setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
-                    toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
-                    cleanupScanner(); 
-                    setIsScannerActive(false); 
-                  } else if (error && !(error instanceof NotFoundException)) {
-                    console.error('Barcode scanner error:', error);
-                    toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
-                  }
-                }).catch(err => {
-                  if (!(err instanceof NotFoundException)) {
-                    console.error("Error in decodeFromVideoDevice promise: ", err);
-                    toast({ variant: "destructive", title: "Erro crítico no Scanner", description: "Ocorreu um erro ao tentar decodificar."});
-                    cleanupScanner();
-                    setIsScannerActive(false);
-                  }
-                });
-              } else {
-                cleanupScanner(); // State changed or ref missing
-              }
+            // Ensure onloadedmetadata is only attached once or handled carefully
+            const onMetadataLoaded = () => {
+                if (videoRef.current && codeReader && isScannerActive && activeStreamRef.current) {
+                  codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, error) => {
+                    if (!isScannerActive) return; // Check again
+                    if (result) {
+                      setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
+                      toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
+                      cleanupScanner();
+                      setIsScannerActive(false);
+                    } else if (error && !(error instanceof NotFoundException)) {
+                      console.error('Barcode scanner error:', error);
+                      toast({ variant: "destructive", title: "Erro no Scanner", description: "Não foi possível escanear o código de barras."});
+                       //cleanupScanner(); // Optionally cleanup on non-NotFound errors
+                       //setIsScannerActive(false);
+                    }
+                  }).catch(err => {
+                    if (!(err instanceof NotFoundException)) {
+                      console.error("Error in decodeFromVideoDevice promise: ", err);
+                      toast({ variant: "destructive", title: "Erro crítico no Scanner", description: "Ocorreu um erro ao tentar decodificar."});
+                      cleanupScanner();
+                      setIsScannerActive(false);
+                    }
+                  });
+                }
             };
+            videoRef.current.onloadedmetadata = onMetadataLoaded;
             videoRef.current.onerror = (e) => {
               console.error("Video element error:", e);
               toast({ variant: "destructive", title: "Erro de Vídeo", description: "Não foi possível carregar o vídeo da câmera."});
@@ -802,7 +812,7 @@ export function ProductSearchTable() {
               setIsScannerActive(false);
             };
           } else {
-             cleanupScanner(); // Scanner became inactive or videoRef not available
+             cleanupScanner();
           }
         })
         .catch(err => {
@@ -813,11 +823,11 @@ export function ProductSearchTable() {
             description: 'Não foi possível acessar a câmera. Verifique as permissões.',
           });
           cleanupScanner();
-          setHasCameraPermission(false); 
-          setIsScannerActive(false);     
+          setHasCameraPermission(false);
+          setIsScannerActive(false);
         });
     } else {
-      cleanupScanner(); 
+      cleanupScanner();
     }
 
     return cleanupScanner;
@@ -900,7 +910,7 @@ export function ProductSearchTable() {
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <ShadTableHeader>
+              <TableHeader> {/* Changed from ShadTableHeaderComponent to TableHeader (thead) */}
                 <ShadTableRow
                   onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
                   onPointerUp={handleHeaderRowPointerUp}
@@ -984,7 +994,7 @@ export function ProductSearchTable() {
                     </Popover>
                   </ShadTableHeaderComponent>
                 </ShadTableRow>
-              </ShadTableHeader>
+              </TableHeader>
               <MotionTableBody layout>
                 <AnimatePresence>
                   {filteredProducts.map((product) => {
@@ -1094,7 +1104,7 @@ export function ProductSearchTable() {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative h-[57px]">
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative"> {/* Removed h-[57px] */}
                                 <Particle
                                   onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
@@ -1273,8 +1283,9 @@ export function ProductSearchTable() {
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
-            setIsScannerActive(false); 
-            setHasCameraPermission(null); 
+            setIsScannerActive(false);
+            // Do not reset hasCameraPermission here, let the useEffects manage it
+            // based on isScannerActive. If user granted perm, it should persist.
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1288,9 +1299,7 @@ export function ProductSearchTable() {
           </DialogHeader>
           {isScannerActive ? (
             <div className="py-4">
-              {hasCameraPermission === true && (
-                 <video ref={videoRef} className="w-full aspect-video rounded-md border my-2 bg-muted" autoPlay muted playsInline />
-              )}
+              <video ref={videoRef} className="w-full aspect-video rounded-md border my-2 bg-muted" autoPlay muted playsInline />
               {hasCameraPermission === false && (
                 <Alert variant="destructive" className="my-2">
                   <AlertTitle>Acesso à Câmera Necessário</AlertTitle>
@@ -1299,7 +1308,7 @@ export function ProductSearchTable() {
                   </AlertDescription>
                 </Alert>
               )}
-              {hasCameraPermission === null && !videoRef.current?.srcObject && ( // Improved loading state
+              {hasCameraPermission === null && !videoRef.current?.srcObject && (
                 <div className="my-2 flex flex-col items-center justify-center p-4 border rounded-md min-h-[200px]">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p className="mt-2 text-sm text-muted-foreground">Solicitando acesso à câmera...</p>
@@ -1390,5 +1399,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-    
