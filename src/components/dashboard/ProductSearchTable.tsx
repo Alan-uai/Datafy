@@ -5,7 +5,14 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody as ShadTableBody, TableCell, TableHead as ShadTableHeaderComponent, TableRow as ShadTableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody as ShadTableBody,
+  TableCell,
+  TableHeader,
+  TableRow as ShadTableRow,
+  TableHead as ShadTableHeaderComponent,
+} from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -336,24 +343,24 @@ export function ProductSearchTable() {
     }
 
     longPressTimerRef.current = setTimeout(() => {
-      if (pointerDownPositionRef.current) { 
+      if (pointerDownPositionRef.current) {
         setIsSelectionModeActive(true);
         setSelectedProductIds((prevSelected) =>
           prevSelected.includes(productOriginalId) ? prevSelected : [...prevSelected, productOriginalId]
         );
-        setActivePopoverProductId(null); 
+        setActivePopoverProductId(null);
         longPressInitiatedSelectionRef.current = true;
       }
       longPressTimerRef.current = null;
-      pointerDownPositionRef.current = null; 
+      pointerDownPositionRef.current = null;
     }, LONG_PRESS_DURATION);
   };
 
  const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number, target: EventTarget | null) => {
     if (longPressInitiatedSelectionRef.current) {
-      longPressInitiatedSelectionRef.current = false; 
+      longPressInitiatedSelectionRef.current = false;
       pointerDownPositionRef.current = null;
-      return; 
+      return;
     }
 
     if (longPressTimerRef.current) {
@@ -367,9 +374,9 @@ export function ProductSearchTable() {
       const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
       const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
 
-      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { 
+      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
         if (isSelectionModeActive) {
-          if (!isClickOnCheckboxCell && product.originalId) { 
+          if (!isClickOnCheckboxCell && product.originalId) {
             handleToggleSelectProduct(product.originalId);
           }
         } else {
@@ -394,14 +401,14 @@ export function ProductSearchTable() {
 
 
   const handleHeaderRowPointerDown = (clientX: number, clientY: number) => {
-    if (isSelectionModeActive) return; 
+    if (isSelectionModeActive) return;
     headerPointerDownPositionRef.current = { x: clientX, y: clientY };
 
     if (longPressHeaderTimerRef.current) {
       clearTimeout(longPressHeaderTimerRef.current);
     }
     longPressHeaderTimerRef.current = setTimeout(() => {
-      if (headerPointerDownPositionRef.current) { 
+      if (headerPointerDownPositionRef.current) {
         setIsAddActionPopoverOpen(true);
       }
       longPressHeaderTimerRef.current = null;
@@ -409,13 +416,13 @@ export function ProductSearchTable() {
     }, LONG_PRESS_DURATION);
   };
 
-  const handleHeaderRowPointerUp = () => { 
-    if (longPressHeaderTimerRef.current) { 
+  const handleHeaderRowPointerUp = () => {
+    if (longPressHeaderTimerRef.current) {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
     }
   };
-  
+
   const handleHeaderRowPointerMove = (clientX: number, clientY: number) => {
     if (!headerPointerDownPositionRef.current || !longPressHeaderTimerRef.current) return;
 
@@ -439,14 +446,14 @@ export function ProductSearchTable() {
         validade: selectedProduct.validade,
       });
       setIsEditDialogOpen(true);
-      setActivePopoverProductId(null); 
+      setActivePopoverProductId(null);
     }
   };
 
   const confirmDeleteSingleProduct = () => {
     if (selectedProduct) {
       setIsDeleteDialogOpen(true);
-      setActivePopoverProductId(null); 
+      setActivePopoverProductId(null);
     }
   };
 
@@ -560,7 +567,7 @@ export function ProductSearchTable() {
                 comparison = numA - numB;
               } else if (aIsNum && !bIsNum) { comparison = -1; }
               else if (!aIsNum && bIsNum) { comparison = 1;  }
-              else { 
+              else {
                 comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
               }
             } else if (sortBy === 'marca') {
@@ -569,10 +576,10 @@ export function ProductSearchTable() {
 
                 if (normalizeString(sortValA) === '3 coracoes') sortValA = 'tres coracoes';
                 if (normalizeString(sortValB) === '3 coracoes') sortValB = 'tres coracoes';
-                
+
                 comparison = normalizeString(sortValA).localeCompare(normalizeString(sortValB));
             }
-             else { 
+             else {
               comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
             }
             return sortDirection === 'asc' ? comparison : -comparison;
@@ -592,7 +599,7 @@ export function ProductSearchTable() {
         if (selectedDateFilter !== 'all') {
             const productDate = parseISO(product.validade);
             if (!isValid(productDate)) {
-                 return selectedDateFilter === 'all'; 
+                 return selectedDateFilter === 'all';
             }
             const productDateStartOfDay = startOfDay(productDate);
             const todayDate = startOfDay(new Date());
@@ -660,7 +667,7 @@ export function ProductSearchTable() {
   const cancelSelectionMode = () => {
     setIsSelectionModeActive(false);
     setSelectedProductIds([]);
-    setActivePopoverProductId(null); 
+    setActivePopoverProductId(null);
   };
 
   const handleNewProductFormChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -680,7 +687,7 @@ export function ProductSearchTable() {
     const newOriginalId = newProductFormData.produto + newProductFormData.marca + Date.now() + Math.random().toString(36).substring(2,11);
     const newProductData: Product = {
         ...newProductFormData,
-        id: '', 
+        id: '',
         originalId: newOriginalId,
         isExploding: false
     };
@@ -690,8 +697,8 @@ export function ProductSearchTable() {
 
     toast({ title: "Produto Adicionado", description: `${newProductFormData.produto} foi adicionado com sucesso.` });
     setIsAddProductDialogOpen(false);
-    setNewProductFormData({ ...initialNewProductFormData }); 
-    setIsScannerActive(false); 
+    setNewProductFormData({ ...initialNewProductFormData });
+    setIsScannerActive(false);
     setHasCameraPermission(null);
   };
 
@@ -704,7 +711,7 @@ export function ProductSearchTable() {
 
 
   const handleHeaderClick = (column: SortableKey) => {
-    if (isSelectionModeActive) return; 
+    if (isSelectionModeActive) return;
     if (isAddActionPopoverOpen) setIsAddActionPopoverOpen(false);
 
 
@@ -714,7 +721,7 @@ export function ProductSearchTable() {
       setSortBy(column);
       setSortDirection('asc');
     }
-    headerPointerDownPositionRef.current = null; 
+    headerPointerDownPositionRef.current = null;
   };
 
   useEffect(() => {
@@ -732,7 +739,7 @@ export function ProductSearchTable() {
             title: 'Camera Access Denied',
             description: 'Please enable camera permissions in your browser settings to use the barcode scanner.',
           });
-          setIsScannerActive(false); 
+          setIsScannerActive(false);
         }
       }
     };
@@ -749,13 +756,13 @@ export function ProductSearchTable() {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
           videoRef.current.srcObject = stream;
-          
+
           videoRef.current.onloadedmetadata = () => {
-            if (videoRef.current && codeReaderRef.current && isScannerActive) { 
+            if (videoRef.current && codeReaderRef.current && isScannerActive) {
               codeReaderRef.current.decodeFromVideoDevice(undefined, videoRef.current, (result, error) => {
                 if (result) {
                   setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
-                  setIsScannerActive(false); 
+                  setIsScannerActive(false);
                   toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
                 } else if (error && !(error instanceof NotFoundException)) {
                   console.error('Barcode scanner error:', error);
@@ -780,7 +787,7 @@ export function ProductSearchTable() {
           }
         } catch (err) {
           console.error('Error starting scanner:', err);
-          setHasCameraPermission(false); 
+          setHasCameraPermission(false);
           toast({
             variant: 'destructive',
             title: 'Erro ao iniciar câmera',
@@ -803,7 +810,7 @@ export function ProductSearchTable() {
             videoRef.current.srcObject = null;
         }
     }
-    
+
     return () => {
       codeReaderRef.current?.reset();
       if (stream) {
@@ -827,7 +834,7 @@ export function ProductSearchTable() {
         className={`${baseClasses} ${classNameExt}`}
         onClick={(e) => {
             if (!isSelectionModeActive && isSortable) {
-              e.stopPropagation(); 
+              e.stopPropagation();
               handleHeaderClick(column);
             }
         }}
@@ -892,7 +899,7 @@ export function ProductSearchTable() {
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <ShadTableHeaderComponent>
+              <TableHeader>
                 <ShadTableRow
                   onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
                   onPointerUp={handleHeaderRowPointerUp}
@@ -934,14 +941,14 @@ export function ProductSearchTable() {
                     className={`min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                     onClick={(e) => {
                         if (!isSelectionModeActive) {
-                            e.stopPropagation(); 
+                            e.stopPropagation();
                             handleHeaderClick('validade');
                         }
                     }}
                   >
                     Validade
                     {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
-                    
+
                     <Popover
                         open={isAddActionPopoverOpen && !isSelectionModeActive}
                          onOpenChange={(isOpen) => {
@@ -957,16 +964,16 @@ export function ProductSearchTable() {
                          side="top"
                          align="end"
                          className="w-auto p-1 z-[60]"
-                         onOpenAutoFocus={(e) => e.preventDefault()} 
-                         onClick={(e) => e.stopPropagation()} 
+                         onOpenAutoFocus={(e) => e.preventDefault()}
+                         onClick={(e) => e.stopPropagation()}
                        >
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={(e) => {
-                            e.stopPropagation(); 
+                            e.stopPropagation();
                             setIsAddProductDialogOpen(true);
-                            setIsAddActionPopoverOpen(false); 
+                            setIsAddActionPopoverOpen(false);
                           }}
                           aria-label="Adicionar novo produto"
                         >
@@ -976,7 +983,7 @@ export function ProductSearchTable() {
                     </Popover>
                   </ShadTableHeaderComponent>
                 </ShadTableRow>
-              </ShadTableHeaderComponent>
+              </TableHeader>
               <MotionTableBody>
                 <AnimatePresence>
                   {filteredProducts.map((product) => {
@@ -1019,11 +1026,11 @@ export function ProductSearchTable() {
                                if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
                                return;
                            }
-                           if (isOpen) { 
+                           if (isOpen) {
                              setSelectedProduct(product);
                              setActivePopoverProductId(currentProductKey);
-                           } else { 
-                             if (activePopoverProductId === currentProductKey) { 
+                           } else {
+                             if (activePopoverProductId === currentProductKey) {
                                setActivePopoverProductId(null);
                                setSelectedProduct(null);
                              }
@@ -1291,7 +1298,7 @@ export function ProductSearchTable() {
                   </AlertDescription>
                 </Alert>
               )}
-              {hasCameraPermission === null && ( 
+              {hasCameraPermission === null && (
                 <div className="my-2 flex flex-col items-center justify-center p-4 border rounded-md min-h-[200px]">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p className="mt-2 text-sm text-muted-foreground">Solicitando acesso à câmera...</p>
@@ -1361,7 +1368,7 @@ export function ProductSearchTable() {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                        setHasCameraPermission(null); 
+                        setHasCameraPermission(null);
                         setIsScannerActive(true);
                     }}
                     className="w-full sm:w-auto"
@@ -1382,7 +1389,3 @@ export function ProductSearchTable() {
     </>
   );
 }
-
-    
-
-    
