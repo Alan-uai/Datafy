@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -46,16 +47,16 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
   useEffect(() => {
     if (!codeReaderRef.current) {
       // Initialize with a 50ms delay between scans and specify hints for better performance.
-      const hints = new Map();
-      const formats = [
-        // Add common barcode formats you expect to scan
-        // BarcodeFormat.QR_CODE, // Example
-        // BarcodeFormat.EAN_13,  // Example
-      ];
+      // const hints = new Map();
+      // const formats = [
+      // BarcodeFormat.QR_CODE, 
+      // BarcodeFormat.EAN_13,
+      // ];
       // if (formats.length > 0) {
       //   hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
       // }
-      codeReaderRef.current = new BrowserMultiFormatReader(hints, 50);
+      // Consider adding hints if performance is an issue or specific formats are targeted
+      codeReaderRef.current = new BrowserMultiFormatReader(undefined, 50);
     }
     return () => {
       cleanupStream();
@@ -64,14 +65,28 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
 
   useEffect(() => {
     const requestCameraPermissionAndStart = async () => {
-      if (!videoRef.current || !codeReaderRef.current) return;
+      if (!videoRef.current) {
+          console.error("Video element ref not available during permission request.");
+          onScanError("Elemento de vídeo não está pronto.");
+          setHasCameraPermission(false); // Indicate failure
+          setIsLoading(false);
+          return;
+      }
+      if (!codeReaderRef.current) {
+          console.error("CodeReader ref not available during permission request.");
+          onScanError("Leitor de código não está pronto.");
+          setHasCameraPermission(false); // Indicate failure
+          setIsLoading(false);
+          return;
+      }
+
       if (!isScanning) {
         cleanupStream();
         return;
       }
 
       setIsLoading(true);
-      setHasCameraPermission(null);
+      setHasCameraPermission(null); // Reset while attempting
       decodingRef.current = false;
 
       try {
@@ -83,19 +98,34 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
           },
         });
         streamRef.current = stream;
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(err => {
-            console.error("Error playing video:", err);
-            throw new Error("Não foi possível iniciar a visualização da câmera.");
-          });
+          try {
+            await videoRef.current.play();
+            setHasCameraPermission(true); // Permission granted AND video is playing
+          } catch (playError) {
+            console.error("Error playing video:", playError);
+            setHasCameraPermission(false); // Camera access might be ok, but playback failed
+            const errorTitle = 'Erro ao Iniciar Câmera';
+            const errorMessage = playError instanceof Error ? playError.message : 'Não foi possível reproduzir o feed da câmera.';
+            onScanError(`Falha ao iniciar a visualização da câmera: ${errorMessage}`);
+            toast({ variant: 'destructive', title: errorTitle, description: errorMessage });
+            cleanupStream(); // Important to release resources
+            // setIsLoading(false) will be handled by the finally block of the outer try-catch
+            return; // Exit as video playback failed
+          }
+        } else {
+           // Should not happen if initial check passes, but as a safeguard
+           throw new Error("Video element reference became null unexpectedly.");
         }
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
+
+      } catch (error) { // This catches getUserMedia errors or the safeguard error above
+        console.error('Error accessing or preparing camera:', error);
         setHasCameraPermission(false);
         let title = 'Acesso à Câmera Negado';
         let description = 'Permissão da câmera negada. Por favor, habilite o acesso à câmera nas configurações do seu navegador e recarregue a página.';
+        
         if (error instanceof Error) {
           if (error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError") {
             title = 'Problema com a Resolução';
@@ -105,7 +135,7 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
                 streamRef.current = fallbackStream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = fallbackStream;
-                    await videoRef.current.play();
+                    await videoRef.current.play(); // Try playing fallback
                     setHasCameraPermission(true); 
                     toast({ title: 'Usando Câmera Reserva', description: 'Não foi possível usar a resolução ideal, usando configurações padrão da câmera.' });
                     setIsLoading(false);
@@ -113,20 +143,21 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
                 }
             } catch (fallbackError) {
                 console.error('Error accessing camera with fallback constraints:', fallbackError);
+                // If fallback fails, original error message is more relevant.
             }
           } else if (error.name === "NotAllowedError") {
             // Default message is fine
           } else if (error.name === "NotFoundError") {
             title = 'Câmera Não Encontrada';
             description = 'Nenhuma câmera compatível foi encontrada no seu dispositivo.';
-          } else {
+          } else { // Handles generic errors or the one re-thrown from play() if it was structured that way
             title = 'Erro na Câmera';
             description = `Ocorreu um erro ao tentar acessar a câmera: ${error.message}`;
           }
         }
         onScanError(description);
         toast({ variant: 'destructive', title, description });
-        cleanupStream(); // Ensure cleanup on error
+        cleanupStream();
       } finally {
         setIsLoading(false);
       }
@@ -137,10 +168,12 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
     } else {
       cleanupStream();
     }
-    return () => { // Main cleanup for this effect
+    
+    // This cleanup runs when isScanning changes or component unmounts
+    return () => { 
       cleanupStream();
     };
-  }, [isScanning, onScanError, toast, cleanupStream]); // Added cleanupStream to dependencies
+  }, [isScanning, onScanError, toast, cleanupStream, setIsScanning]); // Added setIsScanning
 
 
   useEffect(() => {
@@ -157,7 +190,6 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
 
     const decodeLoop = async () => {
       if (!isScanning || decodingRef.current || !videoElement || videoElement.readyState < videoElement.HAVE_METADATA || videoElement.paused) {
-        // If still scanning and not decoding, and video is ready, request next frame
         if (isScanning && !decodingRef.current && videoElement && (videoElement.readyState >= videoElement.HAVE_METADATA) && !videoElement.paused) {
             animationFrameIdRef.current = requestAnimationFrame(decodeLoop);
         }
@@ -193,7 +225,6 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
       }
     };
     
-    // Event listener to start decoding loop once video can play
     const onCanPlay = () => {
       if (videoElement.videoWidth > 0 && isScanning && !animationFrameIdRef.current && !decodingRef.current) {
         animationFrameIdRef.current = requestAnimationFrame(decodeLoop);
@@ -201,8 +232,8 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
     };
 
     videoElement.addEventListener('canplay', onCanPlay);
-    videoElement.addEventListener('loadedmetadata', onCanPlay); // Also good for ensuring dimensions are known
-    videoElement.addEventListener('playing', onCanPlay); // When video actually starts playing
+    videoElement.addEventListener('loadedmetadata', onCanPlay);
+    videoElement.addEventListener('playing', onCanPlay);
 
     // If video is already ready, start decoding
     if (videoElement.readyState >= videoElement.HAVE_ENOUGH_DATA && !videoElement.paused && videoElement.videoWidth > 0 && isScanning && !animationFrameIdRef.current && !decodingRef.current) {
@@ -246,20 +277,19 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
         </div>
       )}
 
-      {/* This state might not be hit if isLoading covers it */}
-      {isScanning && !isLoading && hasCameraPermission === null && (
+      {isScanning && !isLoading && hasCameraPermission === null && ( // Requesting permission state
          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white p-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
             Solicitando permissão da câmera...
         </div>
       )}
 
-      {hasCameraPermission === false && ( // Show error if permission denied
+      {hasCameraPermission === false && ( // Show error if permission denied or playback failed
         <div className="absolute inset-0 flex items-center justify-center p-4 bg-background/90">
             <Alert variant="destructive" className="w-full">
-                <AlertTitle>Acesso à Câmera Necessário</AlertTitle>
+                <AlertTitle>Acesso à Câmera Necessário ou Falha ao Iniciar</AlertTitle>
                 <AlertDescription>
-                Por favor, permita o acesso à câmera nas configurações do seu navegador e recarregue a página. Se o problema persistir, verifique se outra aplicação está utilizando a câmera.
+                Não foi possível iniciar a câmera. Verifique as permissões no seu navegador e se outra aplicação está utilizando a câmera. Recarregue a página para tentar novamente.
                 </AlertDescription>
             </Alert>
         </div>
@@ -267,3 +297,5 @@ export function BarcodeScanner({ onScanSuccess, onScanError, isScanning, setIsSc
     </div>
   );
 }
+
+    
