@@ -5,7 +5,7 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableHeader as ShadTableHeaderComponent, TableRow as ShadTableRow } from '@/components/ui/table';
+import { Table, TableBody as ShadTableBody, TableCell, TableHead as ShadTableHeaderComponent, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -52,7 +52,7 @@ import {
   format,
 } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { Scanner } from 'react-zxing/lib/esm/Scanner';
+import { Scanner } from 'react-zxing/lib/esm/Scanner.js';
 
 
 const mockProducts: Omit<Product, 'id' | 'originalId' | 'isExploding'>[] = [
@@ -96,7 +96,7 @@ const dateFilterOptions = [
 
 const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeActive: boolean, isExploding?: boolean): { styleString: string; particleColorClass: string } => {
   let baseStyle = 'transition-colors duration-150 ease-in-out relative';
-  let particleColorClass = 'bg-white'; 
+  let particleColorClass = 'bg-white';
 
   if (isExploding) {
      if (!isValid(parseISO(validade))) {
@@ -145,7 +145,7 @@ const resequenceProducts = (products: Product[]): Product[] => {
 
 const LONG_PRESS_DURATION = 500;
 const DRAG_THRESHOLD = 10;
-const SHOCKWAVE_DURATION = 700; 
+const SHOCKWAVE_DURATION = 700;
 const BASE_SHOCKWAVE_STRENGTH_PX = 15;
 const SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP = 1.5;
 
@@ -270,7 +270,7 @@ export function ProductSearchTable() {
   const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
   const longPressHeaderTimerRef = useRef<NodeJS.Timeout | null>(null);
   const headerPointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
-  
+
   const [shockwaveTargets, setShockwaveTargets] = useState<ShockwaveTarget[]>([]);
   const longPressInitiatedSelectionRef = useRef(false);
 
@@ -282,7 +282,7 @@ export function ProductSearchTable() {
     if (shockwaveTargets.length > 0) {
       const timer = setTimeout(() => {
         setShockwaveTargets([]);
-      }, SHOCKWAVE_DURATION + 100); 
+      }, SHOCKWAVE_DURATION + 100);
       return () => clearTimeout(timer);
     }
   }, [shockwaveTargets]);
@@ -325,7 +325,7 @@ export function ProductSearchTable() {
   };
 
   const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number, target: EventTarget | null) => {
-    if (longPressInitiatedSelectionRef.current) {
+     if (longPressInitiatedSelectionRef.current) {
       longPressInitiatedSelectionRef.current = false;
       pointerDownPositionRef.current = null;
       return;
@@ -341,14 +341,13 @@ export function ProductSearchTable() {
     if (pointerDownPositionRef.current) {
       const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
       const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
-      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) { // It's a tap
         if (isSelectionModeActive) {
           if (!isClickOnCheckboxCell && product.originalId) {
             handleToggleSelectProduct(product.originalId);
           }
         } else {
-          // This is where the popover used to be triggered directly for single item actions.
-          // Now it's handled by Popover's onOpenChange.
+          // Popover opening is handled by Popover's onOpenChange via its trigger
         }
       }
     }
@@ -356,13 +355,13 @@ export function ProductSearchTable() {
   };
 
   const handlePointerMove = (clientX: number, clientY: number) => {
-    if (!pointerDownPositionRef.current || !longPressTimerRef.current) return; 
+    if (!pointerDownPositionRef.current || !longPressTimerRef.current) return;
 
     const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
     const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
 
-    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) { 
-      clearTimeout(longPressTimerRef.current); 
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+      clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
   };
@@ -384,16 +383,12 @@ export function ProductSearchTable() {
     }, LONG_PRESS_DURATION);
   };
 
-  const handleHeaderRowPointerUp = (event: PointerEvent<HTMLTableRowElement> | TouchEvent<HTMLTableRowElement>) => {
+  const handleHeaderRowPointerUp = () => {
     if (longPressHeaderTimerRef.current) {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
     }
-    // Do not clear headerPointerDownPositionRef.current here if it's a short click,
-    // as handleHeaderClick might need it (though current impl. doesn't use clientX/Y)
-    // However, if it was a long press, it's already cleared.
-    // For a short tap, we want to ensure it's cleared *after* potential click handlers.
-    // This is subtle. Let's simplify: only clear if long press timer was active.
+    headerPointerDownPositionRef.current = null;
   };
 
   const handleHeaderRowPointerMove = (clientX: number, clientY: number) => {
@@ -419,54 +414,52 @@ export function ProductSearchTable() {
         validade: selectedProduct.validade,
       });
       setIsEditDialogOpen(true);
-      setActivePopoverProductId(null); 
+      setActivePopoverProductId(null);
     }
   };
 
   const confirmDeleteSingleProduct = () => {
     if (selectedProduct) {
       setIsDeleteDialogOpen(true);
-      setActivePopoverProductId(null); 
+      setActivePopoverProductId(null);
     }
   };
 
  const triggerShockwave = (deletedOriginalIds: string[]) => {
-    const currentVisibleProducts = filteredProducts; 
+    const currentVisibleProducts = filteredProducts;
     const newShockwaveTargetsMap = new Map<string, ShockwaveTarget>();
 
     deletedOriginalIds.forEach(deletedId => {
         const deletedProductVisualIndex = currentVisibleProducts.findIndex(p => p.originalId === deletedId);
-        if (deletedProductVisualIndex === -1) return; 
+        if (deletedProductVisualIndex === -1) return;
 
-        for (let direction of [-1, 1]) { 
-            for (let distance = 1; ; distance++) { 
-                let calculatedStrength = BASE_SHOCKWAVE_STRENGTH_PX - (distance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
-                
+        for (let direction of [-1, 1]) {
+            let currentDistance = 1;
+            while(true) {
+                let calculatedStrength = BASE_SHOCKWAVE_STRENGTH_PX - (currentDistance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+
                 if (calculatedStrength <= 0) {
-                     calculatedStrength = 0; 
-                     break; 
+                     break;
                 }
 
-                const neighborIndex = deletedProductVisualIndex + (distance * direction);
+                const neighborIndex = deletedProductVisualIndex + (currentDistance * direction);
                 if (neighborIndex < 0 || neighborIndex >= currentVisibleProducts.length) {
-                     // Reached end of list in this direction or strength is too low
-                     break; 
+                     break;
                 }
-                
+
                 const neighbor = currentVisibleProducts[neighborIndex];
                 if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
                     const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
-                    // Apply if this new shockwave is stronger (e.g., closer to a different deleted item)
-                    // or if no shockwave is currently set for this neighbor
-                    if (!existingTarget || calculatedStrength > existingTarget.strength) { 
+                    if (!existingTarget || calculatedStrength > existingTarget.strength) {
                          newShockwaveTargetsMap.set(neighbor.originalId!, {
                             id: neighbor.originalId!,
-                            distance: distance, 
+                            distance: currentDistance,
                             direction: direction === -1 ? 'up' : 'down',
                             strength: calculatedStrength,
                         });
                     }
                 }
+                currentDistance++;
             }
         }
     });
@@ -525,14 +518,14 @@ export function ProductSearchTable() {
 
               if (aIsValid && bIsValid) {
                 comparison = dateA.getTime() - dateB.getTime();
-              } else if (aIsValid && !bIsValid) { comparison = -1; } 
-              else if (!aIsValid && bIsValid) { comparison = 1;  } 
-              else { 
+              } else if (aIsValid && !bIsValid) { comparison = -1; }
+              else if (!aIsValid && bIsValid) { comparison = 1;  }
+              else {
                 const originalIdA = a.originalId || a.id || '';
                 const originalIdB = b.originalId || b.id || '';
                 comparison = originalIdA.localeCompare(originalIdB);
               }
-            } else if (sortBy === 'unidade') { // Changed from 'id' or 'unidade' to just 'unidade'
+            } else if (sortBy === 'unidade') {
               const numA = parseInt(valA as string, 10);
               const numB = parseInt(valB as string, 10);
               const aIsNum = !isNaN(numA);
@@ -540,21 +533,21 @@ export function ProductSearchTable() {
 
               if (aIsNum && bIsNum) {
                 comparison = numA - numB;
-              } else if (aIsNum && !bIsNum) { comparison = -1; } 
-              else if (!aIsNum && bIsNum) { comparison = 1;  } 
-              else { 
+              } else if (aIsNum && !bIsNum) { comparison = -1; }
+              else if (!aIsNum && bIsNum) { comparison = 1;  }
+              else {
                 comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
               }
             } else if (sortBy === 'marca') {
                 let sortValA = String(valA);
                 let sortValB = String(valB);
 
-                if (sortValA === '3 Corações') sortValA = 'Três Corações'; // Custom sort logic
-                if (sortValB === '3 Corações') sortValB = 'Três Corações'; // Custom sort logic
+                if (sortValA === '3 Corações') sortValA = 'três corações';
+                if (sortValB === '3 Corações') sortValB = 'três corações';
 
                 comparison = normalizeString(sortValA).localeCompare(normalizeString(sortValB));
             }
-             else { // Default for 'produto', 'id' (if it's string-based), and any other text columns
+             else {
               comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
             }
             return sortDirection === 'asc' ? comparison : -comparison;
@@ -563,7 +556,7 @@ export function ProductSearchTable() {
 
 
     let displayableProducts = productsToFilter.filter(product => {
-        if (product.isExploding) return true; 
+        if (product.isExploding) return true;
 
         const normalizedSearch = normalizeString(searchTerm);
         if (normalizedSearch) {
@@ -574,7 +567,7 @@ export function ProductSearchTable() {
         if (selectedDateFilter !== 'all') {
             const productDate = parseISO(product.validade);
             if (!isValid(productDate)) {
-                 return selectedDateFilter === 'all'; 
+                 return selectedDateFilter === 'all';
             }
             const productDateStartOfDay = startOfDay(productDate);
             const todayDate = startOfDay(new Date());
@@ -637,14 +630,13 @@ export function ProductSearchTable() {
         toast({ title: `${idsToDelete.length} produto(s) marcado(s) para exclusão.` });
     }
     setIsDeleteSelectedConfirmOpen(false);
-    // setSelectedProductIds([]); // Keep selected IDs until explicitly cancelled or all deleted
-    // setIsSelectionModeActive(false); // Keep selection mode if some items remain selectable
+    // No need to call cancelSelectionMode here, useEffect will handle it
   };
 
   const cancelSelectionMode = () => {
     setIsSelectionModeActive(false);
     setSelectedProductIds([]);
-    setActivePopoverProductId(null); 
+    setActivePopoverProductId(null);
   };
 
   const handleNewProductFormChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -664,7 +656,7 @@ export function ProductSearchTable() {
     const newOriginalId = newProductFormData.produto + newProductFormData.marca + Date.now() + Math.random().toString(36).substring(2,11);
     const newProductData: Product = {
         ...newProductFormData,
-        id: '', 
+        id: '',
         originalId: newOriginalId,
         isExploding: false
     };
@@ -688,9 +680,10 @@ export function ProductSearchTable() {
 
 
   const handleHeaderClick = (column: SortableKey) => {
-    // Do not allow sorting if selection mode is active or if the add action popover is open
-    // (though the popover being open during a click is less likely now)
-    if (isSelectionModeActive || isAddActionPopoverOpen) return;
+    if (isAddActionPopoverOpen) {
+        return;
+    }
+    if (isSelectionModeActive) return;
 
     if (sortBy === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -698,43 +691,11 @@ export function ProductSearchTable() {
       setSortBy(column);
       setSortDirection('asc');
     }
-     headerPointerDownPositionRef.current = null; // Clear after click processed
+     headerPointerDownPositionRef.current = null;
   };
 
-  useEffect(() => {
-    let currentSelectedIds = [...selectedProductIds];
-    let currentIsSelectionModeActive = isSelectionModeActive;
-
-    const validSelectedIds = currentSelectedIds.filter(id =>
-      clientSideProducts.some(p => p.originalId === id && !p.isExploding)
-    );
-
-    const anyProductExploding = clientSideProducts.some(p => p.isExploding);
-    const activeSelectionsStillExist = validSelectedIds.length > 0;
-
-    let didSelectedIdsChange = false;
-    if (JSON.stringify(validSelectedIds) !== JSON.stringify(currentSelectedIds)) {
-      currentSelectedIds = validSelectedIds;
-      didSelectedIdsChange = true;
-    }
-    
-    let newIsSelectionModeActive = currentIsSelectionModeActive;
-    if (currentIsSelectionModeActive) {
-      if (!activeSelectionsStillExist && !anyProductExploding) {
-        newIsSelectionModeActive = false;
-      }
-    }
-
-    if (didSelectedIdsChange) {
-      setSelectedProductIds(currentSelectedIds);
-    }
-    if (newIsSelectionModeActive !== isSelectionModeActive) {
-      setIsSelectionModeActive(newIsSelectionModeActive);
-    }
-  }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
-
-  useEffect(() => {
-    return () => {
+ useEffect(() => {
+    const timerCleanup = () => {
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
       }
@@ -742,7 +703,36 @@ export function ProductSearchTable() {
         clearTimeout(longPressHeaderTimerRef.current);
       }
     };
+    return timerCleanup;
   }, []);
+
+  useEffect(() => {
+    const currentSelectedIds = selectedProductIds;
+    const currentIsSelectionModeActive = isSelectionModeActive;
+
+    const validSelectedIds = currentSelectedIds.filter(id =>
+      clientSideProducts.some(p => p.originalId === id && !p.isExploding)
+    );
+
+    let newIsSelectionModeActive = currentIsSelectionModeActive;
+    if (currentIsSelectionModeActive && validSelectedIds.length === 0) {
+      const anyProductExploding = clientSideProducts.some(p => p.isExploding);
+      if (!anyProductExploding) {
+         newIsSelectionModeActive = false;
+      }
+    }
+
+    let didSelectedIdsChange = JSON.stringify(validSelectedIds) !== JSON.stringify(currentSelectedIds);
+    let didSelectionModeChange = newIsSelectionModeActive !== currentIsSelectionModeActive;
+
+    if (didSelectedIdsChange) {
+      setSelectedProductIds(validSelectedIds);
+    }
+    if (didSelectionModeChange) {
+      setIsSelectionModeActive(newIsSelectionModeActive);
+    }
+  }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
+
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -773,15 +763,15 @@ export function ProductSearchTable() {
       : null;
 
     return (
-      <TableHead
+      <ShadTableHeaderComponent
         className={`${baseClasses} ${classNameExt}`}
         onClick={(e) => {
-            e.stopPropagation(); // Important to prevent row-level events if any
+            e.stopPropagation();
             handleHeaderClick(column);
         }}
       >
         {label} {icon}
-      </TableHead>
+      </ShadTableHeaderComponent>
     );
   };
 
@@ -843,8 +833,8 @@ export function ProductSearchTable() {
               <ShadTableHeaderComponent>
                 <ShadTableRow
                   onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
-                  onPointerUp={(e) => handleHeaderRowPointerUp(e)}
-                  onPointerLeave={() => { 
+                  onPointerUp={handleHeaderRowPointerUp}
+                  onPointerLeave={() => {
                     if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
                      headerPointerDownPositionRef.current = null;
                   }}
@@ -852,8 +842,8 @@ export function ProductSearchTable() {
                   onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
                     if (e.touches.length === 1) handleHeaderRowPointerDown(e.touches[0].clientX, e.touches[0].clientY);
                   }}
-                  onTouchEnd={(e) => handleHeaderRowPointerUp(e)}
-                  onTouchCancel={() => { 
+                  onTouchEnd={handleHeaderRowPointerUp}
+                  onTouchCancel={() => {
                      if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
                      headerPointerDownPositionRef.current = null;
                   }}
@@ -862,21 +852,21 @@ export function ProductSearchTable() {
                   }}
                 >
                   {isSelectionModeActive && (
-                    <TableHead className="w-[50px] px-2 py-3">
+                    <ShadTableHeaderComponent className="w-[50px] px-2 py-3">
                        <Checkbox
                           id="selectAll"
                           aria-label="Selecionar todas as linhas visíveis"
                           checked={selectAllCheckedState}
                           onCheckedChange={handleSelectAll}
                         />
-                    </TableHead>
+                    </ShadTableHeaderComponent>
                   )}
                   {renderHeaderCell('id', 'ID', 'w-[60px]')}
                   {renderHeaderCell('produto', 'Produto')}
                   {renderHeaderCell('marca', 'Marca')}
                   {renderHeaderCell('unidade', 'Qtde', 'text-center')}
 
-                  <TableHead
+                  <ShadTableHeaderComponent
                     className={`min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive && !isAddActionPopoverOpen ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -885,34 +875,34 @@ export function ProductSearchTable() {
                   >
                     Validade
                     {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && !isAddActionPopoverOpen && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
-                    
-                    <Popover 
-                        open={isAddActionPopoverOpen && !isSelectionModeActive} 
+
+                    <Popover
+                        open={isAddActionPopoverOpen && !isSelectionModeActive}
                         onOpenChange={(isOpen) => {
-                           if (!isOpen && isAddActionPopoverOpen) { // Only allow closing via popover interaction
+                           if (!isOpen && isAddActionPopoverOpen) { // Only allow closing via this callback
                                 setIsAddActionPopoverOpen(false);
                             }
-                           // Do not allow opening via onOpenChange
+                           // Do NOT set to true here, as long press handles opening
                         }}
                     >
                        <PopoverTrigger asChild>
-                         {/* This span acts as an anchor but won't trigger the popover on its own click due to the controlled 'open' state and onOpenChange logic */}
+                         {/* This span is the anchor, but click events on it are handled by the parent TableHead's onClick for sorting */}
                          <span className="absolute right-0 top-0 h-full w-full" data-popover-anchor-for="add-action" />
                        </PopoverTrigger>
-                       <PopoverContent 
-                         side="top" 
-                         align="end" 
-                         className="w-auto p-1 z-[60]" 
-                         onOpenAutoFocus={(e) => e.preventDefault()} // Prevent focus stealing if opened by long press
-                         onClick={(e) => e.stopPropagation()} // Prevent clicks inside popover from bubbling to header
+                       <PopoverContent
+                         side="top"
+                         align="end"
+                         className="w-auto p-1 z-[60]"
+                         onOpenAutoFocus={(e) => e.preventDefault()}
+                         onClick={(e) => e.stopPropagation()}
                        >
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setIsAddProductDialogOpen(true);
-                            setIsAddActionPopoverOpen(false); 
+                            setIsAddActionPopoverOpen(false);
                           }}
                           aria-label="Adicionar novo produto"
                         >
@@ -920,7 +910,7 @@ export function ProductSearchTable() {
                         </Button>
                       </PopoverContent>
                     </Popover>
-                  </TableHead>
+                  </ShadTableHeaderComponent>
                 </ShadTableRow>
               </ShadTableHeaderComponent>
               <MotionTableBody>
@@ -933,15 +923,15 @@ export function ProductSearchTable() {
                     const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
 
                     if (shockwaveTargetInfo) {
-                        const { strength, direction, distance } = shockwaveTargetInfo;
-                        const displacementFactor = direction === 'up' ? -1 : 1;
+                        const { strength } = shockwaveTargetInfo;
+                        const displacementFactor = shockwaveTargetInfo.direction === 'up' ? -1 : 1;
                         const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
-                        
-                        const baseScaleMagnitude = 0.05; 
+
+                        const baseScaleMagnitude = 0.05;
                         let currentScaleMagnitude = 0;
                          if (strength > 0) {
                              const maxPossibleStrengthAtDistance1 = BASE_SHOCKWAVE_STRENGTH_PX - (1 - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
-                             if (maxPossibleStrengthAtDistance1 > 0) { // Avoid division by zero if decrement is too high
+                             if (maxPossibleStrengthAtDistance1 > 0) {
                                  const strengthRatio = Math.max(0, strength / maxPossibleStrengthAtDistance1);
                                  currentScaleMagnitude = baseScaleMagnitude * strengthRatio;
                              }
@@ -961,7 +951,7 @@ export function ProductSearchTable() {
                         key={currentProductKey}
                         open={activePopoverProductId === currentProductKey && !isSelectionModeActive && !product.isExploding}
                         onOpenChange={(isOpen) => {
-                           if (isSelectionModeActive || product.isExploding) { 
+                           if (isSelectionModeActive || product.isExploding) {
                                if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
                                return;
                            }
@@ -992,7 +982,7 @@ export function ProductSearchTable() {
                               if (product.isExploding || !product.originalId) return;
                               handleRowInteractionEnd(product, e.clientX, e.clientY, e.target);
                             }}
-                            onPointerLeave={() => { 
+                            onPointerLeave={() => {
                               if (product.isExploding) return;
                               if (longPressTimerRef.current) {
                                 clearTimeout(longPressTimerRef.current);
@@ -1012,7 +1002,7 @@ export function ProductSearchTable() {
                             }}
                             onTouchEnd={(e: TouchEvent<HTMLTableRowElement>) => {
                               if (product.isExploding || !product.originalId) return;
-                              if (e.changedTouches.length === 1) { 
+                              if (e.changedTouches.length === 1) {
                                  handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
                               }
                             }}
@@ -1022,13 +1012,13 @@ export function ProductSearchTable() {
                                   handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
                                }
                             }}
-                            onTouchCancel={() => { 
+                            onTouchCancel={() => {
                                if (product.isExploding) return;
                                if (longPressTimerRef.current) {
                                 clearTimeout(longPressTimerRef.current);
                                 longPressTimerRef.current = null;
                               }
-                              pointerDownPositionRef.current = null; 
+                              pointerDownPositionRef.current = null;
                             }}
                           >
                             {product.isExploding ? (
@@ -1062,10 +1052,10 @@ export function ProductSearchTable() {
                             )}
                           </MotionTableRow>
                         </PopoverTrigger>
-                         {!isSelectionModeActive && !product.isExploding && ( 
-                          <PopoverContent side="top" align="end" className="w-auto p-1 z-50" 
-                            onOpenAutoFocus={(e) => e.preventDefault()} 
-                            onCloseAutoFocus={(e) => e.preventDefault()} 
+                         {!isSelectionModeActive && !product.isExploding && (
+                          <PopoverContent side="top" align="end" className="w-auto p-1 z-50"
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                            onCloseAutoFocus={(e) => e.preventDefault()}
                           >
                             <div className="flex space-x-1">
                               <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto">
@@ -1096,7 +1086,7 @@ export function ProductSearchTable() {
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={(isOpen) => {
           setIsDeleteDialogOpen(isOpen);
-          if (!isOpen) setSelectedProduct(null); 
+          if (!isOpen) setSelectedProduct(null);
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1135,7 +1125,7 @@ export function ProductSearchTable() {
         <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => {
           setIsEditDialogOpen(isOpen);
           if (!isOpen) {
-            setEditingProduct(null); 
+            setEditingProduct(null);
           }
         }}>
           <DialogContent className="sm:max-w-[425px]">
@@ -1212,7 +1202,7 @@ export function ProductSearchTable() {
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
             setIsScannerActive(false);
-            setHasCameraPermission(null); 
+            setHasCameraPermission(null);
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1233,7 +1223,7 @@ export function ProductSearchTable() {
                       if (result) {
                         setNewProductFormData(prev => ({ ...prev, produto: result.getText() }));
                         setIsScannerActive(false);
-                        setHasCameraPermission(null); 
+                        setHasCameraPermission(null);
                         toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${result.getText()}` });
                       }
                     }}
@@ -1320,13 +1310,13 @@ export function ProductSearchTable() {
                 </div>
               </div>
               <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
-                <Button 
-                    type="button" 
-                    variant="outline" 
+                <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => {
-                        setHasCameraPermission(null); 
+                        setHasCameraPermission(null);
                         setIsScannerActive(true);
-                    }} 
+                    }}
                     className="w-full sm:w-auto"
                 >
                     <Camera className="mr-2 h-4 w-4" /> Escanear Código
