@@ -5,7 +5,7 @@ import type { Product } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableHeader as ShadTableHeader, TableRow as ShadTableRow } from '@/components/ui/table';
+import { Table, TableBody as ShadTableBody, TableCell, TableHead, TableHeader as ShadTableHeaderComponent, TableRow as ShadTableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -267,8 +267,7 @@ export function ProductSearchTable() {
   const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
   const longPressHeaderTimerRef = useRef<NodeJS.Timeout | null>(null);
   const headerPointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const validadeHeaderRef = useRef<HTMLTableCellElement>(null);
-
+  
   const [shockwaveTargets, setShockwaveTargets] = useState<ShockwaveTarget[]>([]);
   const longPressInitiatedSelectionRef = useRef(false);
 
@@ -289,7 +288,6 @@ export function ProductSearchTable() {
         const resequenced = resequenceProducts(productsAfterExplosion);
 
         const currentSelectedIds = selectedProductIds.filter(id => {
-            // Check if the product still exists in the resequenced list
             return resequenced.some(p => p.originalId === id);
         });
         
@@ -309,22 +307,21 @@ export function ProductSearchTable() {
 
   const handleRowInteractionStart = (productOriginalId: string, clientX: number, clientY: number) => {
     pointerDownPositionRef.current = { x: clientX, y: clientY };
-    longPressInitiatedSelectionRef.current = false; // Reset for this interaction
+    longPressInitiatedSelectionRef.current = false; 
 
     if (isSelectionModeActive) {
-      if (longPressTimerRef.current) { // If a timer is running from a previous incomplete interaction
+      if (longPressTimerRef.current) { 
         clearTimeout(longPressTimerRef.current);
         longPressTimerRef.current = null;
       }
-      return; // In selection mode, taps are handled by pointerup, long press doesn't re-initiate
+      return; 
     }
 
-    // Not in selection mode, set up a long press timer
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
     }
     longPressTimerRef.current = setTimeout(() => {
-      if (pointerDownPositionRef.current) { // Check if pointer is still down (not dragged off)
+      if (pointerDownPositionRef.current) { 
         setIsSelectionModeActive(true);
         setSelectedProductIds((prevSelected) =>
           prevSelected.includes(productOriginalId) ? prevSelected : [...prevSelected, productOriginalId]
@@ -333,19 +330,16 @@ export function ProductSearchTable() {
         longPressInitiatedSelectionRef.current = true; 
       }
       longPressTimerRef.current = null;
-      pointerDownPositionRef.current = null; // Clear after long press action
+      pointerDownPositionRef.current = null; 
     }, LONG_PRESS_DURATION);
   };
 
   const handleRowInteractionEnd = (product: Product, clientX: number, clientY: number, target: EventTarget | null) => {
     if (longPressInitiatedSelectionRef.current) {
-        longPressInitiatedSelectionRef.current = false; // Reset flag
-        // Long press already handled selection and cleared its timer/position.
-        // This pointerup is just the end of that gesture.
+        longPressInitiatedSelectionRef.current = false; 
         return; 
     }
 
-    // Clear any active long press timer if it hasn't fired (i.e., it was a short tap or drag)
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -354,94 +348,57 @@ export function ProductSearchTable() {
     const isClickOnCheckboxCell = target instanceof HTMLElement && !!target.closest('[data-is-checkbox-cell="true"]');
     
     if (isSelectionModeActive && !isClickOnCheckboxCell && product.originalId && pointerDownPositionRef.current) {
-        // This is a tap/short interaction while in selection mode
         const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
         const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
         if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
             handleToggleSelectProduct(product.originalId);
         }
     }
-    // For popover: Radix Popover's onOpenChange will handle opening/closing on tap.
-    // No explicit popover logic here for short taps.
     
-    pointerDownPositionRef.current = null; // Always clear position ref after interaction
+    pointerDownPositionRef.current = null; 
   };
 
   const handlePointerMove = (clientX: number, clientY: number) => {
-    if (!pointerDownPositionRef.current || !longPressTimerRef.current) return; // Only act if a long press is pending
+    if (!pointerDownPositionRef.current || !longPressTimerRef.current) return; 
 
     const dx = Math.abs(clientX - pointerDownPositionRef.current.x);
     const dy = Math.abs(clientY - pointerDownPositionRef.current.y);
 
-    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) { // If dragged too far
-      clearTimeout(longPressTimerRef.current); // Cancel long press
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) { 
+      clearTimeout(longPressTimerRef.current); 
       longPressTimerRef.current = null;
-      // Don't nullify pointerDownPositionRef here, handleRowInteractionEnd might need it for drag-tap decision
     }
   };
 
 
-  const handleHeaderPointerDown = (clientX: number, clientY: number) => {
-    if (isSelectionModeActive) return; // No header actions in selection mode
+  const handleHeaderRowPointerDown = (clientX: number, clientY: number) => {
+    if (isSelectionModeActive) return; 
     headerPointerDownPositionRef.current = { x: clientX, y: clientY };
 
     if (longPressHeaderTimerRef.current) {
       clearTimeout(longPressHeaderTimerRef.current);
     }
     longPressHeaderTimerRef.current = setTimeout(() => {
-      if (headerPointerDownPositionRef.current) { // Check if not dragged off
-        setIsAddActionPopoverOpen(true); // Open popover
-        // Don't nullify headerPointerDownPositionRef here, let onPointerUp handle it
+      if (headerPointerDownPositionRef.current) { 
+        setIsAddActionPopoverOpen(true); 
       }
-      longPressHeaderTimerRef.current = null; // Timer has fired or been cancelled
+      longPressHeaderTimerRef.current = null; 
     }, LONG_PRESS_DURATION);
   };
 
-
-const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTableCellElement> | TouchEvent<HTMLTableCellElement>) => {
-    const wasLongPressTimerActive = !!longPressHeaderTimerRef.current;
-
+  const handleHeaderRowPointerUp = (event: PointerEvent<HTMLTableRowElement> | TouchEvent<HTMLTableRowElement>) => {
+    // If a long press was in progress and it's now ending, clear the timer
     if (longPressHeaderTimerRef.current) {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
     }
-
-    let dragged = false;
-    const initialDownPos = headerPointerDownPositionRef.current; // Capture before nullifying
-    headerPointerDownPositionRef.current = null; // Nullify for next interaction
-
-    if (initialDownPos) {
-      let currentX, currentY;
-      if ('changedTouches' in event) { // TouchEvent
-        currentX = (event as TouchEvent<HTMLTableCellElement>).changedTouches[0].clientX;
-        currentY = (event as TouchEvent<HTMLTableCellElement>).changedTouches[0].clientY;
-      } else { // PointerEvent
-        currentX = (event as PointerEvent<HTMLTableCellElement>).clientX;
-        currentY = (event as PointerEvent<HTMLTableCellElement>).clientY;
-      }
-      const dx = Math.abs(currentX - initialDownPos.x);
-      const dy = Math.abs(currentY - initialDownPos.y);
-      if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-        dragged = true;
-      }
-    }
-
-    if (isSelectionModeActive) return;
-
-    // If timer was running (or just cleared by us) AND it wasn't a drag, it was a short click.
-    if (wasLongPressTimerActive && !dragged) {
-      handleHeaderClick(column);
-      // Popover is controlled by isAddActionPopoverOpen, which is only set by the timer.
-      // A short click should not open it. If it was already open, Radix handles toggle.
-    } else if (dragged) { // If it was a drag that cancelled the timer
-      handleHeaderClick(column);
-    }
-    // If long press timer fired: wasLongPressTimerActive is false. isAddActionPopoverOpen is true. Don't sort from this 'up' event.
-    // A subsequent tap on the header will be a new short click interaction.
+    // Clear the initial position for the next header interaction
+    headerPointerDownPositionRef.current = null; 
+    // Note: Individual header clicks for sorting are handled by `onClick` on each TableHead.
+    // This function primarily ensures that a drag or the end of a long press on the row itself doesn't trigger unintended actions.
   };
 
-
-  const handleHeaderPointerMove = (clientX: number, clientY: number) => {
+  const handleHeaderRowPointerMove = (clientX: number, clientY: number) => {
     if (!headerPointerDownPositionRef.current || !longPressHeaderTimerRef.current) return;
 
     const dx = Math.abs(clientX - headerPointerDownPositionRef.current.x);
@@ -450,7 +407,6 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
     if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
       clearTimeout(longPressHeaderTimerRef.current);
       longPressHeaderTimerRef.current = null;
-      // Don't nullify headerPointerDownPositionRef.current, let onPointerUp handle based on drag
     }
   };
 
@@ -495,10 +451,10 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
                 const neighbor = currentVisibleProducts[neighborIndex];
                 if (neighbor && !neighbor.isExploding && !deletedOriginalIds.includes(neighbor.originalId!)) {
                     const existingTarget = newShockwaveTargetsMap.get(neighbor.originalId!);
-                    if (!existingTarget || calculatedStrength > existingTarget.strength) { // Prioritize stronger shock if multiple deletions affect same neighbor
+                    if (!existingTarget || calculatedStrength > existingTarget.strength) { 
                          newShockwaveTargetsMap.set(neighbor.originalId!, {
                             id: neighbor.originalId!,
-                            distance: distance, // Store actual distance for potential scaling effects
+                            distance: distance, 
                             direction: direction === -1 ? 'up' : 'down',
                             strength: calculatedStrength,
                         });
@@ -562,9 +518,9 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
 
               if (aIsValid && bIsValid) {
                 comparison = dateA.getTime() - dateB.getTime();
-              } else if (aIsValid && !bIsValid) { comparison = -1; } // Valid dates before invalid
-              else if (!aIsValid && bIsValid) { comparison = 1;  } // Invalid dates after valid
-              else { // Both invalid, tie-break by originalId or id
+              } else if (aIsValid && !bIsValid) { comparison = -1; } 
+              else if (!aIsValid && bIsValid) { comparison = 1;  } 
+              else { 
                 const originalIdA = a.originalId || a.id || '';
                 const originalIdB = b.originalId || b.id || '';
                 comparison = originalIdA.localeCompare(originalIdB);
@@ -577,12 +533,12 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
 
               if (aIsNum && bIsNum) {
                 comparison = numA - numB;
-              } else if (aIsNum && !bIsNum) { comparison = -1; } // Numbers before non-numbers
-              else if (!aIsNum && bIsNum) { comparison = 1;  } // Non-numbers after numbers
-              else { // Both non-numbers (or failed parse), fallback to string compare
+              } else if (aIsNum && !bIsNum) { comparison = -1; } 
+              else if (!aIsNum && bIsNum) { comparison = 1;  } 
+              else { 
                 comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
               }
-            } else { // Default to string comparison for 'produto', 'marca'
+            } else { 
               comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
             }
             return sortDirection === 'asc' ? comparison : -comparison;
@@ -591,7 +547,7 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
 
 
     let displayableProducts = productsToFilter.filter(product => {
-        if (product.isExploding) return true; // Keep exploding products for animation
+        if (product.isExploding) return true; 
 
         const normalizedSearch = normalizeString(searchTerm);
         if (normalizedSearch) {
@@ -602,7 +558,7 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
         if (selectedDateFilter !== 'all') {
             const productDate = parseISO(product.validade);
             if (!isValid(productDate)) {
-                 return selectedDateFilter === 'all'; // Or specific handling for invalid dates if needed
+                 return selectedDateFilter === 'all'; 
             }
             const productDateStartOfDay = startOfDay(productDate);
             const todayDate = startOfDay(new Date());
@@ -665,7 +621,6 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
         toast({ title: `${idsToDelete.length} produto(s) marcado(s) para exclusão.` });
     }
     setIsDeleteSelectedConfirmOpen(false);
-    // Don't clear selectedProductIds here, let finalizeDeleteProduct handle it after explosions
   };
 
   const cancelSelectionMode = () => {
@@ -713,8 +668,8 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
 
 
   const handleHeaderClick = (column: SortableKey) => {
-    // Sorting is disabled in selection mode or if the add action popover is open for that column (Validade)
-    if (isSelectionModeActive || (column === 'validade' && isAddActionPopoverOpen)) return;
+    // Do not sort if selection mode is active or if the add action popover is open (which is triggered by long press on header row)
+    if (isSelectionModeActive || isAddActionPopoverOpen) return;
 
     if (sortBy === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -726,14 +681,12 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
 
 
   useEffect(() => {
-    // Deselect items that are no longer in clientSideProducts or are exploding
     if (selectedProductIds.length > 0) {
         setSelectedProductIds(prevIds => prevIds.filter(id => 
             clientSideProducts.some(p => p.originalId === id && !p.isExploding)
         ));
     }
 
-    // Logic to exit selection mode if no items are selected and nothing is exploding
     if (isSelectionModeActive) {
         const activeSelectionsStillPresent = selectedProductIds.some(id =>
             clientSideProducts.find(p => p.originalId === id && !p.isExploding)
@@ -742,7 +695,6 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
 
         if (!activeSelectionsStillPresent && !anyProductIsCurrentlyExploding) {
             setIsSelectionModeActive(false);
-            // selectedProductIds should already be empty if activeSelectionsStillPresent is false
         }
     }
     
@@ -754,38 +706,24 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
         clearTimeout(longPressHeaderTimerRef.current);
       }
     };
-  }, [clientSideProducts, isSelectionModeActive]); // Removed selectedProductIds from deps to avoid loops
+  }, [clientSideProducts, isSelectionModeActive]); 
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "") => {
-    const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${!isSelectionModeActive && !(column === 'validade' && isAddActionPopoverOpen) ? 'cursor-pointer hover:bg-muted/50' : ''}`;
-    const icon = sortBy === column && sortBy !== 'none' && !isSelectionModeActive && !(column === 'validade' && isAddActionPopoverOpen)
+    const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${!isSelectionModeActive && !isAddActionPopoverOpen ? 'cursor-pointer hover:bg-muted/50' : ''}`;
+    const icon = sortBy === column && sortBy !== 'none' && !isSelectionModeActive && !isAddActionPopoverOpen
       ? (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)
       : null;
 
     return (
-      <ShadTableHeader
+      <TableHead
         className={`${baseClasses} ${classNameExt}`}
-        onPointerDown={(e: PointerEvent<HTMLTableCellElement>) => handleHeaderPointerDown(e.clientX, e.clientY)}
-        onPointerUp={(e) => handleHeaderPointerUp(column, e)}
-        onPointerLeave={(e: PointerEvent<HTMLTableCellElement>) => { 
-          if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
-           // Do not clear headerPointerDownPositionRef here, pointerUp needs it for drag check
-        }}
-        onPointerMove={(e: PointerEvent<HTMLTableCellElement>) => handleHeaderPointerMove(e.clientX, e.clientY)}
-        onTouchStart={(e: TouchEvent<HTMLTableCellElement>) => {
-          if (e.touches.length === 1) handleHeaderPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-        }}
-        onTouchEnd={(e) => handleHeaderPointerUp(column, e)}
-        onTouchCancel={() => { 
-           if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
-           headerPointerDownPositionRef.current = null;
-        }}
-        onTouchMove={(e: TouchEvent<HTMLTableCellElement>) => {
-          if (e.touches.length === 1) handleHeaderPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        onClick={(e) => {
+            e.stopPropagation(); // Prevent click from bubbling to the row's long press handler
+            handleHeaderClick(column);
         }}
       >
         {label} {icon}
-      </ShadTableHeader>
+      </TableHead>
     );
   };
 
@@ -844,8 +782,28 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <ShadTableHeader>
-                <ShadTableRow>
+              <ShadTableHeaderComponent>
+                <ShadTableRow
+                  onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
+                  onPointerUp={(e) => handleHeaderRowPointerUp(e)}
+                  onPointerLeave={() => { 
+                    if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+                    // Do not clear headerPointerDownPositionRef.current here, onPointerUp will handle it or it's needed for the timer
+                  }}
+                  onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerMove(e.clientX, e.clientY)}
+                  onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
+                    if (e.touches.length === 1) handleHeaderRowPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+                  }}
+                  onTouchEnd={(e) => handleHeaderRowPointerUp(e)}
+                  onTouchCancel={() => { 
+                     if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+                     headerPointerDownPositionRef.current = null;
+                  }}
+                  onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
+                    if (e.touches.length === 1) handleHeaderRowPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                  }}
+                  // This row is for long-press detection across all headers
+                >
                   {isSelectionModeActive && (
                     <TableHead className="w-[50px] px-2 py-3">
                        <Checkbox
@@ -861,48 +819,49 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
                   {renderHeaderCell('marca', 'Marca')}
                   {renderHeaderCell('unidade', 'Qtde', 'text-center')}
 
-                  <ShadTableHeader
-                    ref={validadeHeaderRef}
+                  <TableHead
                     className={`min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive && !isAddActionPopoverOpen ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                     onPointerDown={(e: PointerEvent<HTMLTableCellElement>) => { e.stopPropagation(); handleHeaderPointerDown(e.clientX, e.clientY);}}
-                     onPointerUp={(e) => { e.stopPropagation(); handleHeaderPointerUp('validade', e);}}
-                     onPointerLeave={(e: PointerEvent<HTMLTableCellElement>) => {
-                       e.stopPropagation();
-                       if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
-                     }}
-                     onPointerMove={(e: PointerEvent<HTMLTableCellElement>) => {e.stopPropagation(); handleHeaderPointerMove(e.clientX, e.clientY);}}
-                     onTouchStart={(e: TouchEvent<HTMLTableCellElement>) => {
-                       e.stopPropagation();
-                       if (e.touches.length === 1) handleHeaderPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-                     }}
-                     onTouchEnd={(e) => { e.stopPropagation(); handleHeaderPointerUp('validade', e);}}
-                     onTouchCancel={(e) => {
+                    onClick={(e) => {
                         e.stopPropagation();
-                        if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
-                        headerPointerDownPositionRef.current = null;
-                     }}
-                     onTouchMove={(e: TouchEvent<HTMLTableCellElement>) => {
-                       e.stopPropagation();
-                       if (e.touches.length === 1) handleHeaderPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-                     }}
+                        handleHeaderClick('validade');
+                    }}
                   >
                     Validade
                     {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && !isAddActionPopoverOpen && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
-                    <Popover open={isAddActionPopoverOpen && !isSelectionModeActive} onOpenChange={setIsAddActionPopoverOpen}>
+                    
+                    {/* Popover is attached here but controlled by isAddActionPopoverOpen state, which is set by long-press on the TableRow */}
+                    <Popover 
+                        open={isAddActionPopoverOpen && !isSelectionModeActive} 
+                        onOpenChange={(isOpen) => {
+                            setIsAddActionPopoverOpen(isOpen);
+                            // If popover is closed (e.g. by clicking outside), ensure timer/position refs are cleared
+                            if (!isOpen) {
+                                if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+                                longPressHeaderTimerRef.current = null;
+                                headerPointerDownPositionRef.current = null;
+                            }
+                        }}
+                    >
                        <PopoverTrigger asChild>
-                         <span className="absolute inset-0" />
+                         {/* This is an invisible trigger that the Popover uses for positioning. 
+                             The actual opening is controlled by `isAddActionPopoverOpen` state.
+                             It's a common pattern when the visual trigger and logical trigger are decoupled. */}
+                         <span className="absolute right-0 top-0 h-full w-full" data-popover-anchor-for="add-action" />
                        </PopoverTrigger>
-                       <PopoverContent side="top" align="end" className="w-auto p-1 z-[60]" 
+                       <PopoverContent 
+                         side="top" 
+                         align="end" 
+                         className="w-auto p-1 z-[60]" 
                          onOpenAutoFocus={(e) => e.preventDefault()} 
-                         onClick={(e) => e.stopPropagation()} 
+                         onClick={(e) => e.stopPropagation()} // Prevent clicks inside popover from closing it due to row interactions
                        >
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => {
+                          onClick={(e) => { // This click is specific to the button inside the popover
                             e.stopPropagation(); 
                             setIsAddProductDialogOpen(true);
-                            setIsAddActionPopoverOpen(false);
+                            setIsAddActionPopoverOpen(false); // Close popover after action
                           }}
                           aria-label="Adicionar novo produto"
                         >
@@ -910,9 +869,9 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
                         </Button>
                       </PopoverContent>
                     </Popover>
-                  </ShadTableHeader>
+                  </TableHead>
                 </ShadTableRow>
-              </ShadTableHeader>
+              </ShadTableHeaderComponent>
               <MotionTableBody layout>
                 <AnimatePresence initial={false}>
                   {filteredProducts.map((product) => {
@@ -923,7 +882,7 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
                     const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
 
                     if (shockwaveTargetInfo) {
-                        const { strength, direction, distance } = shockwaveTargetInfo;
+                        const { strength, direction } = shockwaveTargetInfo;
                         const displacementFactor = direction === 'up' ? -1 : 1;
                         const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
                         
@@ -931,7 +890,7 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
                         let currentScaleMagnitude = 0;
                         if (strength > 0) {
                            const maxPossibleStrengthForDistance1 = BASE_SHOCKWAVE_STRENGTH_PX; 
-                           const strengthRatio = Math.max(0, strength / maxPossibleStrengthForDistance1); // ensure non-negative ratio
+                           const strengthRatio = Math.max(0, strength / maxPossibleStrengthForDistance1); 
                            currentScaleMagnitude = baseScaleMagnitude * strengthRatio;
                         }
                         const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
@@ -949,7 +908,7 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
                         key={currentProductKey}
                         open={activePopoverProductId === currentProductKey && !isSelectionModeActive && !product.isExploding}
                         onOpenChange={(isOpen) => {
-                           if (isSelectionModeActive || product.isExploding) { // Prevent popover in selection or if exploding
+                           if (isSelectionModeActive || product.isExploding) { 
                                if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
                                return;
                            }
@@ -967,7 +926,6 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
                             initial={{ opacity: 1 }}
                             animate={shockwaveAnimProps}
                             exit={{ opacity: 0, height: 0, transition: {duration: 0.3, type: "tween" } }}
-                            transition={{ type: "spring", stiffness: 300, damping: 25  }}
                             className={styleString}
                             data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
@@ -1269,3 +1227,6 @@ const handleHeaderPointerUp = (column: SortableKey, event: PointerEvent<HTMLTabl
     </>
   );
 }
+
+
+    
