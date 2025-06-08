@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import {
   Table,
-  TableHeader, // Correctly aliased for <thead>
+  TableHeader,
   TableBody as ShadTableBody,
   TableCell,
-  TableHead as ShadTableHeaderComponent, // This is <th>
+  TableHead as ShadTableHeaderComponent,
   TableRow as ShadTableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -292,27 +292,40 @@ export function ProductSearchTable() {
     return timerCleanup;
   }, []);
 
- useEffect(() => {
+  useEffect(() => {
     const currentSelectedIds = selectedProductIds;
-    const currentIsSelectionModeActive = isSelectionModeActive;
-
+    // Filter to include only IDs of products that are still in clientSideProducts and not exploding
     const validSelectedIds = currentSelectedIds.filter(id =>
       clientSideProducts.some(p => p.originalId === id && !p.isExploding)
     );
 
-    const newIsSelectionModeActive = validSelectedIds.length > 0;
-
-
-    const didSelectedIdsChange = JSON.stringify(validSelectedIds) !== JSON.stringify(currentSelectedIds);
-    const didSelectionModeChange = newIsSelectionModeActive !== currentIsSelectionModeActive;
-
-    if (didSelectedIdsChange) {
+    if (JSON.stringify(validSelectedIds) !== JSON.stringify(currentSelectedIds)) {
       setSelectedProductIds(validSelectedIds);
     }
-    if (didSelectionModeChange) {
-      setIsSelectionModeActive(newIsSelectionModeActive);
+
+    // For managing isSelectionModeActive, defer turning it off if products are exploding
+    const newIsSelectionModeActiveTarget = validSelectedIds.length > 0;
+    const isAnyProductExploding = clientSideProducts.some(p => p.isExploding);
+
+    if (isSelectionModeActive && !newIsSelectionModeActiveTarget && isAnyProductExploding) {
+      // Defer turning off selection mode if items are exploding and it would turn off
+      // This state (selection mode ON, 0 items selected) will be resolved by the next useEffect
+    } else if (isSelectionModeActive !== newIsSelectionModeActiveTarget) {
+      setIsSelectionModeActive(newIsSelectionModeActiveTarget);
     }
   }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
+
+  // Effect to finalize selection mode after all explosions are done
+  useEffect(() => {
+    const isAnyProductExploding = clientSideProducts.some(p => p.isExploding);
+    if (!isAnyProductExploding) {
+      // All explosions are done, now accurately set selection mode
+      const anyProductSelected = selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length > 0;
+      if (isSelectionModeActive !== anyProductSelected) {
+        setIsSelectionModeActive(anyProductSelected);
+      }
+    }
+  }, [clientSideProducts, selectedProductIds, isSelectionModeActive, setIsSelectionModeActive]);
 
 
  useEffect(() => {
@@ -330,6 +343,7 @@ export function ProductSearchTable() {
         const productsAfterExplosion = prevProducts.filter(p => p.originalId !== productOriginalId);
         return resequenceProducts(productsAfterExplosion);
     });
+    // Note: selectedProductIds and isSelectionModeActive are handled by the useEffects above
   };
 
  const handleRowInteractionStart = (productOriginalId: string, clientX: number, clientY: number) => {
@@ -587,7 +601,7 @@ export function ProductSearchTable() {
 
 
     let displayableProducts = productsToFilter.filter(product => {
-        if (product.isExploding) return true;
+        if (product.isExploding) return true; // Keep exploding products for AnimatePresence
 
         const normalizedSearch = normalizeString(searchTerm);
         if (normalizedSearch) {
@@ -686,7 +700,7 @@ export function ProductSearchTable() {
     const newOriginalId = newProductFormData.produto + newProductFormData.marca + Date.now() + Math.random().toString(36).substring(2,11);
     const newProductData: Product = {
         ...newProductFormData,
-        id: '',
+        id: '', // Will be set by resequenceProducts
         originalId: newOriginalId,
         isExploding: false
     };
@@ -699,6 +713,18 @@ export function ProductSearchTable() {
     setNewProductFormData({ ...initialNewProductFormData });
     setIsScannerActive(false);
   };
+
+  const handleScanSuccess = useCallback((data: string) => {
+    setNewProductFormData(prev => ({ ...prev, produto: data })); // Assuming 'produto' is the field for barcode data
+    toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${data}` });
+    // setIsScannerActive(false); // The BarcodeScanner component itself will call setIsScanning(false) on success
+  }, [toast]);
+
+  const handleScanError = useCallback((message: string) => {
+    toast({ variant: "destructive", title: "Erro no Scanner", description: message });
+    // setIsScannerActive(false); // Optionally stop scanning on error
+  }, [toast]);
+
 
   const productsForDisplay = useMemo(() => filteredProducts.filter(p => !p.isExploding), [filteredProducts]);
   const allFilteredSelected = productsForDisplay.length > 0 && productsForDisplay.every(p => p.originalId && selectedProductIds.includes(p.originalId));
@@ -721,17 +747,6 @@ export function ProductSearchTable() {
     }
     headerPointerDownPositionRef.current = null;
   };
-
-  const handleScanSuccess = useCallback((data: string) => {
-    setNewProductFormData(prev => ({ ...prev, produto: data }));
-    toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${data}` });
-    setIsScannerActive(false); // Stop scanning on success from parent
-  }, [toast]);
-
-  const handleScanError = useCallback((message: string) => {
-    toast({ variant: "destructive", title: "Erro no Scanner", description: message });
-    // setIsScannerActive(false); // Optionally stop scanning on error, or let user retry
-  }, [toast]);
 
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "", isSortable: boolean = true) => {
@@ -790,14 +805,14 @@ export function ProductSearchTable() {
           {isSelectionModeActive && (
             <div className="mt-4 flex items-center justify-between">
                <p className="text-sm text-muted-foreground">
-                {selectedProductIds.filter(id => clientSideProducts.find(p => p.originalId === id && !p.isExploding)).length} item(s) selecionado(s)
+                {selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length} item(s) selecionado(s)
               </p>
               <div className="flex space-x-2">
                 <Button variant="ghost" onClick={cancelSelectionMode} size="sm">
                   <XCircle className="mr-2 h-4 w-4" />
                   Cancelar
                 </Button>
-                {selectedProductIds.filter(id => clientSideProducts.find(p => p.originalId === id && !p.isExploding)).length > 0 && (
+                {selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length > 0 && (
                   <Button variant="destructive" onClick={confirmDeleteSelected} size="sm">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Excluir
@@ -841,8 +856,7 @@ export function ProductSearchTable() {
                           onCheckedChange={handleSelectAll}
                         />
                     </ShadTableHeaderComponent>
-                  ) : <ShadTableHeaderComponent className="w-[50px] px-2 py-3"></ShadTableHeaderComponent>
-                  }
+                  ) : null }
                   {renderHeaderCell('id', 'ID', 'w-[60px] px-2 text-center')}
                   {renderHeaderCell('produto', 'Produto')}
                   {renderHeaderCell('marca', 'Marca')}
@@ -1018,7 +1032,7 @@ export function ProductSearchTable() {
                                         onCheckedChange={() => product.originalId && handleToggleSelectProduct(product.originalId)}
                                       />
                                   </TableCell>
-                                ): <TableCell className="py-0 px-2"></TableCell>}
+                                ): null }
                                 <TableCell className={`font-medium py-3 px-2 text-center ${isSelectionModeActive ? 'pl-1 pr-1' : ''}`}>{product.id}</TableCell>
                                 <TableCell className="py-3 px-2 md:px-4">{product.produto}</TableCell>
                                 <TableCell className="py-3 px-2 md:px-4">{product.marca}</TableCell>
@@ -1181,7 +1195,7 @@ export function ProductSearchTable() {
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
-            setIsScannerActive(false);
+            if(isScannerActive) setIsScannerActive(false); // Ensure scanner stops if dialog closes
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1201,7 +1215,7 @@ export function ProductSearchTable() {
                 isScanning={isScannerActive}
                 setIsScanning={setIsScannerActive}
               />
-               <Button variant="outline" className="w-full mt-4" onClick={() => { 
+               <Button variant="outline" className="w-full mt-4" onClick={() => {
                   setIsScannerActive(false);
                 }}>Cancelar Scan</Button>
             </div>
@@ -1287,3 +1301,4 @@ export function ProductSearchTable() {
     </>
   );
 }
+
