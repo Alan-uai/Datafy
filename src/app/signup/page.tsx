@@ -3,7 +3,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AppLogo } from '@/components/shared/AppLogo';
+import { useAuth } from '@/contexts/AuthContext'; // Importar useAuth
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -21,6 +22,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { setCurrentUser } = useAuth(); // Obter setCurrentUser do AuthContext
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,9 +34,13 @@ export default function SignupPage() {
     }
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Define o usuário no AuthContext imediatamente.
+      // O tipo User de createUserWithEmailAndPassword é compatível com FirebaseUser.
+      setCurrentUser(userCredential.user as FirebaseUser); 
+      
       toast({ title: 'Cadastro bem-sucedido!', description: 'Redirecionando para o dashboard...' });
-      router.push('/dashboard'); // Ou para uma página de "verifique seu email"
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Falha ao criar conta.');
       toast({ variant: 'destructive', title: 'Erro no Cadastro', description: err.message || 'Falha ao criar conta.' });
