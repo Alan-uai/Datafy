@@ -306,7 +306,6 @@ export function ProductSearchTable() {
     const isAnyProductExploding = clientSideProducts.some(p => p.isExploding);
 
     if (isSelectionModeActive && !newIsSelectionModeActiveTarget && isAnyProductExploding) {
-      // Defer turning off selection mode until explosions complete
     } else if (isSelectionModeActive !== newIsSelectionModeActiveTarget) {
       setIsSelectionModeActive(newIsSelectionModeActiveTarget);
     }
@@ -387,7 +386,6 @@ export function ProductSearchTable() {
             handleToggleSelectProduct(product.originalId);
           }
         } else {
-          // Popover is handled by PopoverTrigger
         }
       }
     }
@@ -725,7 +723,6 @@ export function ProductSearchTable() {
 
   const handleScanError = useCallback((message: string) => {
     toast({ variant: "destructive", title: "Erro no Scanner", description: message });
-    // setIsScannerActive(false); // Optionally stop scanning on error
   }, [toast]);
 
 
@@ -1216,7 +1213,7 @@ export function ProductSearchTable() {
                 onScanSuccess={handleScanSuccess}
                 onScanError={handleScanError}
                 isScanning={isScannerActive}
-                setIsScanning={setIsScanning}
+                setIsScanning={setIsScannerActive}
               />
                <Button variant="outline" className="w-full mt-4" onClick={() => {
                   setIsScannerActive(false);
