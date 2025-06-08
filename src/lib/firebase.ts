@@ -5,29 +5,39 @@ import { getAuth, type Auth, GoogleAuthProvider, signInWithPopup } from "firebas
 
 // Log immediately at module scope to catch SSR and client-side issues
 const apiKeyFromEnv = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-console.log('[Firebase Init Debug] Type of NEXT_PUBLIC_FIREBASE_API_KEY:', typeof apiKeyFromEnv);
+console.log('[Firebase Init Debug] Type of NEXT_PUBLIC_FIREBASE_API_KEY from process.env:', typeof apiKeyFromEnv);
 if (typeof apiKeyFromEnv === 'string') {
-  console.log('[Firebase Init Debug] Length of NEXT_PUBLIC_FIREBASE_API_KEY:', apiKeyFromEnv.length);
-  // For security, avoid logging the full key. Log first few chars if truly needed for debugging.
-  // console.log('[Firebase Init Debug] NEXT_PUBLIC_FIREBASE_API_KEY starts with:', apiKeyFromEnv.substring(0, 5) + "...");
+  console.log('[Firebase Init Debug] Length of NEXT_PUBLIC_FIREBASE_API_KEY from process.env:', apiKeyFromEnv.length);
 } else {
-  console.warn('[Firebase Init Debug] NEXT_PUBLIC_FIREBASE_API_KEY is undefined or not a string.');
+  console.warn('[Firebase Init Debug] NEXT_PUBLIC_FIREBASE_API_KEY from process.env is undefined or not a string.');
 }
 
+// =================================================================================
+// TEMPORARY DEBUGGING STEP: Hardcoding Firebase config
+// IMPORTANT: This is NOT for production. This is to isolate if the issue is with
+// the credential values themselves or with the environment variable loading.
+// Revert to using process.env variables once the issue is understood.
+// =================================================================================
 const firebaseConfig = {
-  apiKey: apiKeyFromEnv, // Use the variable captured at module scope
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyAfBw4JG-wsnX4cmmwMi9XtNPKoU62umO8",
+  authDomain: "dashify-gxfvj.firebaseapp.com",
+  projectId: "dashify-gxfvj",
+  storageBucket: "dashify-gxfvj.firebasestorage.app",
+  messagingSenderId: "371540094385",
+  appId: "1:371540094385:web:f8802468597a1e37b7e190"
 };
 
+console.log('[Firebase Init Debug] HARDCODED apiKey being used:', firebaseConfig.apiKey);
+console.log('[Firebase Init Debug] HARDCODED projectId being used:', firebaseConfig.projectId);
+// =================================================================================
+
+// This check was originally for process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+// Now it effectively checks the hardcoded key.
 if (!firebaseConfig.apiKey) {
   console.error(
-    "!!! FIREBASE API KEY IS MISSING in firebaseConfig !!!\n" +
-    "This means NEXT_PUBLIC_FIREBASE_API_KEY was likely undefined or not a string when read from process.env.\n" +
-    "Please ensure you have a .env.local file in the ROOT of your project with the correct Firebase configuration.\n" +
+    "!!! FIREBASE API KEY IS MISSING in HARDCODED firebaseConfig !!!\n" +
+    "This should not happen if the config object above is correct.\n" +
+    "Please ensure you have a .env.local file in the ROOT of your project with the correct Firebase configuration for long-term use.\n" +
     "Example .env.local content:\n" +
     "NEXT_PUBLIC_FIREBASE_API_KEY=\"YOUR_API_KEY\"\n" +
     "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=\"YOUR_AUTH_DOMAIN\"\n" +
@@ -41,7 +51,7 @@ if (!firebaseConfig.apiKey) {
 
 let app: FirebaseApp;
 if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
+  app = initializeApp(firebaseConfig); // Using the hardcoded config
 } else {
   app = getApp();
 }
