@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import {
   Table,
-  TableHeader, // For <thead>
+  TableHeader,
   TableBody as ShadTableBody,
   TableCell,
-  TableHead as ShadTableHeaderComponent, // For <th>
+  TableHead as ShadTableHeaderComponent,
   TableRow as ShadTableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,8 +118,6 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
         particleColorClass = 'bg-white';
       }
     }
-    // When exploding, the row itself should not have a background to let particles show through
-    // It also should not change style on hover or selection.
     return { styleString: `${baseStyle} bg-transparent`, particleColorClass };
   }
 
@@ -317,7 +315,7 @@ export function ProductSearchTable() {
 
   useEffect(() => {
     const isAnyProductExploding = clientSideProducts.some(p => p.isExploding);
-    if (!isAnyProductExploding) { // Only update if no products are exploding
+    if (!isAnyProductExploding) { 
       const anyProductSelected = selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length > 0;
       if (isSelectionModeActive !== anyProductSelected) {
         setIsSelectionModeActive(anyProductSelected);
@@ -330,7 +328,7 @@ export function ProductSearchTable() {
     if (shockwaveTargets.length > 0) {
       const timer = setTimeout(() => {
         setShockwaveTargets([]);
-      }, SHOCKWAVE_DURATION + 100);
+      }, SHOCKWAVE_DURATION + 100); 
       return () => clearTimeout(timer);
     }
   }, [shockwaveTargets]);
@@ -481,7 +479,7 @@ export function ProductSearchTable() {
                 let calculatedStrength = BASE_SHOCKWAVE_STRENGTH_PX - (currentDistance - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
 
                 if (calculatedStrength <= 0) {
-                     break;
+                     break; 
                 }
 
                 const neighborIndex = deletedProductVisualIndex + (currentDistance * direction);
@@ -552,7 +550,15 @@ export function ProductSearchTable() {
             const valB = b[sortBy];
             let comparison = 0;
 
-            if (sortBy === 'validade') {
+            if (sortBy === 'id') {
+              const numA = parseInt(String(valA), 10);
+              const numB = parseInt(String(valB), 10);
+              if (!isNaN(numA) && !isNaN(numB)) {
+                comparison = numA - numB;
+              } else { 
+                comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
+              }
+            } else if (sortBy === 'validade') {
               const dateA = parseISO(valA as string);
               const dateB = parseISO(valB as string);
               const aIsValid = isValid(dateA);
@@ -609,7 +615,7 @@ export function ProductSearchTable() {
         if (selectedDateFilter !== 'all') {
             const productDate = parseISO(product.validade);
             if (!isValid(productDate)) {
-                 return selectedDateFilter === 'all';
+                 return selectedDateFilter === 'all'; 
             }
             const productDateStartOfDay = startOfDay(productDate);
             const todayDate = startOfDay(new Date());
@@ -959,11 +965,10 @@ export function ProductSearchTable() {
                       >
                         <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
                           <MotionTableRow
-                            layout // Critical for FLIP animation of siblings
+                            layout 
                             layoutId={currentProductKey}
                             initial={{ opacity: 1 }}
                             animate={shockwaveAnimProps}
-                            // Removed exit prop to rely on AnimatePresence and data removal
                             className={styleString}
                             data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
@@ -1014,7 +1019,7 @@ export function ProductSearchTable() {
                             }}
                           >
                             {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative">
+                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative py-3">
                                 <Particle
                                   onComplete={() => finalizeDeleteProduct(currentProductKey)}
                                   particleColorClass={particleColorClass}
@@ -1193,7 +1198,7 @@ export function ProductSearchTable() {
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
-            if(isScannerActive) setIsScannerActive(false); // Cleanup scanner state
+            if(isScannerActive) setIsScannerActive(false); 
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
