@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "371540094385",
+    "firebase_url": "https://dashify-gxfvj-default-rtdb.firebaseio.com",
+    "project_id": "dashify-gxfvj",
+    "storage_bucket": "dashify-gxfvj.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371540094385:android:4892d99b32a13506b7e190",
+        "android_client_info": {
+          "package_name": "dashify.gxfvj"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "371540094385-953ircjv56sf5oigjsn79s0g5scclppm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWimrf80NgYnc1qJ3PBa0lTrnb6jYvOXw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "371540094385-953ircjv56sf5oigjsn79s0g5scclppm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
