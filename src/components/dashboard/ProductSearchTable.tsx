@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import {
   Table,
-  TableHeader,
+  TableHeader, // For <thead>
   TableBody as ShadTableBody,
   TableCell,
-  TableHead as ShadTableHeaderComponent,
+  TableHead as ShadTableHeaderComponent, // For <th>
   TableRow as ShadTableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,6 +118,8 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
         particleColorClass = 'bg-white';
       }
     }
+    // When exploding, the row itself should not have a background to let particles show through
+    // It also should not change style on hover or selection.
     return { styleString: `${baseStyle} bg-transparent`, particleColorClass };
   }
 
@@ -292,7 +294,7 @@ export function ProductSearchTable() {
     return timerCleanup;
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
     const currentSelectedIds = selectedProductIds;
     const validSelectedIds = currentSelectedIds.filter(id =>
       clientSideProducts.some(p => p.originalId === id && !p.isExploding)
@@ -306,15 +308,16 @@ export function ProductSearchTable() {
     const isAnyProductExploding = clientSideProducts.some(p => p.isExploding);
 
     if (isSelectionModeActive && !newIsSelectionModeActiveTarget && isAnyProductExploding) {
-      // Defer turning off selection mode
+      // Defer turning off selection mode until explosions complete
     } else if (isSelectionModeActive !== newIsSelectionModeActiveTarget) {
       setIsSelectionModeActive(newIsSelectionModeActiveTarget);
     }
   }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
 
+
   useEffect(() => {
     const isAnyProductExploding = clientSideProducts.some(p => p.isExploding);
-    if (!isAnyProductExploding) {
+    if (!isAnyProductExploding) { // Only update if no products are exploding
       const anyProductSelected = selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length > 0;
       if (isSelectionModeActive !== anyProductSelected) {
         setIsSelectionModeActive(anyProductSelected);
@@ -716,6 +719,7 @@ export function ProductSearchTable() {
 
   const handleScanError = useCallback((message: string) => {
     toast({ variant: "destructive", title: "Erro no Scanner", description: message });
+    // setIsScannerActive(false); // Optionally stop scanning on error
   }, [toast]);
 
 
@@ -955,11 +959,11 @@ export function ProductSearchTable() {
                       >
                         <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
                           <MotionTableRow
-                            layout
+                            layout // Critical for FLIP animation of siblings
                             layoutId={currentProductKey}
                             initial={{ opacity: 1 }}
                             animate={shockwaveAnimProps}
-                            exit={{ opacity: 0, height: 0, transition: {duration: 0.3, type: "tween" } }}
+                            // Removed exit prop to rely on AnimatePresence and data removal
                             className={styleString}
                             data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
@@ -1189,7 +1193,7 @@ export function ProductSearchTable() {
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData });
-            if(isScannerActive) setIsScannerActive(false); 
+            if(isScannerActive) setIsScannerActive(false); // Cleanup scanner state
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1207,7 +1211,7 @@ export function ProductSearchTable() {
                 onScanSuccess={handleScanSuccess}
                 onScanError={handleScanError}
                 isScanning={isScannerActive}
-                setIsScanning={setIsScannerActive}
+                setIsScanning={setIsScanning}
               />
                <Button variant="outline" className="w-full mt-4" onClick={() => {
                   setIsScannerActive(false);
