@@ -239,7 +239,7 @@ export default function DashboardPage() {
                   "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
-                <DynamicIcon name={list.icon} className="mr-[0.01rem] h-4 w-4 flex-shrink-0" />
+                <DynamicIcon name={list.icon} className="mr-[0.005rem] h-4 w-4 flex-shrink-0" />
                 <span className="block truncate min-w-0">
                   {list.name}
                 </span>
