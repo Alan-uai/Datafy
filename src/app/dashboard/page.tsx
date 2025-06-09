@@ -247,7 +247,7 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  'px-2 gap-0', 
+                  'px-2 gap-0.5', 
                   "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
