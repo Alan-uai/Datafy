@@ -227,9 +227,10 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
 
 interface ProductSearchTableProps {
   listId: string;
+  onProductsChanged?: () => void; // Callback for when products change
 }
 
-export function ProductSearchTable({ listId }: ProductSearchTableProps) {
+export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchTableProps) {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -273,6 +274,7 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
       getProducts(currentUser.uid, listId)
         .then((productsFromDb) => {
           setClientSideProducts(resequenceProducts(productsFromDb));
+          onProductsChanged?.();
         })
         .catch((error) => {
           console.error("Failed to fetch products:", error);
@@ -284,8 +286,9 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
     } else if (!listId) {
       setClientSideProducts([]); // Clear products if no listId
       setIsLoadingProducts(false);
+      onProductsChanged?.();
     }
-  }, [currentUser, listId, toast]);
+  }, [currentUser, listId, toast, onProductsChanged]);
 
 
   useEffect(() => {
@@ -340,7 +343,9 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
   const finalizeDeleteProduct = (productOriginalId: string) => {
     setClientSideProducts(prevProducts => {
         const productsAfterExplosion = prevProducts.filter(p => p.originalId !== productOriginalId);
-        return resequenceProducts(productsAfterExplosion);
+        const resequenced = resequenceProducts(productsAfterExplosion);
+        onProductsChanged?.();
+        return resequenced;
     });
   };
 
@@ -526,6 +531,7 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
       } finally {
         setIsDeleteDialogOpen(false);
         setSelectedProduct(null);
+        onProductsChanged?.();
       }
     }
   };
@@ -547,6 +553,7 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
           )
         );
         toast({ title: "Produto atualizado", description: `${editFormData.produto} foi atualizado com sucesso.` });
+        onProductsChanged?.();
       } catch (error) {
         toast({ variant: "destructive", title: "Erro ao atualizar", description: "Não foi possível atualizar o produto." });
       } finally {
@@ -697,6 +704,7 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
             setClientSideProducts(prev => prev.map(p => idsToDelete.includes(p.originalId!) ? {...p, isExploding: false} : p ));
         } finally {
             setIsDeleteSelectedConfirmOpen(false);
+             onProductsChanged?.();
         }
     } else if (idsToDelete.length === 0) {
         toast({variant: "default", title: "Nenhum item para excluir."});
@@ -742,6 +750,7 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
       setIsAddProductDialogOpen(false);
       setNewProductFormData({ ...initialNewProductFormData });
       setIsScannerActive(false); 
+      onProductsChanged?.();
     } catch (error: any) {
        toast({ variant: "destructive", title: "Erro ao adicionar produto", description: error.message || "Não foi possível adicionar o produto." });
     }
@@ -782,14 +791,17 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
 
 
   const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "", isSortable: boolean = true) => {
-    const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${!isSelectionModeActive && isSortable ? 'cursor-pointer hover:bg-muted/50' : ''}`;
+    const isActiveSortColumn = sortBy === column && sortBy !== 'none' && !isSelectionModeActive && isSortable;
+    const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${(!isSelectionModeActive && isSortable) ? 'cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30' : ''}`;
+    const activeSortClasses = isActiveSortColumn ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold' : '';
+    
     const icon = sortBy === column && sortBy !== 'none' && !isSelectionModeActive && isSortable
       ? (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)
       : null;
 
     return (
       <ShadTableHeaderComponent
-        className={`${baseClasses} ${classNameExt}`}
+        className={cn(baseClasses, activeSortClasses, classNameExt)}
         onClick={(e) => {
             if (!isSelectionModeActive && isSortable) {
               e.stopPropagation(); 
@@ -908,7 +920,10 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
                   {renderHeaderCell('marca', 'Marca')}
                   {renderHeaderCell('unidade', 'Qtde', 'text-center')}
                   <ShadTableHeaderComponent
-                    className={`min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    className={cn(
+                        `min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30' : ''}`,
+                        (sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive) ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold' : ''
+                    )}
                     onClick={(e) => {
                         if (!isSelectionModeActive) {
                             e.stopPropagation(); 

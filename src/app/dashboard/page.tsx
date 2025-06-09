@@ -17,11 +17,25 @@ import {
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList } from '@/services/productService';
+import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts } from '@/services/productService';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, List, Edit3, Trash2, Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  isToday,
+  isPast,
+  isWithinInterval,
+  addDays,
+  startOfDay,
+  parseISO,
+  isValid,
+  subDays,
+} from 'date-fns';
+import type { Product } from '@/types';
+
 
 const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIcon' && key !== 'icons' && typeof LucideIcons[key as keyof typeof LucideIcons] === 'object');
 
@@ -51,6 +65,9 @@ export default function DashboardPage() {
 
   const initialFetchDone = useRef(false);
 
+  const [listStats, setListStats] = useState<{ total: number; expiringSoon: number; expired: number } | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
   const fetchLists = useCallback(async () => {
     if (currentUser?.uid) {
       console.log(`DashboardPage: fetchLists called for user: ${currentUser.uid}. Initial fetch done: ${initialFetchDone.current}`);
@@ -78,12 +95,13 @@ export default function DashboardPage() {
                     const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
                     console.log("DashboardPage: Default list created by addProductList:", defaultList);
                     if (defaultList) {
-                    setProductLists([defaultList]);
-                    setActiveListId(defaultList.id);
-                    console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
+                      setProductLists([defaultList]);
+                      setActiveListId(defaultList.id);
+                      toast({ title: "Lista Padrão Criada", description: `A lista "${defaultList.name}" foi criada para você.` });
+                      console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
                     } else {
-                    console.error("DashboardPage: Failed to create default list (addProductList returned null/undefined).");
-                    toast({ variant: "destructive", title: "Erro ao criar lista padrão", description: "Não foi possível criar a lista de produtos inicial." });
+                      console.error("DashboardPage: Failed to create default list (addProductList returned null/undefined).");
+                      toast({ variant: "destructive", title: "Erro ao criar lista padrão", description: "Não foi possível criar a lista de produtos inicial." });
                     }
                 } catch (createError: any) {
                     console.error("DashboardPage: Error creating default list:", createError);
@@ -124,7 +142,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
-    if (currentUser?.uid && !initialFetchDone.current) { // Adicionado !initialFetchDone.current para evitar múltiplas chamadas desnecessárias
+    if (currentUser?.uid && !initialFetchDone.current) {
         console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone current state:", initialFetchDone.current);
         fetchLists();
     } else if (!currentUser?.uid) {
@@ -135,6 +153,50 @@ export default function DashboardPage() {
         initialFetchDone.current = false; 
     }
   }, [currentUser?.uid, fetchLists]);
+
+  useEffect(() => {
+    if (currentUser?.uid && activeListId) {
+      const calculateStats = async () => {
+        setIsLoadingStats(true);
+        setListStats(null); 
+        try {
+          const products: Product[] = await getProducts(currentUser.uid!, activeListId);
+          const today = startOfDay(new Date());
+          let totalCount = 0;
+          let expiredCount = 0;
+          let expiringSoonCount = 0;
+
+          products.forEach(p => {
+            if (p.isExploding) return; 
+            totalCount++;
+            if (p.validade && isValid(parseISO(p.validade))) {
+              const productDate = startOfDay(parseISO(p.validade));
+              if (isPast(productDate) && !isToday(productDate)) {
+                expiredCount++;
+              } else if (
+                !isToday(productDate) && 
+                isWithinInterval(productDate, {
+                  start: addDays(today, 1), 
+                  end: addDays(today, 7),   
+                })
+              ) {
+                expiringSoonCount++;
+              }
+            }
+          });
+          setListStats({ total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount });
+        } catch (error) {
+          console.error("Error calculating list stats:", error);
+          toast({ variant: "destructive", title: "Erro ao calcular estatísticas", description: "Não foi possível carregar as estatísticas da lista." });
+        } finally {
+          setIsLoadingStats(false);
+        }
+      };
+      calculateStats();
+    } else {
+      setListStats(null); 
+    }
+  }, [activeListId, currentUser?.uid, toast, productLists]); // productLists dependency to re-calc if user switches list *and* products potentially changed
 
 
   const handleAddList = async () => {
@@ -276,12 +338,77 @@ export default function DashboardPage() {
         </ScrollArea>
       </div>
 
+      {activeListId && (
+        <Card className="mb-6">
+          <CardHeader className="p-2 sm:p-3 md:p-4">
+            <CardTitle className="text-base sm:text-md font-semibold">Resumo da Lista</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2 sm:p-3 md:p-4 pt-0">
+            {isLoadingStats ? (
+              <div className="flex items-center justify-center h-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Calculando estatísticas...</span>
+              </div>
+            ) : listStats ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Total de Itens</p>
+                  <p className="text-xl sm:text-2xl font-bold">{listStats.total}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencendo (7 dias)</p>
+                  <p className={`text-xl sm:text-2xl font-bold ${listStats.expiringSoon > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-foreground'}`}>
+                    {listStats.expiringSoon}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>
+                  <p className={`text-xl sm:text-2xl font-bold ${listStats.expired > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                    {listStats.expired}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {activeListId ? (
         <>
           <h1 className="text-3xl font-bold mb-8 font-headline text-center">
             {activeListName}
           </h1>
-          <ProductSearchTable listId={activeListId} key={activeListId} />
+          <ProductSearchTable listId={activeListId} key={activeListId} onProductsChanged={() => {
+             // This callback could trigger stats recalculation more directly if needed
+             // For now, the useEffect for stats depends on activeListId and productLists
+             // A simple way to ensure stats refresh if products in *this* table change is to add a "key" prop to the stats card
+             // or trigger the stats calculation function here.
+             // Manually re-triggering:
+             if (currentUser?.uid && activeListId) {
+                (async () => {
+                    setIsLoadingStats(true);
+                    setListStats(null); 
+                    try {
+                        const products: Product[] = await getProducts(currentUser.uid!, activeListId);
+                        const today = startOfDay(new Date());
+                        let totalCount = 0, expiredCount = 0, expiringSoonCount = 0;
+                        products.forEach(p => {
+                          if (p.isExploding) return;
+                          totalCount++;
+                          if (p.validade && isValid(parseISO(p.validade))) {
+                            const productDate = startOfDay(parseISO(p.validade));
+                            if (isPast(productDate) && !isToday(productDate)) expiredCount++;
+                            else if (!isToday(productDate) && isWithinInterval(productDate, { start: addDays(today, 1), end: addDays(today, 7) })) expiringSoonCount++;
+                          }
+                        });
+                        setListStats({ total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount });
+                    } catch (e) { console.error("Error recalculating stats on product change", e); }
+                    finally { setIsLoadingStats(false); }
+                })();
+             }
+          }} />
         </>
       ) : (
          <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)]">
