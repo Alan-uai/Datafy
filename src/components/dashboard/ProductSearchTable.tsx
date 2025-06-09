@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import {
   Table,
   TableHeader,
-  TableBody as ShadTableBody,
+  TableBody as ShadTableBody, // Keep for TableHeader usage if any, or general structure
   TableCell,
   TableHead as ShadTableHeaderComponent,
-  TableRow as ShadTableRow,
+  TableRow as ShadTableRow, // Keep for TableHeader usage
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2 } from 'lucide-react';
@@ -62,10 +62,8 @@ import { useToast } from "@/hooks/use-toast";
 import { BarcodeScanner } from '@/components/barcode/BarcodeScanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProducts, addProduct, updateProduct, deleteProduct, deleteMultipleProducts } from '@/services/productService';
+import { cn } from '@/lib/utils';
 
-
-const MotionTableBody = motion(ShadTableBody);
-const MotionTableRow = motion(ShadTableRow);
 
 const normalizeString = (str: string) => {
   if (typeof str !== 'string') return '';
@@ -116,18 +114,18 @@ const getRowStyling = (validade: string, isSelected: boolean, isSelectionModeAct
   }
 
   if (!validade || !isValid(parseISO(validade))) {
-    return { styleString: `${baseStyle} text-muted-foreground`, particleColorClass: 'bg-muted' };
+    return { styleString: cn('border-b', `${baseStyle} text-muted-foreground`), particleColorClass: 'bg-muted' };
   }
 
   const productDateStartOfDay = startOfDay(parseISO(validade));
 
   if (isPast(productDateStartOfDay) && !isToday(productDateStartOfDay)) {
-    return { styleString: `${baseStyle} bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200/70 dark:hover:bg-red-800/40`, particleColorClass: 'bg-red-500 dark:bg-red-600' };
+    return { styleString: cn('border-b', `${baseStyle} bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200/70 dark:hover:bg-red-800/40`), particleColorClass: 'bg-red-500 dark:bg-red-600' };
   }
   if (isToday(productDateStartOfDay) || isTomorrow(productDateStartOfDay)) {
-    return { styleString: `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`, particleColorClass: 'bg-orange-400 dark:bg-orange-500' };
+    return { styleString: cn('border-b', `${baseStyle} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-200/70 dark:hover:bg-orange-800/40`), particleColorClass: 'bg-orange-400 dark:bg-orange-500' };
   }
-  return { styleString: baseStyle, particleColorClass: 'bg-green-500 dark:bg-green-600' };
+  return { styleString: cn('border-b', baseStyle), particleColorClass: 'bg-green-500 dark:bg-green-600' };
 };
 
 
@@ -953,16 +951,16 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
                   </ShadTableHeaderComponent>
                 </ShadTableRow>
               </TableHeader>
-              <MotionTableBody layout>
+              <motion.tbody layout className="[&_tr:last-child]:border-0">
                 <AnimatePresence>
                   {isLoadingProducts && (
-                    <MotionTableRow key="loading-row">
+                    <motion.tr key="loading-row" className="border-b">
                       <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
                         <div className="flex items-center justify-center">
                            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando produtos...
                         </div>
                       </TableCell>
-                    </MotionTableRow>
+                    </motion.tr>
                   )}
                   {!isLoadingProducts && filteredProducts.map((product) => {
                     const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
@@ -1014,12 +1012,12 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
                         }}
                       >
                         <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
-                          <MotionTableRow
+                          <motion.tr
                             layout 
                             layoutId={currentProductKey} 
                             initial={{ opacity: 1 }}
                             animate={shockwaveAnimProps} 
-                            className={styleString}
+                            className={styleString} // getRowStyling now includes border-b
                             data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
                               if (product.isExploding || !product.originalId) return;
@@ -1097,7 +1095,7 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
                                 </TableCell>
                               </>
                             )}
-                          </MotionTableRow>
+                          </motion.tr>
                         </PopoverTrigger>
                          {!isSelectionModeActive && !product.isExploding && (
                           <PopoverContent side="top" align="end" className="w-auto p-1 z-50"
@@ -1118,14 +1116,14 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
                     );
                   })}
                    {!isLoadingProducts && filteredProducts.filter(p => !p.isExploding).length === 0 && !clientSideProducts.some(p => p.isExploding) && (
-                     <MotionTableRow key="no-products-row">
+                     <motion.tr key="no-products-row" className="border-b">
                        <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
                          Nenhum produto nesta lista. Que tal adicionar um novo?
                        </TableCell>
-                     </MotionTableRow>
+                     </motion.tr>
                    )}
                 </AnimatePresence>
-              </MotionTableBody>
+              </motion.tbody>
             </Table>
           </div>
         </CardContent>
