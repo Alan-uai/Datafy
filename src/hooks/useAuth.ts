@@ -1,10 +1,9 @@
+// This file is no longer necessary as the authentication logic
+// has been moved to src/contexts/AuthContext.tsx.
+// You can delete this file (src/hooks/useAuth.ts).
+// If it contained any specific logic that was not migrated,
+// it will need to be integrated into AuthContext or a new specific hook.
 
-// Este arquivo não é mais necessário, pois a lógica de autenticação
-// foi movida para src/contexts/AuthContext.tsx.
-// Você pode excluir este arquivo (src/hooks/useAuth.ts).
-// Se ele contiver alguma lógica específica que não foi migrada,
-// ela precisará ser integrada ao AuthContext ou a um novo hook específico.
-
-// Para manter o projeto compilando sem erros caso algo ainda o importe,
-// deixarei um export vazio, mas o ideal é remover o arquivo e ajustar as importações.
+// To keep the project compiling without errors if something still imports it,
+// I'll leave an empty export, but the ideal is to remove the file and adjust imports.
 export {};
