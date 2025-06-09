@@ -52,43 +52,71 @@ export default function DashboardPage() {
 
   const fetchLists = useCallback(async () => {
     if (currentUser?.uid) {
+      console.log(`DashboardPage: fetchLists called for user: ${currentUser.uid}`);
       setIsLoadingLists(true);
       try {
         const lists = await getProductLists(currentUser.uid);
+        console.log("DashboardPage: Fetched lists:", lists);
         setProductLists(lists);
         if (lists.length > 0 && !activeListId) {
           setActiveListId(lists[0].id);
+           console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
+        } else if (activeListId && !lists.some(l => l.id === activeListId)) {
+          // If current activeListId is no longer valid (e.g., list deleted), reset
+          setActiveListId(lists.length > 0 ? lists[0].id : null);
+          console.log(`DashboardPage: Resetting activeListId to ${lists.length > 0 ? lists[0].id : null}`);
         } else if (lists.length === 0) {
+          console.log("DashboardPage: No lists found, creating default list.");
           // Create a default list if none exist
           const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
           setProductLists([defaultList]);
           setActiveListId(defaultList.id);
+          console.log(`DashboardPage: Default list created with ID: ${defaultList.id}`);
         }
       } catch (error) {
+        console.error("DashboardPage: Error in fetchLists:", error);
         toast({ variant: "destructive", title: "Erro ao buscar listas", description: "Não foi possível carregar suas listas de produtos." });
       } finally {
         setIsLoadingLists(false);
       }
+    } else {
+      console.log("DashboardPage: fetchLists - no currentUser or currentUser.uid");
+      setProductLists([]);
+      setActiveListId(null);
+      setIsLoadingLists(false);
     }
-  }, [currentUser, toast, activeListId]);
+  }, [currentUser, toast, activeListId]); // activeListId is a dependency. If it changes, fetchLists might re-run.
 
   useEffect(() => {
     fetchLists();
   }, [fetchLists]);
 
   const handleAddList = async () => {
-    if (!newListName.trim() || !currentUser?.uid) {
+    if (!newListName.trim()) {
       toast({ variant: "destructive", title: "Erro", description: "O nome da lista não pode estar vazio." });
       return;
     }
+    if (!currentUser?.uid) {
+      toast({ variant: "destructive", title: "Erro de Autenticação", description: "Usuário não autenticado para criar lista." });
+      console.error("handleAddList: currentUser.uid is missing.");
+      return;
+    }
+
+    console.log(`handleAddList: Attempting to add list with name "${newListName}" for user ${currentUser.uid}`);
+
     try {
       // For now, use a default icon
       const newList = await addProductList(currentUser.uid, { name: newListName, icon: "ListPlus" });
+      console.log("handleAddList: New list successfully added in service:", newList);
+      // Update local state and then trigger a re-fetch to ensure consistency
+      // This immediate update provides responsiveness, re-fetch confirms from source of truth
       setProductLists(prev => [...prev, newList]);
       setActiveListId(newList.id);
       setNewListName('');
       setIsAddListDialogOpen(false);
       toast({ title: "Lista Adicionada", description: `A lista "${newList.name}" foi criada.` });
+      // Optionally, explicitly call fetchLists() if you want to ensure the state reflects the DB after adding
+      // await fetchLists(); // Could be added here if needed, but local update + activeListId change should trigger it
     } catch (error: any) {
       console.error("Detailed error adding list:", error);
       const errorMessage = error.message || "Não foi possível criar a nova lista. Verifique o console para mais detalhes.";
@@ -98,7 +126,7 @@ export default function DashboardPage() {
 
   const handleRenameList = async () => {
     if (!listToRename || !renamedListName.trim() || !currentUser?.uid) {
-      toast({ variant: "destructive", title: "Erro", description: "O nome da lista não pode estar vazio." });
+      toast({ variant: "destructive", title: "Erro", description: "O nome da lista não pode estar vazio ou usuário não autenticado." });
       return;
     }
     try {
@@ -129,13 +157,12 @@ export default function DashboardPage() {
     try {
       await deleteProductList(currentUser.uid, listToDelete.id);
       toast({ title: "Lista Excluída", description: `A lista "${listToDelete.name}" e todos os seus produtos foram excluídos.` });
-      setProductLists(prev => prev.filter(l => l.id !== listToDelete.id));
-      if (activeListId === listToDelete.id) {
-        setActiveListId(productLists.length > 1 ? productLists.find(l => l.id !== listToDelete.id)!.id : null);
-        if (productLists.length <=1) { // if it was the last list
-          fetchLists(); // This will create a default list
-        }
-      }
+      
+      // After successful deletion, call fetchLists to refresh the entire list state
+      // This is more robust than trying to manually filter the local state,
+      // especially considering the activeListId might need to change.
+      await fetchLists(); 
+
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir lista", description: "Não foi possível excluir a lista."});
     } finally {
@@ -146,7 +173,7 @@ export default function DashboardPage() {
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
-  if (isLoadingLists && !activeListId) {
+  if (isLoadingLists && !productLists.length) { // Show loader if loading and no lists yet
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-4rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -161,7 +188,7 @@ export default function DashboardPage() {
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
           <div className="flex items-center p-2 space-x-2">
             {productLists.map((list) => (
-              <div // Changed from Button to div
+              <div
                 key={list.id}
                 role="button"
                 tabIndex={0}
@@ -169,7 +196,7 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  "relative group pr-10 shrink-0 cursor-pointer flex items-center" // Added flex items-center
+                  "relative group pr-10 shrink-0 cursor-pointer flex items-center"
                 )}
               >
                 <DynamicIcon name={list.icon} className="mr-2 h-4 w-4" />
@@ -204,15 +231,15 @@ export default function DashboardPage() {
         </>
       ) : (
          <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)]">
-            {isLoadingLists ? (
+            {isLoadingLists ? ( // Still loading, but no activeListId (maybe lists are empty)
                 <>
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <p className="text-muted-foreground">Carregando listas...</p>
                 </>
-            ) : (
+            ) : ( // Not loading, and no active listId (means productLists is empty)
                  <>
                     <List className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-2">Nenhuma lista selecionada ou criada.</p>
+                    <p className="text-muted-foreground mb-2">Nenhuma lista de produtos encontrada.</p>
                     <p className="text-sm text-muted-foreground mb-4">Crie sua primeira lista para começar a adicionar produtos.</p>
                     <Button onClick={() => setIsAddListDialogOpen(true)}>
                         <PlusCircle className="mr-2 h-4 w-4" />
