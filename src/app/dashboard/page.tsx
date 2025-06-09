@@ -290,6 +290,12 @@ export default function DashboardPage() {
     }
   };
 
+  const handleProductsChanged = useCallback(() => {
+    if (currentUser?.uid && activeListId) {
+      calculateStats(currentUser.uid, activeListId);
+    }
+  }, [currentUser?.uid, activeListId, calculateStats]);
+
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
   if (isLoadingLists && (!initialFetchDone.current || productLists.length === 0)) {
@@ -383,19 +389,11 @@ export default function DashboardPage() {
 
       {activeListId ? (
         <>
-          {/* Title removed as it's now in the stats card 
-          <h1 className="text-3xl font-bold mb-8 font-headline text-center">
-            {activeListName}
-          </h1>
-          */}
           <ProductSearchTable 
             listId={activeListId} 
+            productLists={productLists}
             key={activeListId} 
-            onProductsChanged={() => {
-             if (currentUser?.uid && activeListId) {
-                calculateStats(currentUser.uid, activeListId);
-             }
-            }} 
+            onProductsChanged={handleProductsChanged}
           />
         </>
       ) : (
@@ -542,3 +540,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

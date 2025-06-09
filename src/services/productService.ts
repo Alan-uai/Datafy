@@ -27,7 +27,6 @@ interface ProductDocumentData extends Omit<Product, 'id' | 'originalId' | 'valid
   updatedAt?: Timestamp;
 }
 
-// Simplified interface to clearly define what's stored for a product list
 interface ProductListDocumentData {
   userId: string;
   name: string;
@@ -37,7 +36,7 @@ interface ProductListDocumentData {
 
 const formatTimestampToDateString = (timestamp?: Timestamp | string | Date): string => {
   if (!timestamp) return '';
-  if (typeof timestamp === 'string') return timestamp.split('T')[0]; // Assuming ISO string
+  if (typeof timestamp === 'string') return timestamp.split('T')[0]; 
   if (timestamp instanceof Date) return timestamp.toISOString().split('T')[0];
   if (timestamp instanceof Timestamp) return timestamp.toDate().toISOString().split('T')[0];
   return '';
@@ -50,29 +49,26 @@ const parseDateStringToTimestamp = (dateString: string): Timestamp | null => {
   return Timestamp.fromDate(date);
 };
 
-// ProductList Service Functions
 export const getProductLists = async (userId: string): Promise<ProductList[]> => {
   if (!userId) {
     console.error("getProductLists: User ID is required to fetch product lists.");
     return [];
   }
-  console.log(`getProductLists: Fetching lists for userId: ${userId}`);
   try {
     const listsRef = collection(db, PRODUCT_LISTS_COLLECTION);
     const q = query(listsRef, where('userId', '==', userId), orderBy('createdAt', 'asc'));
     const querySnapshot = await getDocs(q);
     const lists: ProductList[] = [];
     querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data() as ProductListDocumentData; // Uses the simplified interface
+      const data = docSnap.data() as ProductListDocumentData;
       lists.push({
         id: docSnap.id,
-        userId: data.userId, // Ensure this comes from the document data
+        userId: data.userId,
         name: data.name,
         icon: data.icon,
         createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
       });
     });
-    console.log(`getProductLists: Found ${lists.length} lists for userId: ${userId}`);
     return lists;
   } catch (error) {
     console.error("Error fetching product lists for userId:", userId, error);
@@ -85,16 +81,14 @@ export const addProductList = async (userId: string, listData: { name: string; i
     console.error("addProductList: User ID is required to add a product list.");
     throw new Error("User ID is required to add a product list.");
   }
-  console.log(`addProductList: Attempting to add list for userId: ${userId} with data:`, listData);
   try {
-    const docData: ProductListDocumentData = { // Uses the simplified interface
+    const docData: ProductListDocumentData = {
       name: listData.name,
       icon: listData.icon,
-      userId: userId, // Explicitly setting userId from parameter
+      userId: userId,
       createdAt: Timestamp.now(),
     };
     const docRef = await addDoc(collection(db, PRODUCT_LISTS_COLLECTION), docData);
-    console.log(`addProductList: Successfully added list with ID: ${docRef.id} for userId: ${userId}`);
     return {
       id: docRef.id,
       userId,
@@ -114,8 +108,6 @@ export const updateProductListName = async (userId: string, listId: string, name
   }
   try {
     const listRef = doc(db, PRODUCT_LISTS_COLLECTION, listId);
-    // Optional: Check ownership by fetching the doc and verifying userId if necessary,
-    // though Firestore rules should primarily handle this.
     await updateDoc(listRef, { name });
   } catch (error) {
     console.error("Error updating product list name:", error);
@@ -130,10 +122,8 @@ export const deleteProductList = async (userId: string, listId: string): Promise
   try {
     const batch = writeBatch(db);
     const listRef = doc(db, PRODUCT_LISTS_COLLECTION, listId);
-    // Optional: Add ownership check here too.
     batch.delete(listRef);
 
-    // Delete all products associated with this list
     const productsRef = collection(db, PRODUCTS_COLLECTION);
     const q = query(productsRef, where('userId', '==', userId), where('listId', '==', listId));
     const productsSnapshot = await getDocs(q);
@@ -148,8 +138,6 @@ export const deleteProductList = async (userId: string, listId: string): Promise
   }
 };
 
-
-// Product Service Functions (modified for listId)
 export const getProducts = async (userId: string, listId: string): Promise<Product[]> => {
   if (!userId) {
     console.error("User ID is required to fetch products.");
@@ -168,7 +156,7 @@ export const getProducts = async (userId: string, listId: string): Promise<Produ
       const data = docSnap.data() as ProductDocumentData;
       products.push({
         ...data,
-        id: docSnap.id,
+        id: docSnap.id, 
         originalId: docSnap.id,
         validade: formatTimestampToDateString(data.validade),
         listId: data.listId,
@@ -269,6 +257,7 @@ export const deleteMultipleProducts = async (userId: string, productIds: string[
   }
   try {
     const batch = writeBatch(db);
+    // TODO: Add ownership check for each product if critical, though rules should cover.
     productIds.forEach((id) => {
       const productRef = doc(db, PRODUCTS_COLLECTION, id);
       batch.delete(productRef);
@@ -276,6 +265,63 @@ export const deleteMultipleProducts = async (userId: string, productIds: string[
     await batch.commit();
   } catch (error) {
     console.error("Error deleting multiple products:", error);
+    throw error;
+  }
+};
+
+export const moveProductsToList = async (userId: string, productOriginalIds: string[], targetListId: string): Promise<void> => {
+  if (!userId || !targetListId) {
+    throw new Error("User ID and Target List ID are required.");
+  }
+  if (!productOriginalIds || productOriginalIds.length === 0) {
+    console.warn("No product IDs provided for moving.");
+    return;
+  }
+  try {
+    const batch = writeBatch(db);
+    for (const productId of productOriginalIds) {
+      const productRef = doc(db, PRODUCTS_COLLECTION, productId);
+      // Optional: Fetch product to verify ownership (userId) before adding to batch
+      // const productSnap = await getDoc(productRef);
+      // if (productSnap.exists() && productSnap.data()?.userId === userId) {
+      //   batch.update(productRef, { listId: targetListId, updatedAt: Timestamp.now() });
+      // } else {
+      //   console.warn(`Product ${productId} not found or user ${userId} does not have permission to move it.`);
+      // }
+      // Assuming Firestore rules will handle ownership.
+      batch.update(productRef, { listId: targetListId, updatedAt: Timestamp.now() });
+    }
+    await batch.commit();
+  } catch (error) {
+    console.error("Error moving products to another list:", error);
+    throw error;
+  }
+};
+
+export const updateMultipleProductExpirations = async (userId: string, productOriginalIds: string[], newExpiryDate: string): Promise<void> => {
+  if (!userId || !newExpiryDate) {
+    throw new Error("User ID and New Expiry Date are required.");
+  }
+  if (!productOriginalIds || productOriginalIds.length === 0) {
+    console.warn("No product IDs provided for updating expiration.");
+    return;
+  }
+
+  const validadeTimestamp = parseDateStringToTimestamp(newExpiryDate);
+  if (!validadeTimestamp) {
+    throw new Error("Invalid date format for 'newExpiryDate'. Please use YYYY-MM-DD.");
+  }
+
+  try {
+    const batch = writeBatch(db);
+    for (const productId of productOriginalIds) {
+      const productRef = doc(db, PRODUCTS_COLLECTION, productId);
+      // Assuming Firestore rules will handle ownership.
+      batch.update(productRef, { validade: validadeTimestamp, updatedAt: Timestamp.now() });
+    }
+    await batch.commit();
+  } catch (error) {
+    console.error("Error updating multiple product expirations:", error);
     throw error;
   }
 };

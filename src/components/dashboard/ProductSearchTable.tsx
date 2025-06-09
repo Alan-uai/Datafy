@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Product } from '@/types';
+import type { Product, ProductList } from '@/types';
 import { useState, useMemo, useEffect, type ChangeEvent, useRef, type PointerEvent, type TouchEvent, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
   TableRow as ShadTableRow, 
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus, FolderSymlink, CalendarCog } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -61,7 +61,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { BarcodeScanner } from '@/components/barcode/BarcodeScanner';
 import { useAuth } from '@/contexts/AuthContext';
-import { getProducts, addProduct, updateProduct, deleteProduct, deleteMultipleProducts } from '@/services/productService';
+import { getProducts, addProduct, updateProduct, deleteProduct, deleteMultipleProducts, moveProductsToList, updateMultipleProductExpirations } from '@/services/productService';
 import { cn } from '@/lib/utils';
 
 
@@ -146,7 +146,7 @@ const SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP = 1.5;
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'> = {
   produto: '',
   marca: '',
-  unidade: '1', // Default quantity to 1
+  unidade: '1', 
   validade: '',
 };
 
@@ -227,10 +227,11 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
 
 interface ProductSearchTableProps {
   listId: string;
+  productLists: ProductList[]; 
   onProductsChanged?: () => void; 
 }
 
-export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchTableProps) {
+export function ProductSearchTable({ listId, productLists, onProductsChanged }: ProductSearchTableProps) {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -267,6 +268,13 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
   const longPressInitiatedSelectionRef = useRef(false);
 
   const [isScannerActive, setIsScannerActive] = useState(false);
+
+  const [isMoveProductsDialogOpen, setIsMoveProductsDialogOpen] = useState(false);
+  const [targetMoveListId, setTargetMoveListId] = useState<string>('');
+
+  const [isBatchEditExpiryDialogOpen, setIsBatchEditExpiryDialogOpen] = useState(false);
+  const [batchNewExpiryDate, setBatchNewExpiryDate] = useState<string>('');
+
 
   useEffect(() => {
     if (currentUser?.uid && listId) {
@@ -544,7 +552,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
   const handleEditQuantityChange = (amount: number) => {
     setEditFormData(prev => {
       const currentQuantity = parseInt(prev.unidade, 10) || 0;
-      const newQuantity = Math.max(1, currentQuantity + amount); // Ensure quantity is at least 1
+      const newQuantity = Math.max(1, currentQuantity + amount); 
       return { ...prev, unidade: newQuantity.toString() };
     });
   };
@@ -711,6 +719,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
             );
             await deleteMultipleProducts(currentUser.uid, idsToDelete);
             toast({ title: `${idsToDelete.length} produto(s) excluído(s) com sucesso.` });
+            setSelectedProductIds([]); 
         } catch (error) {
             toast({ variant: "destructive", title: "Erro ao excluir selecionados", description: "Não foi possível excluir os produtos." });
             setClientSideProducts(prev => prev.map(p => idsToDelete.includes(p.originalId!) ? {...p, isExploding: false} : p ));
@@ -738,7 +747,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
   const handleNewQuantityChange = (amount: number) => {
     setNewProductFormData(prev => {
       const currentQuantity = parseInt(prev.unidade, 10) || 0;
-      const newQuantity = Math.max(1, currentQuantity + amount); // Ensure quantity is at least 1
+      const newQuantity = Math.max(1, currentQuantity + amount); 
       return { ...prev, unidade: newQuantity.toString() };
     });
   };
@@ -840,6 +849,47 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
     );
   };
 
+  const handleMoveProducts = async () => {
+    if (!currentUser?.uid || selectedProductIds.length === 0 || !targetMoveListId) {
+      toast({ variant: "destructive", title: "Erro", description: "Informações incompletas para mover produtos." });
+      return;
+    }
+    try {
+      await moveProductsToList(currentUser.uid, selectedProductIds, targetMoveListId);
+      toast({ title: "Produtos Movidos", description: `${selectedProductIds.length} produto(s) movido(s) com sucesso.` });
+      setClientSideProducts(prev => resequenceProducts(prev.filter(p => !selectedProductIds.includes(p.originalId!))));
+      setSelectedProductIds([]);
+      setIsMoveProductsDialogOpen(false);
+      onProductsChanged?.();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao Mover Produtos", description: error.message || "Não foi possível mover os produtos." });
+    }
+  };
+
+  const handleBatchUpdateExpiry = async () => {
+    if (!currentUser?.uid || selectedProductIds.length === 0 || !batchNewExpiryDate) {
+      toast({ variant: "destructive", title: "Erro", description: "Informações incompletas para atualizar validades." });
+      return;
+    }
+    try {
+      await updateMultipleProductExpirations(currentUser.uid, selectedProductIds, batchNewExpiryDate);
+      toast({ title: "Validades Atualizadas", description: `Validade de ${selectedProductIds.length} produto(s) atualizada.` });
+      setClientSideProducts(prev => 
+        resequenceProducts(
+          prev.map(p => 
+            selectedProductIds.includes(p.originalId!) ? { ...p, validade: batchNewExpiryDate } : p
+          )
+        )
+      );
+      setSelectedProductIds([]);
+      setIsBatchEditExpiryDialogOpen(false);
+      onProductsChanged?.();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao Atualizar Validades", description: error.message || "Não foi possível atualizar as validades." });
+    }
+  };
+
+
   if (!listId && !isLoadingProducts) {
     return (
       <Card className="shadow-xl">
@@ -855,6 +905,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
 
   const nonExplodingClientProductsCount = clientSideProducts.filter(p => !p.isExploding).length;
   const nonExplodingFilteredProductsCount = filteredProducts.filter(p => !p.isExploding).length;
+  const currentlySelectedProductsCount = selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length;
 
   return (
     <>
@@ -887,20 +938,30 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
             </div>
           </div>
           {isSelectionModeActive && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2">
                <p className="text-sm text-muted-foreground">
-                {selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length} item(s) selecionado(s)
+                {currentlySelectedProductsCount} item(s) selecionado(s)
               </p>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap space-x-2">
                 <Button variant="ghost" onClick={cancelSelectionMode} size="sm">
                   <XCircle className="mr-2 h-4 w-4" />
                   Cancelar
                 </Button>
-                {selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length > 0 && (
-                  <Button variant="destructive" onClick={confirmDeleteSelected} size="sm">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Excluir
-                  </Button>
+                {currentlySelectedProductsCount > 0 && (
+                  <>
+                    <Button variant="outline" onClick={() => setIsMoveProductsDialogOpen(true)} size="sm">
+                      <FolderSymlink className="mr-2 h-4 w-4" />
+                      Mover
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsBatchEditExpiryDialogOpen(true)} size="sm">
+                      <CalendarCog className="mr-2 h-4 w-4" />
+                      Editar Validade
+                    </Button>
+                    <Button variant="destructive" onClick={confirmDeleteSelected} size="sm">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -1200,7 +1261,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão de Múltiplos Itens</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir os {selectedProductIds.filter(id => clientSideProducts.find(p => p.originalId === id && !p.isExploding)).length} produtos selecionados? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir os {currentlySelectedProductsCount} produtos selecionados? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1413,6 +1474,72 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isMoveProductsDialogOpen} onOpenChange={setIsMoveProductsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mover Produtos Selecionados</DialogTitle>
+            <DialogDescription>
+              Selecione a lista de destino para os {currentlySelectedProductsCount} produto(s) selecionado(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Label htmlFor="target-list-select">Mover para:</Label>
+            <Select onValueChange={setTargetMoveListId} defaultValue={targetMoveListId}>
+              <SelectTrigger id="target-list-select">
+                <SelectValue placeholder="Selecione uma lista de destino" />
+              </SelectTrigger>
+              <SelectContent>
+                {productLists
+                  .filter(pList => pList.id !== listId) 
+                  .map(pList => (
+                    <SelectItem key={pList.id} value={pList.id}>
+                      {pList.name}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button type="button" onClick={handleMoveProducts} disabled={!targetMoveListId}>
+              Mover Produtos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBatchEditExpiryDialogOpen} onOpenChange={setIsBatchEditExpiryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Validade em Lote</DialogTitle>
+            <DialogDescription>
+              Defina uma nova data de validade para os {currentlySelectedProductsCount} produto(s) selecionado(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Label htmlFor="batch-expiry-date">Nova Data de Validade:</Label>
+            <Input
+              id="batch-expiry-date"
+              type="date"
+              value={batchNewExpiryDate}
+              onChange={(e) => setBatchNewExpiryDate(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button type="button" onClick={handleBatchUpdateExpiry} disabled={!batchNewExpiryDate}>
+              Atualizar Validades
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
