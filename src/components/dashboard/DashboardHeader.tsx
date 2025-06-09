@@ -72,7 +72,7 @@ export function DashboardHeader() {
   if (!mounted) {
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <AppLogo />
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-md bg-muted animate-pulse"></div>
@@ -85,7 +85,7 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         <AppLogo />
         <div className="flex items-center gap-2 md:gap-4">
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
