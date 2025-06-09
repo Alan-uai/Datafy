@@ -107,8 +107,7 @@ export default function DashboardPage() {
          console.log("DashboardPage: initialFetchDone set to true (no user).");
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.uid, toast]); // activeListId removed
+  }, [currentUser?.uid, toast, activeListId]); 
 
 
   useEffect(() => {
@@ -143,11 +142,8 @@ export default function DashboardPage() {
       const newList = await addProductList(currentUser.uid, { name: newListName, icon: "ListPlus" });
       console.log("DashboardPage: handleAddList - New list successfully added in service:", newList);
       
-      // Instead of directly manipulating, rely on fetchLists to update.
-      // Or, if preferred, optimistic update:
       setProductLists(prev => [...prev, newList]);
       setActiveListId(newList.id); 
-      // await fetchLists(); // Optionally re-fetch to ensure consistency, or rely on optimistic update
       
       setNewListName('');
       setIsAddListDialogOpen(false);
@@ -166,9 +162,7 @@ export default function DashboardPage() {
     }
     try {
       await updateProductListName(currentUser.uid, listToRename.id, renamedListName);
-      // Optimistic update
       setProductLists(prev => prev.map(list => list.id === listToRename.id ? { ...list, name: renamedListName } : list));
-      // await fetchLists(); // Optionally re-fetch
       setIsRenameListDialogOpen(false);
       setListToRename(null);
       setRenamedListName('');
@@ -195,7 +189,6 @@ export default function DashboardPage() {
       await deleteProductList(currentUser.uid, listToDelete.id);
       toast({ title: "Lista Excluída", description: `A lista "${listToDelete.name}" e todos os seus produtos foram excluídos.` });
       
-      // Optimistic update:
       const remainingLists = productLists.filter(l => l.id !== listToDelete.id);
       setProductLists(remainingLists);
       
@@ -203,14 +196,11 @@ export default function DashboardPage() {
         if (remainingLists.length > 0) {
           setActiveListId(remainingLists[0].id); 
         } else {
-          // If no lists remain, we might want to trigger the creation of a default list
-          // This is handled by fetchLists if initialFetchDone is reset and productLists is empty
           initialFetchDone.current = false; 
-          setActiveListId(null); // Important to clear activeId
-          await fetchLists(); // Re-fetch to trigger default list creation logic if needed
+          setActiveListId(null); 
+          await fetchLists(); 
         }
       }
-      // await fetchLists(); // Re-fetch to ensure consistency
       
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir lista", description: "Não foi possível excluir a lista."});
@@ -222,7 +212,6 @@ export default function DashboardPage() {
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
-  // Improved loading state: show loading if lists are loading AND either it's the initial fetch OR no lists are currently displayed
   if (isLoadingLists && (!initialFetchDone.current || productLists.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-4rem)]">
@@ -246,11 +235,11 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  'px-2', // Overriding horizontal padding from size: 'sm'
+                  'px-2', 
                   "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
-                <DynamicIcon name={list.icon} className="mr-1 h-4 w-4 flex-shrink-0" />
+                <DynamicIcon name={list.icon} className="mr-[0.01rem] h-4 w-4 flex-shrink-0" />
                 <span className="block truncate min-w-0">
                   {list.name}
                 </span>
@@ -283,15 +272,13 @@ export default function DashboardPage() {
           <ProductSearchTable listId={activeListId} key={activeListId} />
         </>
       ) : (
-         // This block handles the case where no list is active.
-         // It checks if lists are still loading or if there are genuinely no lists after loading.
          <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)]">
-            {isLoadingLists ? ( // Still loading, and likely to determine if a default list needs to be made
+            {isLoadingLists ? ( 
                 <>
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <p className="text-muted-foreground">Carregando listas...</p>
                 </>
-            ) : ( // Done loading, and no active list could be set (meaning no lists exist)
+            ) : ( 
                  <>
                     <List className="h-16 w-16 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-2">Nenhuma lista de produtos encontrada.</p>
