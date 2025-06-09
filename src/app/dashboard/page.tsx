@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { ProductSearchTable } from '@/components/dashboard/ProductSearchTable';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button'; // Imported buttonVariants
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -21,6 +21,7 @@ import { getProductLists, addProductList, updateProductListName, deleteProductLi
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, List, Edit3, Trash2, Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import { cn } from '@/lib/utils'; // Imported cn
 
 const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIcon' && key !== 'icons' && typeof LucideIcons[key as keyof typeof LucideIcons] === 'object');
 
@@ -160,12 +161,16 @@ export default function DashboardPage() {
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
           <div className="flex items-center p-2 space-x-2">
             {productLists.map((list) => (
-              <Button
+              <div // Changed from Button to div
                 key={list.id}
-                variant={activeListId === list.id ? 'default' : 'outline'}
+                role="button"
+                tabIndex={0}
                 onClick={() => setActiveListId(list.id)}
-                className="relative group pr-10 shrink-0" // Make space for edit/delete buttons
-                size="sm"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
+                className={cn(
+                  buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
+                  "relative group pr-10 shrink-0 cursor-pointer flex items-center" // Added flex items-center
+                )}
               >
                 <DynamicIcon name={list.icon} className="mr-2 h-4 w-4" />
                 {list.name}
@@ -173,13 +178,13 @@ export default function DashboardPage() {
                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
                      <Edit3 className="h-3 w-3" />
                    </Button>
-                   {productLists.length > 1 && ( // Prevent deleting the last list this way
+                   {productLists.length > 1 && ( 
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
                         <Trash2 className="h-3 w-3" />
                     </Button>
                    )}
                 </div>
-              </Button>
+              </div>
             ))}
             <Button variant="ghost" onClick={() => setIsAddListDialogOpen(true)} size="sm" className="shrink-0">
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -302,3 +307,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
