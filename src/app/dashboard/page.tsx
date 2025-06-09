@@ -255,7 +255,7 @@ export default function DashboardPage() {
                 <span className="block truncate min-w-0">
                   {list.name}
                 </span>
-                <div className="flex items-center gap-0.5 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
+                <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
                      <Edit3 className="h-3 w-3" />
                    </Button>
