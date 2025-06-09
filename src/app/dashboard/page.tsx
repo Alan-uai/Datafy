@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react'; // Added useRef
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { ProductSearchTable } from '@/components/dashboard/ProductSearchTable';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,7 +69,7 @@ export default function DashboardPage() {
           }
         } else {
           setActiveListId(null);
-          console.log("DashboardPage: No lists found for user after fetch.");
+          console.log("DashboardPage: No lists found for user after fetch. Existing activeListId:", activeListId);
           if (!initialFetchDone.current) {
             console.log("DashboardPage: Initial fetch, no lists found, creating default list.");
             const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
@@ -80,7 +80,7 @@ export default function DashboardPage() {
           }
         }
       } catch (error: any) {
-        console.error("DashboardPage: Error in fetchLists catch block:", error.message, error);
+        console.error("DashboardPage: Error in fetchLists for user", currentUser.uid, ". Message:", error.message, "Full error:", error);
         toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Detalhe: ${error.message}` });
         setProductLists([]); 
         setActiveListId(null);
@@ -97,17 +97,18 @@ export default function DashboardPage() {
       setActiveListId(null);
       setIsLoadingLists(false);
       if (!initialFetchDone.current) {
-         initialFetchDone.current = true; // Still mark as done for this attempt
+         initialFetchDone.current = true; 
          console.log("DashboardPage: initialFetchDone set to true (no user).");
       }
     }
-  }, [currentUser, toast]); // activeListId removed from dependencies
+  }, [currentUser, toast]); 
 
   useEffect(() => {
     console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
     if (currentUser?.uid) {
-        initialFetchDone.current = false; // Reset for new user login or if uid becomes available
-        console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone reset to false.");
+        // Do not reset initialFetchDone.current here to prevent re-creating default list on every login/logout cycle
+        // initialFetchDone.current = false; 
+        console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone current state:", initialFetchDone.current);
         fetchLists();
     } else {
         console.log("DashboardPage: No currentUser.uid. Clearing lists and resetting initialFetchDone.");
@@ -126,29 +127,26 @@ export default function DashboardPage() {
     }
     if (!currentUser?.uid) {
       toast({ variant: "destructive", title: "Erro de Autenticação", description: "Usuário não autenticado para criar lista." });
-      console.error("handleAddList: currentUser.uid is missing.");
+      console.error("DashboardPage: handleAddList - currentUser.uid is missing.");
       return;
     }
 
-    console.log(`handleAddList: Attempting to add list with name "${newListName}" for user ${currentUser.uid}`);
+    console.log(`DashboardPage: handleAddList - Attempting to add list with name "${newListName}" for user ${currentUser.uid}`);
 
     try {
       const newList = await addProductList(currentUser.uid, { name: newListName, icon: "ListPlus" });
-      console.log("handleAddList: New list successfully added in service:", newList);
+      console.log("DashboardPage: handleAddList - New list successfully added in service:", newList);
       
-      // Optimistically update UI and then re-fetch for consistency
       setProductLists(prev => [...prev, newList]);
       setActiveListId(newList.id);
       
       setNewListName('');
       setIsAddListDialogOpen(false);
       toast({ title: "Lista Adicionada", description: `A lista "${newList.name}" foi criada.` });
-      // Optional: Explicitly call fetchLists() to ensure the state reflects the DB after adding.
-      // However, with the current setup, optimistic update should be fine.
-      // If issues persist, uncommenting this might help, but could lead to extra reads.
-      // await fetchLists(); 
+      // No need to call fetchLists() here if optimistic update is working as expected
+      // and addProductList returns the full object needed.
     } catch (error: any) {
-      console.error("Detailed error adding list:", error);
+      console.error("DashboardPage: Detailed error adding list:", error);
       const errorMessage = error.message || "Não foi possível criar a nova lista. Verifique o console para mais detalhes.";
       toast({ variant: "destructive", title: "Erro ao adicionar lista", description: errorMessage });
     }
@@ -161,10 +159,7 @@ export default function DashboardPage() {
     }
     try {
       await updateProductListName(currentUser.uid, listToRename.id, renamedListName);
-      // Optimistic update
       setProductLists(prev => prev.map(list => list.id === listToRename.id ? { ...list, name: renamedListName } : list));
-      // If active list was renamed, its name will update in the header automatically
-      // due to activeListName derivation.
       setIsRenameListDialogOpen(false);
       setListToRename(null);
       setRenamedListName('');
@@ -190,12 +185,7 @@ export default function DashboardPage() {
     try {
       await deleteProductList(currentUser.uid, listToDelete.id);
       toast({ title: "Lista Excluída", description: `A lista "${listToDelete.name}" e todos os seus produtos foram excluídos.` });
-      
-      // After successful deletion, call fetchLists to refresh the entire list state
-      // This is more robust than trying to manually filter the local state,
-      // especially considering the activeListId might need to change.
       await fetchLists(); 
-
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir lista", description: "Não foi possível excluir a lista."});
     } finally {
@@ -206,8 +196,6 @@ export default function DashboardPage() {
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
-  // Adjusted loading condition to show loader if explicitly loading AND initialFetch hasn't completed
-  // or if initial fetch is done but there are no lists (and still loading from a subsequent action perhaps)
   if (isLoadingLists && (!initialFetchDone.current || productLists.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-4rem)]">
@@ -234,8 +222,8 @@ export default function DashboardPage() {
                   "relative group pr-10 shrink-0 cursor-pointer flex items-center"
                 )}
               >
-                <DynamicIcon name={list.icon} className="mr-2 h-4 w-4" />
-                {list.name}
+                <DynamicIcon name={list.icon} className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="flex-1 block truncate min-w-0">{list.name}</span>
                 <div className="absolute right-1 top-1/2 -translate-y-1/2 flex opacity-0 group-hover:opacity-100 transition-opacity">
                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
                      <Edit3 className="h-3 w-3" />
@@ -265,15 +253,13 @@ export default function DashboardPage() {
           <ProductSearchTable listId={activeListId} key={activeListId} />
         </>
       ) : (
-         // This block shows if there's no active list.
-         // It could be because lists are still loading OR because there are truly no lists.
          <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)]">
             {isLoadingLists ? ( 
                 <>
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <p className="text-muted-foreground">Carregando listas...</p>
                 </>
-            ) : ( // Not loading, and no active listId (means productLists is empty after fetch attempts)
+            ) : ( 
                  <>
                     <List className="h-16 w-16 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-2">Nenhuma lista de produtos encontrada.</p>
@@ -287,7 +273,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Add List Dialog */}
       <Dialog open={isAddListDialogOpen} onOpenChange={setIsAddListDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -319,7 +304,6 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Rename List Dialog */}
       <Dialog open={isRenameListDialogOpen} onOpenChange={setIsRenameListDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -350,7 +334,6 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete List Confirmation Dialog */}
         {listToDelete && (
             <Dialog open={isDeleteListConfirmOpen} onOpenChange={setIsDeleteListConfirmOpen}>
                 <DialogContent>
@@ -371,6 +354,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-    
