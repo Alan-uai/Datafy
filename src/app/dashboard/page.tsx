@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react'; // Added useRef
 import { ProductSearchTable } from '@/components/dashboard/ProductSearchTable';
-import { Button, buttonVariants } from '@/components/ui/button'; // Imported buttonVariants
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -21,7 +21,7 @@ import { getProductLists, addProductList, updateProductListName, deleteProductLi
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, List, Edit3, Trash2, Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { cn } from '@/lib/utils'; // Imported cn
+import { cn } from '@/lib/utils';
 
 const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIcon' && key !== 'icons' && typeof LucideIcons[key as keyof typeof LucideIcons] === 'object');
 
@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [listToDelete, setListToDelete] = useState<ProductList | null>(null);
   const [isDeleteListConfirmOpen, setIsDeleteListConfirmOpen] = useState(false);
 
+  const initialFetchDone = useRef(false);
 
   const fetchLists = useCallback(async () => {
     if (currentUser?.uid) {
@@ -56,40 +57,67 @@ export default function DashboardPage() {
       setIsLoadingLists(true);
       try {
         const lists = await getProductLists(currentUser.uid);
-        console.log("DashboardPage: Fetched lists:", lists);
+        console.log("DashboardPage: Fetched lists from getProductLists:", lists);
         setProductLists(lists);
-        if (lists.length > 0 && !activeListId) {
-          setActiveListId(lists[0].id);
-           console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
-        } else if (activeListId && !lists.some(l => l.id === activeListId)) {
-          // If current activeListId is no longer valid (e.g., list deleted), reset
-          setActiveListId(lists.length > 0 ? lists[0].id : null);
-          console.log(`DashboardPage: Resetting activeListId to ${lists.length > 0 ? lists[0].id : null}`);
-        } else if (lists.length === 0) {
-          console.log("DashboardPage: No lists found, creating default list.");
-          // Create a default list if none exist
-          const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
-          setProductLists([defaultList]);
-          setActiveListId(defaultList.id);
-          console.log(`DashboardPage: Default list created with ID: ${defaultList.id}`);
+
+        if (lists.length > 0) {
+          if (activeListId && lists.some(l => l.id === activeListId)) {
+            console.log(`DashboardPage: Active list ${activeListId} is still valid.`);
+          } else {
+            setActiveListId(lists[0].id);
+            console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
+          }
+        } else {
+          setActiveListId(null);
+          console.log("DashboardPage: No lists found for user after fetch.");
+          if (!initialFetchDone.current) {
+            console.log("DashboardPage: Initial fetch, no lists found, creating default list.");
+            const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
+            console.log("DashboardPage: Default list created by addProductList:", defaultList);
+            setProductLists([defaultList]);
+            setActiveListId(defaultList.id);
+            console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
+          }
         }
-      } catch (error) {
-        console.error("DashboardPage: Error in fetchLists:", error);
-        toast({ variant: "destructive", title: "Erro ao buscar listas", description: "Não foi possível carregar suas listas de produtos." });
+      } catch (error: any) {
+        console.error("DashboardPage: Error in fetchLists catch block:", error.message, error);
+        toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Detalhe: ${error.message}` });
+        setProductLists([]); 
+        setActiveListId(null);
       } finally {
         setIsLoadingLists(false);
+        if (!initialFetchDone.current) {
+          initialFetchDone.current = true;
+           console.log("DashboardPage: initialFetchDone set to true.");
+        }
       }
     } else {
-      console.log("DashboardPage: fetchLists - no currentUser or currentUser.uid");
+      console.log("DashboardPage: fetchLists - no currentUser or currentUser.uid. Clearing lists.");
       setProductLists([]);
       setActiveListId(null);
       setIsLoadingLists(false);
+      if (!initialFetchDone.current) {
+         initialFetchDone.current = true; // Still mark as done for this attempt
+         console.log("DashboardPage: initialFetchDone set to true (no user).");
+      }
     }
-  }, [currentUser, toast, activeListId]); // activeListId is a dependency. If it changes, fetchLists might re-run.
+  }, [currentUser, toast]); // activeListId removed from dependencies
 
   useEffect(() => {
-    fetchLists();
-  }, [fetchLists]);
+    console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
+    if (currentUser?.uid) {
+        initialFetchDone.current = false; // Reset for new user login or if uid becomes available
+        console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone reset to false.");
+        fetchLists();
+    } else {
+        console.log("DashboardPage: No currentUser.uid. Clearing lists and resetting initialFetchDone.");
+        setProductLists([]);
+        setActiveListId(null);
+        setIsLoadingLists(false);
+        initialFetchDone.current = false; 
+    }
+  }, [currentUser?.uid, fetchLists]);
+
 
   const handleAddList = async () => {
     if (!newListName.trim()) {
@@ -105,18 +133,20 @@ export default function DashboardPage() {
     console.log(`handleAddList: Attempting to add list with name "${newListName}" for user ${currentUser.uid}`);
 
     try {
-      // For now, use a default icon
       const newList = await addProductList(currentUser.uid, { name: newListName, icon: "ListPlus" });
       console.log("handleAddList: New list successfully added in service:", newList);
-      // Update local state and then trigger a re-fetch to ensure consistency
-      // This immediate update provides responsiveness, re-fetch confirms from source of truth
+      
+      // Optimistically update UI and then re-fetch for consistency
       setProductLists(prev => [...prev, newList]);
       setActiveListId(newList.id);
+      
       setNewListName('');
       setIsAddListDialogOpen(false);
       toast({ title: "Lista Adicionada", description: `A lista "${newList.name}" foi criada.` });
-      // Optionally, explicitly call fetchLists() if you want to ensure the state reflects the DB after adding
-      // await fetchLists(); // Could be added here if needed, but local update + activeListId change should trigger it
+      // Optional: Explicitly call fetchLists() to ensure the state reflects the DB after adding.
+      // However, with the current setup, optimistic update should be fine.
+      // If issues persist, uncommenting this might help, but could lead to extra reads.
+      // await fetchLists(); 
     } catch (error: any) {
       console.error("Detailed error adding list:", error);
       const errorMessage = error.message || "Não foi possível criar a nova lista. Verifique o console para mais detalhes.";
@@ -131,7 +161,10 @@ export default function DashboardPage() {
     }
     try {
       await updateProductListName(currentUser.uid, listToRename.id, renamedListName);
+      // Optimistic update
       setProductLists(prev => prev.map(list => list.id === listToRename.id ? { ...list, name: renamedListName } : list));
+      // If active list was renamed, its name will update in the header automatically
+      // due to activeListName derivation.
       setIsRenameListDialogOpen(false);
       setListToRename(null);
       setRenamedListName('');
@@ -173,7 +206,9 @@ export default function DashboardPage() {
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
-  if (isLoadingLists && !productLists.length) { // Show loader if loading and no lists yet
+  // Adjusted loading condition to show loader if explicitly loading AND initialFetch hasn't completed
+  // or if initial fetch is done but there are no lists (and still loading from a subsequent action perhaps)
+  if (isLoadingLists && (!initialFetchDone.current || productLists.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-4rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -230,13 +265,15 @@ export default function DashboardPage() {
           <ProductSearchTable listId={activeListId} key={activeListId} />
         </>
       ) : (
+         // This block shows if there's no active list.
+         // It could be because lists are still loading OR because there are truly no lists.
          <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)]">
-            {isLoadingLists ? ( // Still loading, but no activeListId (maybe lists are empty)
+            {isLoadingLists ? ( 
                 <>
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <p className="text-muted-foreground">Carregando listas...</p>
                 </>
-            ) : ( // Not loading, and no active listId (means productLists is empty)
+            ) : ( // Not loading, and no active listId (means productLists is empty after fetch attempts)
                  <>
                     <List className="h-16 w-16 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-2">Nenhuma lista de produtos encontrada.</p>
@@ -335,3 +372,5 @@ export default function DashboardPage() {
   );
 }
 
+
+    
