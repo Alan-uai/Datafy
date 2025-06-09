@@ -247,21 +247,21 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  'p-0.5 gap-0.5', // Adjusted padding and gap
+                  'p-0.5 gap-0.5', 
                   "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
-                <DynamicIcon name={list.icon} className="flex-shrink-0" /> {/* Removed mx class */}
+                <DynamicIcon name={list.icon} className="flex-shrink-0" />
                 <span className="block truncate min-w-0">
                   {list.name}
                 </span>
-                <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto"> {/* Keep gap-0 here, removed pl-1 */}
-                   <Button variant="ghost" size="icon" className="h-4 w-4" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}> {/* Adjusted button size */}
-                     <Edit3 /> {/* Removed h-3 w-3 */}
+                <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
+                   <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
+                     <Edit3 />
                    </Button>
                    {productLists.length > 1 && ( 
-                    <Button variant="ghost" size="icon" className="h-4 w-4 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}> {/* Adjusted button size */}
-                        <Trash2 /> {/* Removed h-3 w-3 */}
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
+                        <Trash2 />
                     </Button>
                    )}
                 </div>
