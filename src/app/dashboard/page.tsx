@@ -101,7 +101,7 @@ export default function DashboardPage() {
          console.log("DashboardPage: initialFetchDone set to true (no user).");
       }
     }
-  }, [currentUser, toast]); // Removed activeListId from dependencies
+  }, [currentUser, toast]); 
 
   useEffect(() => {
     console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
@@ -116,7 +116,7 @@ export default function DashboardPage() {
         // initialFetchDone.current = false; // Consider if this should be reset if user logs out and logs back in
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.uid]); // fetchLists is memoized and should only change if currentUser or toast changes.
+  }, [currentUser?.uid, fetchLists]); // Added fetchLists to dependency array as it's memoized
 
 
   const handleAddList = async () => {
@@ -190,6 +190,11 @@ export default function DashboardPage() {
         }
       } else {
         setActiveListId(null); 
+        // After deleting the last list, fetchLists will be called,
+        // which should create a default list.
+        // Explicitly set initialFetchDone to false to allow default list creation if this was the last list.
+        // However, it's better to let the existing logic in fetchLists handle this.
+        // if (remainingLists.length === 0) initialFetchDone.current = false;
         await fetchLists(); 
       }
     } catch (error) {
@@ -225,12 +230,12 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  "group shrink-0 cursor-pointer flex items-center" // Removed relative and pr-14
+                  "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
                 <DynamicIcon name={list.icon} className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="flex-1 block truncate min-w-0">{list.name}</span>
-                <div className="flex items-center pl-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-200 ease-in-out">
+                <span className="block truncate min-w-0">{list.name}</span>
+                <div className="flex items-center pl-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-75 ease-in-out">
                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
                      <Edit3 className="h-3 w-3" />
                    </Button>
