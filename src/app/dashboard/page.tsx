@@ -101,7 +101,7 @@ export default function DashboardPage() {
          console.log("DashboardPage: initialFetchDone set to true (no user).");
       }
     }
-  }, [currentUser, toast, activeListId]); 
+  }, [currentUser, toast]); // Removed activeListId from dependencies
 
   useEffect(() => {
     console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
@@ -113,9 +113,10 @@ export default function DashboardPage() {
         setProductLists([]);
         setActiveListId(null);
         setIsLoadingLists(false);
-        initialFetchDone.current = false; 
+        // initialFetchDone.current = false; // Consider if this should be reset if user logs out and logs back in
     }
-  }, [currentUser?.uid, fetchLists]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.uid]); // fetchLists is memoized and should only change if currentUser or toast changes.
 
 
   const handleAddList = async () => {
@@ -181,20 +182,15 @@ export default function DashboardPage() {
     try {
       await deleteProductList(currentUser.uid, listToDelete.id);
       toast({ title: "Lista Excluída", description: `A lista "${listToDelete.name}" e todos os seus produtos foram excluídos.` });
-      // After deletion, fetch lists again. If it becomes the last list, it might be auto-deleted,
-      // so we need to re-check and potentially set active to null or another list.
       const remainingLists = productLists.filter(l => l.id !== listToDelete.id);
       setProductLists(remainingLists);
       if (remainingLists.length > 0) {
-        if (activeListId === listToDelete.id) { // If the active list was deleted
-          setActiveListId(remainingLists[0].id); // Set active to the first of the remaining
+        if (activeListId === listToDelete.id) { 
+          setActiveListId(remainingLists[0].id); 
         }
       } else {
-        setActiveListId(null); // No lists left
-        // Optionally, re-create default list if all are gone and that's desired behavior
-        // For now, just setting to null. The fetchLists on next load would handle default creation if needed.
-        // Or, explicitly call fetchLists here if immediate re-creation of default is desired
-        await fetchLists(); // This will trigger default list creation if no lists are found and initialFetchDone is false or handled
+        setActiveListId(null); 
+        await fetchLists(); 
       }
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir lista", description: "Não foi possível excluir a lista."});
@@ -229,12 +225,12 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  "relative group pr-14 shrink-0 cursor-pointer flex items-center"
+                  "group shrink-0 cursor-pointer flex items-center" // Removed relative and pr-14
                 )}
               >
                 <DynamicIcon name={list.icon} className="mr-2 h-4 w-4 flex-shrink-0" />
                 <span className="flex-1 block truncate min-w-0">{list.name}</span>
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center pl-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-200 ease-in-out">
                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
                      <Edit3 className="h-3 w-3" />
                    </Button>
@@ -364,3 +360,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
