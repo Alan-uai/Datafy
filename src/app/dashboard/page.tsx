@@ -61,22 +61,30 @@ export default function DashboardPage() {
         setProductLists(lists);
 
         if (lists.length > 0) {
-          if (activeListId && lists.some(l => l.id === activeListId)) {
+          // Check if the current activeListId is still valid (exists in the new list of lists)
+          const currentActiveListIsValid = lists.some(l => l.id === activeListId);
+          if (activeListId && currentActiveListIsValid) {
             console.log(`DashboardPage: Active list ${activeListId} is still valid.`);
+            // No need to change activeListId
           } else {
+            // If activeListId is not set, or no longer valid, set to the first list
             setActiveListId(lists[0].id);
             console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
           }
         } else {
           setActiveListId(null);
-          console.log("DashboardPage: No lists found for user after fetch. Existing activeListId:", activeListId);
+          console.log("DashboardPage: No lists found for user after fetch. activeListId currently:", activeListId);
           if (!initialFetchDone.current) {
             console.log("DashboardPage: Initial fetch, no lists found, creating default list for user:", currentUser.uid);
             const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
             console.log("DashboardPage: Default list created by addProductList:", defaultList);
-            setProductLists([defaultList]);
-            setActiveListId(defaultList.id);
-            console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
+            if (defaultList) { // Check if defaultList was successfully created
+              setProductLists([defaultList]);
+              setActiveListId(defaultList.id);
+              console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
+            } else {
+              console.error("DashboardPage: Failed to create default list.");
+            }
           }
         }
       } catch (error: any) {
@@ -101,7 +109,9 @@ export default function DashboardPage() {
          console.log("DashboardPage: initialFetchDone set to true (no user).");
       }
     }
-  }, [currentUser, toast]); 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, toast]); // Removed activeListId from dependencies
+
 
   useEffect(() => {
     console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
@@ -113,10 +123,9 @@ export default function DashboardPage() {
         setProductLists([]);
         setActiveListId(null);
         setIsLoadingLists(false);
-        // initialFetchDone.current = false; // Consider if this should be reset if user logs out and logs back in
+        // initialFetchDone.current = false; // Reset if user logs out and logs back in
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.uid, fetchLists]); // Added fetchLists to dependency array as it's memoized
+  }, [currentUser?.uid, fetchLists]);
 
 
   const handleAddList = async () => {
@@ -137,7 +146,7 @@ export default function DashboardPage() {
       console.log("DashboardPage: handleAddList - New list successfully added in service:", newList);
       
       setProductLists(prev => [...prev, newList]);
-      setActiveListId(newList.id);
+      setActiveListId(newList.id); // Set the new list as active
       
       setNewListName('');
       setIsAddListDialogOpen(false);
@@ -184,19 +193,20 @@ export default function DashboardPage() {
       toast({ title: "Lista Excluída", description: `A lista "${listToDelete.name}" e todos os seus produtos foram excluídos.` });
       const remainingLists = productLists.filter(l => l.id !== listToDelete.id);
       setProductLists(remainingLists);
-      if (remainingLists.length > 0) {
-        if (activeListId === listToDelete.id) { 
-          setActiveListId(remainingLists[0].id); 
+      
+      if (activeListId === listToDelete.id) { // If the deleted list was active
+        if (remainingLists.length > 0) {
+          setActiveListId(remainingLists[0].id); // Set first remaining list as active
+        } else {
+          // No lists left, fetchLists will be called (which should create a default list)
+          // Setting initialFetchDone to false is critical here to allow default list creation by fetchLists
+          initialFetchDone.current = false; 
+          setActiveListId(null); // Explicitly set to null before fetch
+          await fetchLists(); // This should trigger creation of default list
         }
-      } else {
-        setActiveListId(null); 
-        // After deleting the last list, fetchLists will be called,
-        // which should create a default list.
-        // Explicitly set initialFetchDone to false to allow default list creation if this was the last list.
-        // However, it's better to let the existing logic in fetchLists handle this.
-        // if (remainingLists.length === 0) initialFetchDone.current = false;
-        await fetchLists(); 
       }
+      // If the deleted list was not active, activeListId remains valid if it exists in remainingLists
+      
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir lista", description: "Não foi possível excluir a lista."});
     } finally {
@@ -234,8 +244,10 @@ export default function DashboardPage() {
                 )}
               >
                 <DynamicIcon name={list.icon} className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="block truncate min-w-0">{list.name}</span>
-                <div className="flex items-center pl-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-75 ease-in-out">
+                <span className="block truncate min-w-0 max-w-[100px]">
+                  {list.name}
+                </span>
+                <div className="flex items-center pl-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
                      <Edit3 className="h-3 w-3" />
                    </Button>
@@ -366,3 +378,5 @@ export default function DashboardPage() {
   );
 }
 
+
+    
