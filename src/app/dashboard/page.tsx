@@ -53,32 +53,29 @@ export default function DashboardPage() {
 
   const fetchLists = useCallback(async () => {
     if (currentUser?.uid) {
-      console.log(`DashboardPage: fetchLists called for user: ${currentUser.uid}`);
+      console.log(`DashboardPage: fetchLists called for user: ${currentUser.uid}. Initial fetch done: ${initialFetchDone.current}`);
       setIsLoadingLists(true);
       try {
         const lists = await getProductLists(currentUser.uid);
-        console.log("DashboardPage: getProductLists for user", currentUser.uid, "returned:", lists);
+        console.log(`DashboardPage: getProductLists for user ${currentUser.uid} returned:`, lists);
         setProductLists(lists);
 
         if (lists.length > 0) {
-          // Check if the current activeListId is still valid (exists in the new list of lists)
           const currentActiveListIsValid = lists.some(l => l.id === activeListId);
           if (activeListId && currentActiveListIsValid) {
             console.log(`DashboardPage: Active list ${activeListId} is still valid.`);
-            // No need to change activeListId
           } else {
-            // If activeListId is not set, or no longer valid, set to the first list
             setActiveListId(lists[0].id);
             console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
           }
         } else {
           setActiveListId(null);
-          console.log("DashboardPage: No lists found for user after fetch. activeListId currently:", activeListId);
+          console.log(`DashboardPage: No lists found for user ${currentUser.uid}. activeListId is now null. initialFetchDone: ${initialFetchDone.current}`);
           if (!initialFetchDone.current) {
             console.log("DashboardPage: Initial fetch, no lists found, creating default list for user:", currentUser.uid);
             const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
             console.log("DashboardPage: Default list created by addProductList:", defaultList);
-            if (defaultList) { // Check if defaultList was successfully created
+            if (defaultList) {
               setProductLists([defaultList]);
               setActiveListId(defaultList.id);
               console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
@@ -88,7 +85,7 @@ export default function DashboardPage() {
           }
         }
       } catch (error: any) {
-        console.error("DashboardPage: Error in fetchLists for user", currentUser.uid, ". Message:", error.message, "Full error:", error);
+        console.error(`DashboardPage: Error in fetchLists for user ${currentUser.uid}. Message: ${error.message}`, error);
         toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Verifique o console para detalhes. Erro: ${error.message}` });
         setProductLists([]); 
         setActiveListId(null);
@@ -110,7 +107,7 @@ export default function DashboardPage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, toast]); // Removed activeListId from dependencies
+  }, [currentUser, toast]);
 
 
   useEffect(() => {
@@ -119,11 +116,13 @@ export default function DashboardPage() {
         console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone current state:", initialFetchDone.current);
         fetchLists();
     } else {
-        console.log("DashboardPage: No currentUser.uid. Clearing lists and resetting initialFetchDone.");
+        console.log("DashboardPage: No currentUser.uid. Clearing lists and setting loading to false.");
         setProductLists([]);
         setActiveListId(null);
         setIsLoadingLists(false);
-        // initialFetchDone.current = false; // Reset if user logs out and logs back in
+        // Consider if initialFetchDone should be reset if user logs out.
+        // If multiple users can use the app without page reload, then yes.
+        // initialFetchDone.current = false; 
     }
   }, [currentUser?.uid, fetchLists]);
 
@@ -146,7 +145,7 @@ export default function DashboardPage() {
       console.log("DashboardPage: handleAddList - New list successfully added in service:", newList);
       
       setProductLists(prev => [...prev, newList]);
-      setActiveListId(newList.id); // Set the new list as active
+      setActiveListId(newList.id); 
       
       setNewListName('');
       setIsAddListDialogOpen(false);
@@ -194,18 +193,15 @@ export default function DashboardPage() {
       const remainingLists = productLists.filter(l => l.id !== listToDelete.id);
       setProductLists(remainingLists);
       
-      if (activeListId === listToDelete.id) { // If the deleted list was active
+      if (activeListId === listToDelete.id) { 
         if (remainingLists.length > 0) {
-          setActiveListId(remainingLists[0].id); // Set first remaining list as active
+          setActiveListId(remainingLists[0].id); 
         } else {
-          // No lists left, fetchLists will be called (which should create a default list)
-          // Setting initialFetchDone to false is critical here to allow default list creation by fetchLists
           initialFetchDone.current = false; 
-          setActiveListId(null); // Explicitly set to null before fetch
-          await fetchLists(); // This should trigger creation of default list
+          setActiveListId(null); 
+          await fetchLists(); 
         }
       }
-      // If the deleted list was not active, activeListId remains valid if it exists in remainingLists
       
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir lista", description: "Não foi possível excluir a lista."});
@@ -240,11 +236,12 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
+                  'px-2', // Overriding horizontal padding from size: 'sm'
                   "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
-                <DynamicIcon name={list.icon} className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="block truncate min-w-0 max-w-[100px]">
+                <DynamicIcon name={list.icon} className="mr-1.5 h-4 w-4 flex-shrink-0" />
+                <span className="block truncate min-w-0">
                   {list.name}
                 </span>
                 <div className="flex items-center pl-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
@@ -377,6 +374,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-    
