@@ -57,7 +57,7 @@ export default function DashboardPage() {
       setIsLoadingLists(true);
       try {
         const lists = await getProductLists(currentUser.uid);
-        console.log("DashboardPage: Fetched lists from getProductLists:", lists);
+        console.log("DashboardPage: getProductLists for user", currentUser.uid, "returned:", lists);
         setProductLists(lists);
 
         if (lists.length > 0) {
@@ -71,7 +71,7 @@ export default function DashboardPage() {
           setActiveListId(null);
           console.log("DashboardPage: No lists found for user after fetch. Existing activeListId:", activeListId);
           if (!initialFetchDone.current) {
-            console.log("DashboardPage: Initial fetch, no lists found, creating default list.");
+            console.log("DashboardPage: Initial fetch, no lists found, creating default list for user:", currentUser.uid);
             const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
             console.log("DashboardPage: Default list created by addProductList:", defaultList);
             setProductLists([defaultList]);
@@ -81,7 +81,7 @@ export default function DashboardPage() {
         }
       } catch (error: any) {
         console.error("DashboardPage: Error in fetchLists for user", currentUser.uid, ". Message:", error.message, "Full error:", error);
-        toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Detalhe: ${error.message}` });
+        toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Verifique o console para detalhes. Erro: ${error.message}` });
         setProductLists([]); 
         setActiveListId(null);
       } finally {
@@ -101,13 +101,11 @@ export default function DashboardPage() {
          console.log("DashboardPage: initialFetchDone set to true (no user).");
       }
     }
-  }, [currentUser, toast]); 
+  }, [currentUser, toast, activeListId]); 
 
   useEffect(() => {
     console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
     if (currentUser?.uid) {
-        // Do not reset initialFetchDone.current here to prevent re-creating default list on every login/logout cycle
-        // initialFetchDone.current = false; 
         console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone current state:", initialFetchDone.current);
         fetchLists();
     } else {
@@ -143,8 +141,6 @@ export default function DashboardPage() {
       setNewListName('');
       setIsAddListDialogOpen(false);
       toast({ title: "Lista Adicionada", description: `A lista "${newList.name}" foi criada.` });
-      // No need to call fetchLists() here if optimistic update is working as expected
-      // and addProductList returns the full object needed.
     } catch (error: any) {
       console.error("DashboardPage: Detailed error adding list:", error);
       const errorMessage = error.message || "Não foi possível criar a nova lista. Verifique o console para mais detalhes.";
@@ -185,7 +181,21 @@ export default function DashboardPage() {
     try {
       await deleteProductList(currentUser.uid, listToDelete.id);
       toast({ title: "Lista Excluída", description: `A lista "${listToDelete.name}" e todos os seus produtos foram excluídos.` });
-      await fetchLists(); 
+      // After deletion, fetch lists again. If it becomes the last list, it might be auto-deleted,
+      // so we need to re-check and potentially set active to null or another list.
+      const remainingLists = productLists.filter(l => l.id !== listToDelete.id);
+      setProductLists(remainingLists);
+      if (remainingLists.length > 0) {
+        if (activeListId === listToDelete.id) { // If the active list was deleted
+          setActiveListId(remainingLists[0].id); // Set active to the first of the remaining
+        }
+      } else {
+        setActiveListId(null); // No lists left
+        // Optionally, re-create default list if all are gone and that's desired behavior
+        // For now, just setting to null. The fetchLists on next load would handle default creation if needed.
+        // Or, explicitly call fetchLists here if immediate re-creation of default is desired
+        await fetchLists(); // This will trigger default list creation if no lists are found and initialFetchDone is false or handled
+      }
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir lista", description: "Não foi possível excluir a lista."});
     } finally {
@@ -219,7 +229,7 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  "relative group pr-10 shrink-0 cursor-pointer flex items-center"
+                  "relative group pr-14 shrink-0 cursor-pointer flex items-center"
                 )}
               >
                 <DynamicIcon name={list.icon} className="mr-2 h-4 w-4 flex-shrink-0" />
