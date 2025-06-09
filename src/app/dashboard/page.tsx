@@ -256,11 +256,11 @@ export default function DashboardPage() {
                   {list.name}
                 </span>
                 <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
-                   <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
+                   <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem]" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
                      <Edit3 />
                    </Button>
                    {productLists.length > 1 && ( 
-                    <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
+                    <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem] text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
                         <Trash2 />
                     </Button>
                    )}
