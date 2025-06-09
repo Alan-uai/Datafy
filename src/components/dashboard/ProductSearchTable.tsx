@@ -252,6 +252,8 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editFormData, setEditFormData] = useState<Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'>>({ ...initialNewProductFormData });
+  const editProductNameInputRef = useRef<HTMLInputElement>(null);
+
 
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]); 
   const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
@@ -262,6 +264,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
   const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'>>({ ...initialNewProductFormData });
   const [isSuggestingName, setIsSuggestingName] = useState(false);
+  const newProductNameInputRef = useRef<HTMLInputElement>(null);
 
 
   const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
@@ -273,6 +276,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
 
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isEditCalendarOpen, setIsEditCalendarOpen] = useState(false);
 
 
   const [isMoveProductsDialogOpen, setIsMoveProductsDialogOpen] = useState(false);
@@ -352,6 +356,15 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
       return () => clearTimeout(timer);
     }
   }, [shockwaveTargets]);
+
+  useEffect(() => {
+    if (isAddProductDialogOpen && !isScannerActive && newProductNameInputRef.current) {
+        newProductNameInputRef.current.focus();
+    }
+    if (isEditDialogOpen && editProductNameInputRef.current) {
+        editProductNameInputRef.current.focus();
+    }
+  }, [isAddProductDialogOpen, isScannerActive, isEditDialogOpen]);
 
 
   const finalizeDeleteProduct = (productOriginalId: string) => {
@@ -791,8 +804,8 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     const quantity = parseInt(newProductFormData.unidade, 10);
     if (!newProductFormData.produto || !newProductFormData.validade || !(quantity > 0) ) {
       toast({
-        title: "Erro",
-        description: "Produto, Quantidade (maior que 0) e Validade são campos obrigatórios.",
+        title: "Campos Obrigatórios",
+        description: "Produto, Quantidade (maior que 0) e Validade são obrigatórios.",
         variant: "destructive",
       });
       return;
@@ -821,6 +834,8 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
       setIsScannerActive(false); 
       if (closeDialogAfterSave) {
         setIsAddProductDialogOpen(false);
+      } else {
+        if (newProductNameInputRef.current) newProductNameInputRef.current.focus();
       }
       onProductsChanged?.();
     } catch (error: any) {
@@ -832,6 +847,12 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     setNewProductFormData(prev => ({ ...prev, produto: data, marca: prev.marca || '', unidade: prev.unidade || '1', validade: prev.validade || '' })); 
     toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${data}` });
     setIsScannerActive(false);
+    // Focus product name input after scan
+    setTimeout(() => { // Timeout to ensure DOM update before focus
+        if (newProductNameInputRef.current) {
+            newProductNameInputRef.current.focus();
+        }
+    }, 0);
   }, [toast]);
 
   const handleScanError = useCallback((message: string) => {
@@ -1316,6 +1337,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
           setIsEditDialogOpen(isOpen);
           if (!isOpen) {
             setEditingProduct(null); 
+            setIsEditCalendarOpen(false);
           }
         }}>
           <DialogContent className="sm:max-w-[425px]">
@@ -1328,14 +1350,16 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-produto" className="text-right">
-                  Produto
+                  Produto <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-produto"
                   name="produto"
+                  ref={editProductNameInputRef}
                   value={editFormData.produto}
                   onChange={handleEditFormChange}
                   className="col-span-3"
+                  required
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -1352,7 +1376,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-unidade" className="text-right">
-                  Qtde
+                  Qtde <span className="text-destructive">*</span>
                 </Label>
                 <div className="col-span-3 flex items-center gap-2">
                   <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditQuantityChange(-1)} disabled={(parseInt(editFormData.unidade, 10) || 1) <= 1}>
@@ -1367,6 +1391,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                     type="number"
                     min="1"
                     step="1"
+                    required
                   />
                   <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditQuantityChange(1)}>
                     <Plus className="h-4 w-4" />
@@ -1374,17 +1399,36 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-validade" className="text-right">
-                  Validade
+                 <Label htmlFor="edit-validade-btn" className="text-right">
+                    Validade <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  id="edit-validade"
-                  name="validade"
-                  type="date"
-                  value={editFormData.validade} 
-                  onChange={handleEditFormChange}
-                  className="col-span-3"
-                />
+                <Popover open={isEditCalendarOpen} onOpenChange={setIsEditCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="edit-validade-btn"
+                      variant={"outline"}
+                      className={cn(
+                        "col-span-3 justify-start text-left font-normal",
+                        !editFormData.validade && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {editFormData.validade && isValid(parseISO(editFormData.validade)) ? format(parseISO(editFormData.validade), "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={editFormData.validade ? parseISO(editFormData.validade) : undefined}
+                      onSelect={(date) => {
+                        setEditFormData(prev => ({ ...prev, validade: date ? format(date, "yyyy-MM-dd") : '' }));
+                        setIsEditCalendarOpen(false);
+                      }}
+                      initialFocus
+                      disabled={(date) => date < startOfDay(new Date()) && !isToday(date) }
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <DialogFooter>
@@ -1429,12 +1473,13 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="new-produto" className="text-right">
-                  Produto
+                  Produto <span className="text-destructive">*</span>
                 </Label>
                 <div className="col-span-3 flex items-center gap-2">
                   <Input
                     id="new-produto"
                     name="produto"
+                    ref={newProductNameInputRef}
                     value={newProductFormData.produto}
                     onChange={handleNewProductFormChange}
                     className="flex-1"
@@ -1466,7 +1511,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="new-unidade" className="text-right">
-                  Qtde
+                  Qtde <span className="text-destructive">*</span>
                 </Label>
                 <div className="col-span-3 flex items-center gap-2">
                   <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChange(-1)} disabled={(parseInt(newProductFormData.unidade, 10) || 1) <= 1}>
@@ -1490,7 +1535,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="new-validade-btn" className="text-right">
-                  Validade
+                  Validade <span className="text-destructive">*</span>
                 </Label>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
@@ -1515,7 +1560,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                         setIsCalendarOpen(false);
                       }}
                       initialFocus
-                      disabled={(date) => date < startOfDay(new Date()) && !isToday(date) } // Disable past dates, but not today
+                      disabled={(date) => date < startOfDay(new Date()) && !isToday(date) }
                     />
                   </PopoverContent>
                 </Popover>
@@ -1524,7 +1569,10 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
           )}
           <DialogFooter className="flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-between sm:items-center">
             {isScannerActive ? (
-                <Button variant="outline" className="w-full sm:ml-auto" onClick={() => setIsScannerActive(false)}>
+                <Button variant="outline" className="w-full sm:ml-auto" onClick={() => {
+                    setIsScannerActive(false);
+                    setTimeout(() => newProductNameInputRef.current?.focus(), 0);
+                }}>
                    Digitar Manualmente
                 </Button>
             ) : (
@@ -1563,7 +1611,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Label htmlFor="target-list-select">Mover para:</Label>
+            <Label htmlFor="target-list-select">Mover para: <span className="text-destructive">*</span></Label>
             <Select onValueChange={setTargetMoveListId} defaultValue={targetMoveListId}>
               <SelectTrigger id="target-list-select">
                 <SelectValue placeholder="Selecione uma lista de destino" />
@@ -1599,13 +1647,14 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Label htmlFor="batch-expiry-date">Nova Data de Validade:</Label>
+            <Label htmlFor="batch-expiry-date">Nova Data de Validade: <span className="text-destructive">*</span></Label>
             <Input
               id="batch-expiry-date"
               type="date"
               value={batchNewExpiryDate}
               onChange={(e) => setBatchNewExpiryDate(e.target.value)}
               className="col-span-3"
+              required
             />
           </div>
           <DialogFooter>
@@ -1621,4 +1670,3 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     </>
   );
 }
-

@@ -12,7 +12,25 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AppLogo } from '@/components/shared/AppLogo';
-import { useAuth } from '@/contexts/AuthContext'; // Importar useAuth
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
+
+const getFirebaseErrorMessage = (errorCode: string): string => {
+  switch (errorCode) {
+    case 'auth/email-already-in-use':
+      return 'Este email já está em uso por outra conta.';
+    case 'auth/invalid-email':
+      return 'O formato do email fornecido é inválido.';
+    case 'auth/operation-not-allowed':
+      return 'Criação de contas com email e senha não está habilitada.';
+    case 'auth/weak-password':
+      return 'A senha fornecida é muito fraca. Por favor, escolha uma senha mais forte.';
+    case 'auth/network-request-failed':
+      return 'Falha na conexão com a rede. Verifique sua internet e tente novamente.';
+    default:
+      return 'Ocorreu um erro desconhecido ao tentar criar a conta.';
+  }
+};
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -22,28 +40,28 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { setCurrentUser } = useAuth(); // Obter setCurrentUser do AuthContext
+  const { setCurrentUser } = useAuth();
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
-      toast({ variant: 'destructive', title: 'Erro no Cadastro', description: 'As senhas não coincidem.' });
+      const message = 'As senhas não coincidem.';
+      setError(message);
+      toast({ variant: 'destructive', title: 'Erro no Cadastro', description: message });
       return;
     }
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // Define o usuário no AuthContext imediatamente.
-      // O tipo User de createUserWithEmailAndPassword é compatível com FirebaseUser.
       setCurrentUser(userCredential.user as FirebaseUser); 
       
       toast({ title: 'Cadastro bem-sucedido!', description: 'Redirecionando para o dashboard...' });
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Falha ao criar conta.');
-      toast({ variant: 'destructive', title: 'Erro no Cadastro', description: err.message || 'Falha ao criar conta.' });
+      const friendlyMessage = getFirebaseErrorMessage(err.code);
+      setError(friendlyMessage);
+      toast({ variant: 'destructive', title: 'Erro no Cadastro', description: friendlyMessage });
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +80,7 @@ export default function SignupPage() {
         <form onSubmit={handleSignup}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
               <Input
                 id="email"
                 type="email"
@@ -74,11 +92,11 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Senha <span className="text-destructive">*</span></Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Crie uma senha"
+                placeholder="Crie uma senha (mín. 6 caracteres)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -86,7 +104,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Label htmlFor="confirmPassword">Confirmar Senha <span className="text-destructive">*</span></Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -101,7 +119,14 @@ export default function SignupPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Criando conta...' : 'Criar Conta'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Criando conta...
+                </>
+              ) : (
+                'Criar Conta'
+              )}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               Já tem uma conta?{' '}

@@ -4,7 +4,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, GoogleAuthProvider, signInWithPopup } from '@/lib/firebase'; // Importado GoogleAuthProvider e signInWithPopup
+import { auth, GoogleAuthProvider, signInWithPopup } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AppLogo } from '@/components/shared/AppLogo';
-import { Separator } from '@/components/ui/separator'; // Importado Separator
+import { Separator } from '@/components/ui/separator';
+import { Loader2 } from 'lucide-react';
 
 // Ícone do Google (SVG simples)
 const GoogleIcon = () => (
@@ -24,6 +25,27 @@ const GoogleIcon = () => (
     <path fill="none" d="M0 0h48v48H0z"></path>
   </svg>
 );
+
+const getFirebaseErrorMessage = (errorCode: string): string => {
+  switch (errorCode) {
+    case 'auth/invalid-email':
+      return 'O formato do email fornecido é inválido.';
+    case 'auth/user-disabled':
+      return 'Este usuário foi desabilitado.';
+    case 'auth/invalid-credential': // Covers user-not-found and wrong-password for new SDK versions
+      return 'Credenciais inválidas. Verifique seu email e senha.';
+    case 'auth/operation-not-allowed':
+      return 'Login com email e senha não está habilitado.';
+    case 'auth/popup-closed-by-user':
+      return 'A janela de login com Google foi fechada antes da conclusão.';
+    case 'auth/account-exists-with-different-credential':
+      return 'Já existe uma conta com este email utilizando outro método de login.';
+    case 'auth/network-request-failed':
+      return 'Falha na conexão com a rede. Verifique sua internet e tente novamente.';
+    default:
+      return 'Ocorreu um erro desconhecido ao tentar fazer login.';
+  }
+};
 
 
 export default function LoginPage() {
@@ -44,8 +66,9 @@ export default function LoginPage() {
       toast({ title: 'Login bem-sucedido!', description: 'Redirecionando para o dashboard...' });
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Falha ao fazer login. Verifique suas credenciais.');
-      toast({ variant: 'destructive', title: 'Erro no Login', description: err.message || 'Falha ao fazer login.' });
+      const friendlyMessage = getFirebaseErrorMessage(err.code);
+      setError(friendlyMessage);
+      toast({ variant: 'destructive', title: 'Erro no Login', description: friendlyMessage });
     } finally {
       setIsLoading(false);
     }
@@ -60,16 +83,9 @@ export default function LoginPage() {
       toast({ title: 'Login com Google bem-sucedido!', description: 'Redirecionando para o dashboard...' });
       router.push('/dashboard');
     } catch (err: any) {
-      let errorMessage = 'Falha ao fazer login com Google.';
-      if (err.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'A janela de login com Google foi fechada antes da conclusão.';
-      } else if (err.code === 'auth/account-exists-with-different-credential') {
-        errorMessage = 'Já existe uma conta com este email utilizando outro método de login.';
-      } else {
-        errorMessage = err.message || errorMessage;
-      }
-      setError(errorMessage);
-      toast({ variant: 'destructive', title: 'Erro no Login com Google', description: errorMessage });
+      const friendlyMessage = getFirebaseErrorMessage(err.code);
+      setError(friendlyMessage);
+      toast({ variant: 'destructive', title: 'Erro no Login com Google', description: friendlyMessage });
     } finally {
       setIsGoogleLoading(false);
     }
@@ -113,7 +129,14 @@ export default function LoginPage() {
             </div>
              {error && <p className="text-sm text-destructive my-2">{error}</p>}
             <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
             </Button>
           </CardContent>
         </form>
@@ -127,7 +150,10 @@ export default function LoginPage() {
         <CardContent>
            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
             {isGoogleLoading ? (
-              'Entrando com Google...'
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Entrando com Google...
+              </>
             ) : (
               <>
                 <GoogleIcon />

@@ -70,6 +70,8 @@ export default function DashboardPage() {
   const [renamedListName, setRenamedListName] = useState('');
   const [listToDelete, setListToDelete] = useState<ProductList | null>(null);
   const [isDeleteListConfirmOpen, setIsDeleteListConfirmOpen] = useState(false);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const newListInputRef = useRef<HTMLInputElement>(null);
 
   const initialFetchDone = useRef(false);
 
@@ -180,7 +182,6 @@ export default function DashboardPage() {
       const currentStats = { total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount };
       setListStats(currentStats);
       
-      // Generate AI summary
       try {
         const summaryResult = await generateExpirySummaryText({ listName: listNameParam, stats: currentStats });
         setExpirySummary(summaryResult.summaryText);
@@ -210,6 +211,15 @@ export default function DashboardPage() {
       setExpirySummary(null);
     }
   }, [activeListId, currentUser?.uid, productLists, calculateStatsAndSummary]);
+
+  useEffect(() => {
+    if (isRenameListDialogOpen && renameInputRef.current) {
+      renameInputRef.current.focus();
+    }
+    if (isAddListDialogOpen && newListInputRef.current) {
+      newListInputRef.current.focus();
+    }
+  }, [isRenameListDialogOpen, isAddListDialogOpen]);
 
 
   const handleSuggestIcon = async () => {
@@ -355,11 +365,11 @@ export default function DashboardPage() {
                 </span>
                 <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
                    <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem]" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
-                     <Edit3 />
+                     <Edit3 className="h-4 w-4" />
                    </Button>
                    {productLists.length > 1 && ( 
                     <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem] text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
-                        <Trash2 />
+                        <Trash2 className="h-4 w-4"/>
                     </Button>
                    )}
                 </div>
@@ -484,14 +494,16 @@ export default function DashboardPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="new-list-name" className="text-right">
-                Nome
+                Nome <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="new-list-name"
+                ref={newListInputRef}
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 className="col-span-3"
                 placeholder="Ex: Compras da Semana"
+                required
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -552,13 +564,15 @@ export default function DashboardPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="rename-list-name" className="text-right">
-                Novo Nome
+                Novo Nome <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="rename-list-name"
+                ref={renameInputRef}
                 value={renamedListName}
                 onChange={(e) => setRenamedListName(e.target.value)}
                 className="col-span-3"
+                required
               />
             </div>
           </div>
@@ -590,4 +604,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
