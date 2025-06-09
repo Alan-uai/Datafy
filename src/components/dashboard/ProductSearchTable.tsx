@@ -815,6 +815,8 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
     );
   }
 
+  const nonExplodingClientProductsCount = clientSideProducts.filter(p => !p.isExploding).length;
+  const nonExplodingFilteredProductsCount = filteredProducts.filter(p => !p.isExploding).length;
 
   return (
     <>
@@ -1103,11 +1105,11 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
                             onCloseAutoFocus={(e) => e.preventDefault()} 
                           >
                             <div className="flex space-x-1">
-                              <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto">
-                                <Pencil className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto" className="h-[1.125rem] w-[1.125rem]">
+                                <Pencil />
                               </Button>
-                              <Button variant="ghost" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                <Trash2 className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-[1.125rem] w-[1.125rem]">
+                                <Trash2 />
                               </Button>
                             </div>
                           </PopoverContent>
@@ -1115,10 +1117,12 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
                       </Popover>
                     );
                   })}
-                   {!isLoadingProducts && filteredProducts.filter(p => !p.isExploding).length === 0 && !clientSideProducts.some(p => p.isExploding) && (
+                   {!isLoadingProducts && nonExplodingFilteredProductsCount === 0 && (
                      <motion.tr key="no-products-row" className="border-b">
                        <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
-                         Nenhum produto nesta lista. Que tal adicionar um novo?
+                         {nonExplodingClientProductsCount === 0
+                           ? "Nenhum produto nesta lista. Que tal adicionar um novo?"
+                           : "Nenhum produto encontrado com os filtros atuais."}
                        </TableCell>
                      </motion.tr>
                    )}
@@ -1352,3 +1356,4 @@ export function ProductSearchTable({ listId }: ProductSearchTableProps) {
     </>
   );
 }
+
