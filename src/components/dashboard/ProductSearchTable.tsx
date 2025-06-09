@@ -14,7 +14,7 @@ import {
   TableRow as ShadTableRow, 
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus, FolderSymlink, CalendarCog } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus, FolderSymlink, CalendarCog, Wand2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -62,6 +62,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BarcodeScanner } from '@/components/barcode/BarcodeScanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProducts, addProduct, updateProduct, deleteProduct, deleteMultipleProducts, moveProductsToList, updateMultipleProductExpirations } from '@/services/productService';
+import { suggestProductName } from '@/ai/flows/suggest-product-name-flow';
 import { cn } from '@/lib/utils';
 
 
@@ -259,6 +260,8 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
 
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
   const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'>>({ ...initialNewProductFormData });
+  const [isSuggestingName, setIsSuggestingName] = useState(false);
+
 
   const [isAddActionPopoverOpen, setIsAddActionPopoverOpen] = useState(false);
   const longPressHeaderTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -750,6 +753,34 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
       const newQuantity = Math.max(1, currentQuantity + amount); 
       return { ...prev, unidade: newQuantity.toString() };
     });
+  };
+
+ const handleSuggestProductName = async () => {
+    if (!newProductFormData.produto.trim()) {
+      toast({ title: "Entrada Vazia", description: "Digite algo no campo 'Produto' para obter uma sugestão.", variant: "default" });
+      return;
+    }
+    setIsSuggestingName(true);
+    try {
+      const result = await suggestProductName({
+        currentInput: newProductFormData.produto,
+        currentBrand: newProductFormData.marca,
+      });
+      if (result.suggestedName) {
+        setNewProductFormData(prev => ({
+          ...prev,
+          produto: result.suggestedName,
+          marca: result.suggestedBrand || prev.marca, 
+        }));
+        toast({ title: "Nome Sugerido!", description: `Sugestão aplicada: ${result.suggestedName}` });
+      } else {
+        toast({ title: "Sem Sugestão", description: "Não foi possível gerar uma sugestão clara.", variant: "default" });
+      }
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao Sugerir Nome", description: error.message || "Não foi possível obter uma sugestão de nome." });
+    } finally {
+      setIsSuggestingName(false);
+    }
   };
 
 
@@ -1363,6 +1394,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData }); 
             if(isScannerActive) setIsScannerActive(false); 
+            setIsSuggestingName(false);
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1393,14 +1425,26 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                   <Label htmlFor="new-produto" className="text-right">
                     Produto
                   </Label>
-                  <Input
-                    id="new-produto"
-                    name="produto"
-                    value={newProductFormData.produto}
-                    onChange={handleNewProductFormChange}
-                    className="col-span-3"
-                    required
-                  />
+                  <div className="col-span-3 flex items-center gap-2">
+                    <Input
+                        id="new-produto"
+                        name="produto"
+                        value={newProductFormData.produto}
+                        onChange={handleNewProductFormChange}
+                        className="flex-1"
+                        required
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleSuggestProductName}
+                        disabled={isSuggestingName || !newProductFormData.produto.trim()}
+                        aria-label="Sugerir Nome do Produto"
+                    >
+                        {isSuggestingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="new-marca" className="text-right">

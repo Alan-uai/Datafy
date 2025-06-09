@@ -19,11 +19,12 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts } from '@/services/productService';
 import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
+import { generateExpirySummaryText } from '@/ai/flows/generate-expiry-summary-text-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Info } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   isToday,
   isPast,
@@ -74,6 +75,9 @@ export default function DashboardPage() {
 
   const [listStats, setListStats] = useState<{ total: number; expiringSoon: number; expired: number } | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [expirySummary, setExpirySummary] = useState<string | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+
 
   const fetchLists = useCallback(async () => {
     if (currentUser?.uid) {
@@ -142,9 +146,12 @@ export default function DashboardPage() {
     }
   }, [currentUser?.uid, fetchLists]);
   
-  const calculateStats = useCallback(async (userId: string, listIdParam: string) => {
+  const calculateStatsAndSummary = useCallback(async (userId: string, listIdParam: string, listNameParam: string) => {
     setIsLoadingStats(true);
+    setIsLoadingSummary(true);
     setListStats(null);
+    setExpirySummary(null);
+
     try {
       const products: Product[] = await getProducts(userId, listIdParam);
       const today = startOfDay(new Date());
@@ -170,23 +177,39 @@ export default function DashboardPage() {
           }
         }
       });
-      setListStats({ total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount });
+      const currentStats = { total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount };
+      setListStats(currentStats);
+      
+      // Generate AI summary
+      try {
+        const summaryResult = await generateExpirySummaryText({ listName: listNameParam, stats: currentStats });
+        setExpirySummary(summaryResult.summaryText);
+      } catch (summaryError: any) {
+        console.error("Error generating expiry summary:", summaryError);
+        setExpirySummary("Não foi possível gerar o resumo inteligente das validades.");
+        toast({ variant: "default", title: "Erro no Resumo IA", description: "O resumo por IA das validades falhou. Estatísticas básicas ainda disponíveis." });
+      }
+
     } catch (error) {
       console.error("Error calculating list stats:", error);
       toast({ variant: "destructive", title: "Erro ao calcular estatísticas", description: "Não foi possível carregar as estatísticas da lista." });
       setListStats(null);
+      setExpirySummary(null);
     } finally {
       setIsLoadingStats(false);
+      setIsLoadingSummary(false);
     }
   }, [toast]);
 
   useEffect(() => {
     if (currentUser?.uid && activeListId) {
-      calculateStats(currentUser.uid, activeListId);
+      const activeListName = productLists.find(list => list.id === activeListId)?.name || "Lista Ativa";
+      calculateStatsAndSummary(currentUser.uid, activeListId, activeListName);
     } else {
       setListStats(null);
+      setExpirySummary(null);
     }
-  }, [activeListId, currentUser?.uid, calculateStats]);
+  }, [activeListId, currentUser?.uid, productLists, calculateStatsAndSummary]);
 
 
   const handleSuggestIcon = async () => {
@@ -292,9 +315,10 @@ export default function DashboardPage() {
 
   const handleProductsChanged = useCallback(() => {
     if (currentUser?.uid && activeListId) {
-      calculateStats(currentUser.uid, activeListId);
+      const activeListName = productLists.find(list => list.id === activeListId)?.name || "Lista Ativa";
+      calculateStatsAndSummary(currentUser.uid, activeListId, activeListName);
     }
-  }, [currentUser?.uid, activeListId, calculateStats]);
+  }, [currentUser?.uid, activeListId, productLists, calculateStatsAndSummary]);
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
@@ -351,6 +375,7 @@ export default function DashboardPage() {
       </div>
 
       {activeListId && (
+        <>
         <Card className="mb-6 shadow-md">
           <CardHeader className="p-3 sm:p-4">
             <CardTitle className="text-md sm:text-lg font-semibold">Resumo da Lista: {activeListName}</CardTitle>
@@ -385,6 +410,31 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+
+        <Card className="mb-6 shadow-md bg-accent/10 dark:bg-accent/20 border-accent">
+            <CardHeader className="p-3 sm:p-4 flex flex-row items-center justify-between">
+                <CardTitle className="text-md sm:text-lg font-semibold text-accent-foreground/90 flex items-center">
+                    <Info className="h-5 w-5 mr-2 text-accent" />
+                    Dica da Dashify IA
+                </CardTitle>
+                <Button variant="ghost" size="icon" onClick={handleProductsChanged} disabled={isLoadingSummary || isLoadingStats} className="h-7 w-7 text-accent hover:text-accent/80">
+                   {isLoadingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4 pt-0">
+                {isLoadingSummary ? (
+                    <div className="flex items-center">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Gerando resumo inteligente...</p>
+                    </div>
+                ) : expirySummary ? (
+                    <p className="text-sm text-accent-foreground/80">{expirySummary}</p>
+                ) : (
+                    <p className="text-sm text-muted-foreground">Resumo da IA não disponível no momento.</p>
+                )}
+            </CardContent>
+        </Card>
+        </>
       )}
 
       {activeListId ? (
