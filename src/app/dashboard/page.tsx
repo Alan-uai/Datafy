@@ -18,12 +18,12 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts } from '@/services/productService';
+import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   isToday,
   isPast,
@@ -32,7 +32,6 @@ import {
   startOfDay,
   parseISO,
   isValid,
-  subDays,
 } from 'date-fns';
 import type { Product } from '@/types';
 
@@ -42,10 +41,15 @@ const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIc
 
 const DynamicIcon = ({ name, ...props }: { name: string } & LucideIcons.LucideProps) => {
   const IconComponent = LucideIcons[name as keyof typeof LucideIcons] as LucideIcons.LucideIcon;
-  if (!IconComponent) {
-    return <LucideIcons.List {...props} />; // Fallback icon
+  if (!IconComponent || typeof IconComponent !== 'function') {
+    return <LucideIcons.ListChecks {...props} />; 
   }
-  return <IconComponent {...props} />;
+  try {
+    return <IconComponent {...props} />;
+  } catch (e) {
+    console.error(`Error rendering DynamicIcon with name: ${name}`, e);
+    return <LucideIcons.ListChecks {...props} />;
+  }
 };
 
 
@@ -57,6 +61,9 @@ export default function DashboardPage() {
   const [isLoadingLists, setIsLoadingLists] = useState(true);
   const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [newListIcon, setNewListIcon] = useState('ListPlus');
+  const [isSuggestingIcon, setIsSuggestingIcon] = useState(false);
+
   const [isRenameListDialogOpen, setIsRenameListDialogOpen] = useState(false);
   const [listToRename, setListToRename] = useState<ProductList | null>(null);
   const [renamedListName, setRenamedListName] = useState('');
@@ -70,134 +77,138 @@ export default function DashboardPage() {
 
   const fetchLists = useCallback(async () => {
     if (currentUser?.uid) {
-      console.log(`DashboardPage: fetchLists called for user: ${currentUser.uid}. Initial fetch done: ${initialFetchDone.current}`);
       setIsLoadingLists(true);
       try {
         const lists = await getProductLists(currentUser.uid);
-        console.log(`DashboardPage: getProductLists for user ${currentUser.uid} returned:`, JSON.stringify(lists, null, 2));
         
         if (lists && Array.isArray(lists)) {
             setProductLists(lists);
             if (lists.length > 0) {
               const currentActiveListIsValid = lists.some(l => l.id === activeListId);
-              if (activeListId && currentActiveListIsValid) {
-                console.log(`DashboardPage: Active list ${activeListId} is still valid.`);
-              } else {
-                setActiveListId(lists[0].id);
-                console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
+              if (!activeListId || !currentActiveListIsValid) {
+                 setActiveListId(lists[0].id);
               }
             } else {
               setActiveListId(null);
-              console.log(`DashboardPage: No lists found for user ${currentUser.uid}. activeListId is now null. initialFetchDone: ${initialFetchDone.current}`);
               if (!initialFetchDone.current) {
-                console.log("DashboardPage: Initial fetch, no lists found, creating default list for user:", currentUser.uid);
                 try {
-                    const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
-                    console.log("DashboardPage: Default list created by addProductList:", defaultList);
+                    const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "ListChecks" });
                     if (defaultList) {
                       setProductLists([defaultList]);
                       setActiveListId(defaultList.id);
                       toast({ title: "Lista Padrão Criada", description: `A lista "${defaultList.name}" foi criada para você.` });
-                      console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
                     } else {
-                      console.error("DashboardPage: Failed to create default list (addProductList returned null/undefined).");
                       toast({ variant: "destructive", title: "Erro ao criar lista padrão", description: "Não foi possível criar a lista de produtos inicial." });
                     }
                 } catch (createError: any) {
-                    console.error("DashboardPage: Error creating default list:", createError);
                     toast({ variant: "destructive", title: "Erro ao criar lista padrão automática", description: `Detalhes: ${createError.message}` });
                 }
               }
             }
         } else {
-            console.error(`DashboardPage: getProductLists for user ${currentUser.uid} did not return an array. Received:`, lists);
             toast({ variant: "destructive", title: "Erro ao carregar dados", description: "Formato de dados inesperado ao buscar listas." });
             setProductLists([]);
             setActiveListId(null);
         }
       } catch (error: any) {
-        console.error(`DashboardPage: Error in fetchLists for user ${currentUser.uid}. Message: ${error.message}`, error);
         toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Erro: ${error.message}` });
         setProductLists([]); 
         setActiveListId(null);
       } finally {
         setIsLoadingLists(false);
         if (!initialFetchDone.current) {
-          initialFetchDone.current = true;
-           console.log("DashboardPage: initialFetchDone set to true.");
+          initialFetchDone.current = true; 
         }
       }
     } else {
-      console.log("DashboardPage: fetchLists - no currentUser or currentUser.uid. Clearing lists.");
       setProductLists([]);
       setActiveListId(null);
       setIsLoadingLists(false);
       if (!initialFetchDone.current) {
          initialFetchDone.current = true; 
-         console.log("DashboardPage: initialFetchDone set to true (no user).");
       }
     }
   }, [currentUser?.uid, toast, activeListId]); 
 
 
   useEffect(() => {
-    console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
     if (currentUser?.uid && !initialFetchDone.current) {
-        console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone current state:", initialFetchDone.current);
         fetchLists();
     } else if (!currentUser?.uid) {
-        console.log("DashboardPage: No currentUser.uid. Clearing lists and setting loading to false.");
         setProductLists([]);
         setActiveListId(null);
         setIsLoadingLists(false);
         initialFetchDone.current = false; 
     }
   }, [currentUser?.uid, fetchLists]);
+  
+  const calculateStats = useCallback(async (userId: string, listIdParam: string) => {
+    setIsLoadingStats(true);
+    setListStats(null);
+    try {
+      const products: Product[] = await getProducts(userId, listIdParam);
+      const today = startOfDay(new Date());
+      let totalCount = 0;
+      let expiredCount = 0;
+      let expiringSoonCount = 0;
+
+      products.forEach(p => {
+        if (p.isExploding) return;
+        totalCount++;
+        if (p.validade && isValid(parseISO(p.validade))) {
+          const productDate = startOfDay(parseISO(p.validade));
+          if (isPast(productDate) && !isToday(productDate)) {
+            expiredCount++;
+          } else if (
+            !isToday(productDate) &&
+            isWithinInterval(productDate, {
+              start: addDays(today, 1),
+              end: addDays(today, 7),
+            })
+          ) {
+            expiringSoonCount++;
+          }
+        }
+      });
+      setListStats({ total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount });
+    } catch (error) {
+      console.error("Error calculating list stats:", error);
+      toast({ variant: "destructive", title: "Erro ao calcular estatísticas", description: "Não foi possível carregar as estatísticas da lista." });
+      setListStats(null);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (currentUser?.uid && activeListId) {
-      const calculateStats = async () => {
-        setIsLoadingStats(true);
-        setListStats(null); 
-        try {
-          const products: Product[] = await getProducts(currentUser.uid!, activeListId);
-          const today = startOfDay(new Date());
-          let totalCount = 0;
-          let expiredCount = 0;
-          let expiringSoonCount = 0;
-
-          products.forEach(p => {
-            if (p.isExploding) return; 
-            totalCount++;
-            if (p.validade && isValid(parseISO(p.validade))) {
-              const productDate = startOfDay(parseISO(p.validade));
-              if (isPast(productDate) && !isToday(productDate)) {
-                expiredCount++;
-              } else if (
-                !isToday(productDate) && 
-                isWithinInterval(productDate, {
-                  start: addDays(today, 1), 
-                  end: addDays(today, 7),   
-                })
-              ) {
-                expiringSoonCount++;
-              }
-            }
-          });
-          setListStats({ total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount });
-        } catch (error) {
-          console.error("Error calculating list stats:", error);
-          toast({ variant: "destructive", title: "Erro ao calcular estatísticas", description: "Não foi possível carregar as estatísticas da lista." });
-        } finally {
-          setIsLoadingStats(false);
-        }
-      };
-      calculateStats();
+      calculateStats(currentUser.uid, activeListId);
     } else {
-      setListStats(null); 
+      setListStats(null);
     }
-  }, [activeListId, currentUser?.uid, toast, productLists]); // productLists dependency to re-calc if user switches list *and* products potentially changed
+  }, [activeListId, currentUser?.uid, calculateStats]);
 
+
+  const handleSuggestIcon = async () => {
+    if (!newListName.trim()) {
+      toast({ title: "Nome da Lista Vazio", description: "Por favor, digite um nome para a lista antes de sugerir um ícone.", variant: "default" });
+      return;
+    }
+    setIsSuggestingIcon(true);
+    try {
+      const result = await suggestListIcon({ listName: newListName, currentIconName: newListIcon });
+      if (result.iconName && iconNames.includes(result.iconName)) {
+        setNewListIcon(result.iconName);
+        toast({ title: "Ícone Sugerido!", description: `Ícone "${result.iconName}" aplicado.` });
+      } else {
+        toast({ title: "Sugestão Inválida", description: "O ícone sugerido não é válido, mantendo o atual.", variant: "default" });
+      }
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao Sugerir Ícone", description: error.message || "Não foi possível obter uma sugestão." });
+    } finally {
+      setIsSuggestingIcon(false);
+    }
+  };
 
   const handleAddList = async () => {
     if (!newListName.trim()) {
@@ -206,25 +217,20 @@ export default function DashboardPage() {
     }
     if (!currentUser?.uid) {
       toast({ variant: "destructive", title: "Erro de Autenticação", description: "Usuário não autenticado para criar lista." });
-      console.error("DashboardPage: handleAddList - currentUser.uid is missing.");
       return;
     }
 
-    console.log(`DashboardPage: handleAddList - Attempting to add list with name "${newListName}" for user ${currentUser.uid}`);
-
     try {
-      const newList = await addProductList(currentUser.uid, { name: newListName, icon: "ListPlus" });
-      console.log("DashboardPage: handleAddList - New list successfully added in service:", newList);
-      
+      const newList = await addProductList(currentUser.uid, { name: newListName, icon: newListIcon || "ListChecks" });
       setProductLists(prev => [...prev, newList]);
       setActiveListId(newList.id); 
       
       setNewListName('');
+      setNewListIcon('ListPlus');
       setIsAddListDialogOpen(false);
       toast({ title: "Lista Adicionada", description: `A lista "${newList.name}" foi criada.` });
     } catch (error: any) {
-      console.error("DashboardPage: Detailed error adding list:", error);
-      const errorMessage = error.message || "Não foi possível criar a nova lista. Verifique o console para mais detalhes.";
+      const errorMessage = error.message || "Não foi possível criar a nova lista.";
       toast({ variant: "destructive", title: "Erro ao adicionar lista", description: errorMessage });
     }
   };
@@ -313,7 +319,7 @@ export default function DashboardPage() {
                   "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
-                <DynamicIcon name={list.icon} className="flex-shrink-0" />
+                <DynamicIcon name={list.icon} className="flex-shrink-0 h-4 w-4" />
                 <span className="block truncate min-w-0">
                   {list.name}
                 </span>
@@ -329,7 +335,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-            <Button variant="ghost" onClick={() => setIsAddListDialogOpen(true)} size="sm" className="shrink-0">
+            <Button variant="outline" onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }} size="sm" className="shrink-0">
               <PlusCircle className="mr-2 h-4 w-4" />
               Nova Lista
             </Button>
@@ -339,11 +345,11 @@ export default function DashboardPage() {
       </div>
 
       {activeListId && (
-        <Card className="mb-6">
-          <CardHeader className="p-2 sm:p-3 md:p-4">
-            <CardTitle className="text-base sm:text-md font-semibold">Resumo da Lista</CardTitle>
+        <Card className="mb-6 shadow-md">
+          <CardHeader className="p-3 sm:p-4">
+            <CardTitle className="text-md sm:text-lg font-semibold">Resumo da Lista: {activeListName}</CardTitle>
           </CardHeader>
-          <CardContent className="p-2 sm:p-3 md:p-4 pt-0">
+          <CardContent className="p-3 sm:p-4 pt-0">
             {isLoadingStats ? (
               <div className="flex items-center justify-center h-10">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -369,7 +375,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis.</p>
+              <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis ou lista vazia.</p>
             )}
           </CardContent>
         </Card>
@@ -377,38 +383,20 @@ export default function DashboardPage() {
 
       {activeListId ? (
         <>
+          {/* Title removed as it's now in the stats card 
           <h1 className="text-3xl font-bold mb-8 font-headline text-center">
             {activeListName}
           </h1>
-          <ProductSearchTable listId={activeListId} key={activeListId} onProductsChanged={() => {
-             // This callback could trigger stats recalculation more directly if needed
-             // For now, the useEffect for stats depends on activeListId and productLists
-             // A simple way to ensure stats refresh if products in *this* table change is to add a "key" prop to the stats card
-             // or trigger the stats calculation function here.
-             // Manually re-triggering:
+          */}
+          <ProductSearchTable 
+            listId={activeListId} 
+            key={activeListId} 
+            onProductsChanged={() => {
              if (currentUser?.uid && activeListId) {
-                (async () => {
-                    setIsLoadingStats(true);
-                    setListStats(null); 
-                    try {
-                        const products: Product[] = await getProducts(currentUser.uid!, activeListId);
-                        const today = startOfDay(new Date());
-                        let totalCount = 0, expiredCount = 0, expiringSoonCount = 0;
-                        products.forEach(p => {
-                          if (p.isExploding) return;
-                          totalCount++;
-                          if (p.validade && isValid(parseISO(p.validade))) {
-                            const productDate = startOfDay(parseISO(p.validade));
-                            if (isPast(productDate) && !isToday(productDate)) expiredCount++;
-                            else if (!isToday(productDate) && isWithinInterval(productDate, { start: addDays(today, 1), end: addDays(today, 7) })) expiringSoonCount++;
-                          }
-                        });
-                        setListStats({ total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount });
-                    } catch (e) { console.error("Error recalculating stats on product change", e); }
-                    finally { setIsLoadingStats(false); }
-                })();
+                calculateStats(currentUser.uid, activeListId);
              }
-          }} />
+            }} 
+          />
         </>
       ) : (
          <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)]">
@@ -422,7 +410,7 @@ export default function DashboardPage() {
                     <List className="h-16 w-16 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-2">Nenhuma lista de produtos encontrada.</p>
                     <p className="text-sm text-muted-foreground mb-4">Crie sua primeira lista para começar a adicionar produtos.</p>
-                    <Button onClick={() => setIsAddListDialogOpen(true)}>
+                    <Button onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Criar Nova Lista
                     </Button>
@@ -431,12 +419,18 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <Dialog open={isAddListDialogOpen} onOpenChange={setIsAddListDialogOpen}>
+      <Dialog open={isAddListDialogOpen} onOpenChange={(isOpen) => {
+          setIsAddListDialogOpen(isOpen);
+          if (!isOpen) {
+            setNewListName('');
+            setNewListIcon('ListPlus'); 
+          }
+        }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Criar Nova Lista de Produtos</DialogTitle>
             <DialogDescription>
-              Digite um nome para sua nova lista.
+              Digite um nome e escolha um ícone para sua nova lista.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -452,12 +446,49 @@ export default function DashboardPage() {
                 placeholder="Ex: Compras da Semana"
               />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-list-icon-name" className="text-right">
+                Ícone
+              </Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <DynamicIcon name={newListIcon} className="h-5 w-5 text-primary" />
+                <Input
+                  id="new-list-icon-name"
+                  value={newListIcon}
+                  onChange={(e) => setNewListIcon(e.target.value)}
+                  className="flex-1"
+                  placeholder="Ex: ShoppingCart"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSuggestIcon}
+                  disabled={isSuggestingIcon || !newListName.trim()}
+                  aria-label="Sugerir Ícone"
+                >
+                  {isSuggestingIcon ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                </Button>
+                 <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setNewListIcon(iconNames[Math.floor(Math.random() * iconNames.length)])}
+                  aria-label="Ícone Aleatório"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+             <p className="text-xs text-muted-foreground col-span-4 text-center px-4">
+                Digite um nome de ícone da biblioteca Lucide Icons (ex: Apple, Box, Coffee) ou use a sugestão.
+             </p>
           </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button type="button" onClick={handleAddList}>Criar Lista</Button>
+            <Button type="button" onClick={handleAddList} disabled={!newListName.trim() || !newListIcon.trim()}>Criar Lista</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -508,8 +539,6 @@ export default function DashboardPage() {
                 </DialogContent>
             </Dialog>
         )}
-
     </div>
   );
 }
-

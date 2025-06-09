@@ -8,13 +8,13 @@ import { Input } from '@/components/ui/input';
 import {
   Table,
   TableHeader,
-  TableBody as ShadTableBody, // Keep for TableHeader usage if any, or general structure
+  TableBody as ShadTableBody, 
   TableCell,
   TableHead as ShadTableHeaderComponent,
-  TableRow as ShadTableRow, // Keep for TableHeader usage
+  TableRow as ShadTableRow, 
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2 } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -146,7 +146,7 @@ const SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP = 1.5;
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'> = {
   produto: '',
   marca: '',
-  unidade: '',
+  unidade: '1', // Default quantity to 1
   validade: '',
 };
 
@@ -227,7 +227,7 @@ const Particle = ({ onComplete, particleColorClass }: { onComplete: () => void; 
 
 interface ProductSearchTableProps {
   listId: string;
-  onProductsChanged?: () => void; // Callback for when products change
+  onProductsChanged?: () => void; 
 }
 
 export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchTableProps) {
@@ -284,7 +284,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
           setIsLoadingProducts(false);
         });
     } else if (!listId) {
-      setClientSideProducts([]); // Clear products if no listId
+      setClientSideProducts([]); 
       setIsLoadingProducts(false);
       onProductsChanged?.();
     }
@@ -457,7 +457,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
       setEditFormData({
         produto: selectedProduct.produto,
         marca: selectedProduct.marca,
-        unidade: selectedProduct.unidade,
+        unidade: selectedProduct.unidade.toString(),
         validade: selectedProduct.validade, 
       });
       setIsEditDialogOpen(true);
@@ -540,19 +540,31 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
     const { name, value } = e.target;
     setEditFormData(prev => ({ ...prev, [name]: value }));
   };
+  
+  const handleEditQuantityChange = (amount: number) => {
+    setEditFormData(prev => {
+      const currentQuantity = parseInt(prev.unidade, 10) || 0;
+      const newQuantity = Math.max(1, currentQuantity + amount); // Ensure quantity is at least 1
+      return { ...prev, unidade: newQuantity.toString() };
+    });
+  };
 
   const handleSaveEdit = async () => {
     if (editingProduct && editingProduct.originalId && currentUser?.uid) {
       try {
-        await updateProduct(currentUser.uid, editingProduct.originalId, editFormData);
+        const productDataToSave = {
+          ...editFormData,
+          unidade: parseInt(editFormData.unidade, 10) > 0 ? editFormData.unidade : "1",
+        };
+        await updateProduct(currentUser.uid, editingProduct.originalId, productDataToSave);
         setClientSideProducts(prevProducts =>
           resequenceProducts(
               prevProducts.map(p =>
-              p.originalId === editingProduct.originalId ? { ...editingProduct, ...editFormData, isExploding: p.isExploding, id: p.id, listId: editingProduct.listId } : p
+              p.originalId === editingProduct.originalId ? { ...editingProduct, ...productDataToSave, isExploding: p.isExploding, id: p.id, listId: editingProduct.listId } : p
               )
           )
         );
-        toast({ title: "Produto atualizado", description: `${editFormData.produto} foi atualizado com sucesso.` });
+        toast({ title: "Produto atualizado", description: `${productDataToSave.produto} foi atualizado com sucesso.` });
         onProductsChanged?.();
       } catch (error) {
         toast({ variant: "destructive", title: "Erro ao atualizar", description: "Não foi possível atualizar o produto." });
@@ -722,12 +734,22 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
     const { name, value } = e.target;
     setNewProductFormData(prev => ({ ...prev, [name]: value }));
   };
+  
+  const handleNewQuantityChange = (amount: number) => {
+    setNewProductFormData(prev => {
+      const currentQuantity = parseInt(prev.unidade, 10) || 0;
+      const newQuantity = Math.max(1, currentQuantity + amount); // Ensure quantity is at least 1
+      return { ...prev, unidade: newQuantity.toString() };
+    });
+  };
+
 
   const handleAddNewProduct = async () => {
-    if (!newProductFormData.produto || !newProductFormData.validade || !newProductFormData.unidade) {
+    const quantity = parseInt(newProductFormData.unidade, 10);
+    if (!newProductFormData.produto || !newProductFormData.validade || !(quantity > 0) ) {
       toast({
         title: "Erro",
-        description: "Produto, Quantidade e Validade são campos obrigatórios.",
+        description: "Produto, Quantidade (maior que 0) e Validade são campos obrigatórios.",
         variant: "destructive",
       });
       return;
@@ -742,7 +764,11 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
     }
 
     try {
-      const addedProduct = await addProduct(currentUser.uid, listId, newProductFormData);
+      const productDataToSave = {
+        ...newProductFormData,
+        unidade: quantity.toString(),
+      };
+      const addedProduct = await addProduct(currentUser.uid, listId, productDataToSave);
       setClientSideProducts(prevProducts =>
           resequenceProducts([...prevProducts, addedProduct])
       );
@@ -757,7 +783,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
   };
 
   const handleScanSuccess = useCallback((data: string) => {
-    setNewProductFormData(prev => ({ ...prev, produto: data, marca: prev.marca || '', unidade: prev.unidade || '', validade: prev.validade || '' })); 
+    setNewProductFormData(prev => ({ ...prev, produto: data, marca: prev.marca || '', unidade: prev.unidade || '1', validade: prev.validade || '' })); 
     toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${data}` });
     setIsScannerActive(false);
   }, [toast]);
@@ -957,6 +983,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
                           onClick={(e) => {
                             e.stopPropagation(); 
                             setIsAddProductDialogOpen(true);
+                            setNewProductFormData({ ...initialNewProductFormData });
                             setIsAddActionPopoverOpen(false); 
                           }}
                           aria-label="Adicionar novo produto"
@@ -1034,7 +1061,7 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
                             layoutId={currentProductKey} 
                             initial={{ opacity: 1 }}
                             animate={shockwaveAnimProps} 
-                            className={styleString} // getRowStyling now includes border-b
+                            className={styleString} 
                             data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
                             onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
                               if (product.isExploding || !product.originalId) return;
@@ -1228,14 +1255,23 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
                 <Label htmlFor="edit-unidade" className="text-right">
                   Qtde
                 </Label>
-                <Input
-                  id="edit-unidade"
-                  name="unidade"
-                  value={editFormData.unidade}
-                  onChange={handleEditFormChange}
-                  className="col-span-3"
-                  type="number"
-                />
+                <div className="col-span-3 flex items-center gap-2">
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditQuantityChange(-1)} disabled={(parseInt(editFormData.unidade, 10) || 1) <= 1}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    id="edit-unidade"
+                    name="unidade"
+                    value={editFormData.unidade}
+                    onChange={handleEditFormChange}
+                    className="w-16 text-center"
+                    type="number"
+                    min="1"
+                  />
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditQuantityChange(1)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-validade" className="text-right">
@@ -1321,15 +1357,24 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
                   <Label htmlFor="new-unidade" className="text-right">
                     Qtde
                   </Label>
-                  <Input
-                    id="new-unidade"
-                    name="unidade"
-                    value={newProductFormData.unidade}
-                    onChange={handleNewProductFormChange}
-                    className="col-span-3"
-                    type="number"
-                    required
-                  />
+                  <div className="col-span-3 flex items-center gap-2">
+                     <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChange(-1)} disabled={(parseInt(newProductFormData.unidade, 10) || 1) <= 1}>
+                       <Minus className="h-4 w-4" />
+                     </Button>
+                     <Input
+                        id="new-unidade"
+                        name="unidade"
+                        value={newProductFormData.unidade}
+                        onChange={handleNewProductFormChange}
+                        className="w-16 text-center"
+                        type="number"
+                        min="1"
+                        required
+                      />
+                      <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChange(1)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="new-validade" className="text-right">
@@ -1371,4 +1416,3 @@ export function ProductSearchTable({ listId, onProductsChanged }: ProductSearchT
     </>
   );
 }
-
