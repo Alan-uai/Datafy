@@ -14,7 +14,7 @@ import {
   TableRow as ShadTableRow, 
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus, FolderSymlink, CalendarCog, Wand2 } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus, FolderSymlink, CalendarCog, Wand2, CalendarDays } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -271,6 +272,8 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   const longPressInitiatedSelectionRef = useRef(false);
 
   const [isScannerActive, setIsScannerActive] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
 
   const [isMoveProductsDialogOpen, setIsMoveProductsDialogOpen] = useState(false);
   const [targetMoveListId, setTargetMoveListId] = useState<string>('');
@@ -784,7 +787,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   };
 
 
-  const handleAddNewProduct = async () => {
+  const handleAddNewProduct = async (closeDialogAfterSave: boolean = true) => {
     const quantity = parseInt(newProductFormData.unidade, 10);
     if (!newProductFormData.produto || !newProductFormData.validade || !(quantity > 0) ) {
       toast({
@@ -813,9 +816,12 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
           resequenceProducts([...prevProducts, addedProduct])
       );
       toast({ title: "Produto Adicionado", description: `${addedProduct.produto} foi adicionado com sucesso.` });
-      setIsAddProductDialogOpen(false);
+      
       setNewProductFormData({ ...initialNewProductFormData });
       setIsScannerActive(false); 
+      if (closeDialogAfterSave) {
+        setIsAddProductDialogOpen(false);
+      }
       onProductsChanged?.();
     } catch (error: any) {
        toast({ variant: "destructive", title: "Erro ao adicionar produto", description: error.message || "Não foi possível adicionar o produto." });
@@ -1077,6 +1083,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                             setIsAddProductDialogOpen(true);
                             setNewProductFormData({ ...initialNewProductFormData });
                             setIsAddActionPopoverOpen(false); 
+                            setIsScannerActive(false);
                           }}
                           aria-label="Adicionar novo produto"
                         >
@@ -1359,6 +1366,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                     className="w-16 text-center"
                     type="number"
                     min="1"
+                    step="1"
                   />
                   <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditQuantityChange(1)}>
                     <Plus className="h-4 w-4" />
@@ -1393,129 +1401,156 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
         setIsAddProductDialogOpen(isOpen);
         if (!isOpen) {
             setNewProductFormData({ ...initialNewProductFormData }); 
-            if(isScannerActive) setIsScannerActive(false); 
+            setIsScannerActive(false); 
             setIsSuggestingName(false);
+            setIsCalendarOpen(false);
         }
       }}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar Novo Produto</DialogTitle>
-             {!isScannerActive && (
-                <DialogDescription>
-                Preencha os detalhes do novo produto abaixo ou escaneie um código de barras.
-                </DialogDescription>
-            )}
+            <DialogTitle>{isScannerActive ? "Escanear Código de Barras" : "Adicionar Novo Produto"}</DialogTitle>
+            <DialogDescription>
+              {isScannerActive
+                ? "Posicione o código de barras do produto em frente à câmera."
+                : "Preencha os detalhes abaixo ou escaneie um código de barras."}
+            </DialogDescription>
           </DialogHeader>
+
           {isScannerActive ? (
-            <div className="py-4">
+            <div className="py-4 space-y-4">
               <BarcodeScanner
                 onScanSuccess={handleScanSuccess}
                 onScanError={handleScanError}
                 isScanning={isScannerActive}
                 setIsScanning={setIsScannerActive}
               />
-               <Button variant="outline" className="w-full mt-4" onClick={() => {
-                  setIsScannerActive(false); 
-                }}>Cancelar Scan</Button>
             </div>
           ) : (
-            <>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-produto" className="text-right">
-                    Produto
-                  </Label>
-                  <div className="col-span-3 flex items-center gap-2">
-                    <Input
-                        id="new-produto"
-                        name="produto"
-                        value={newProductFormData.produto}
-                        onChange={handleNewProductFormChange}
-                        className="flex-1"
-                        required
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleSuggestProductName}
-                        disabled={isSuggestingName || !newProductFormData.produto.trim()}
-                        aria-label="Sugerir Nome do Produto"
-                    >
-                        {isSuggestingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-marca" className="text-right">
-                    Marca
-                  </Label>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-produto" className="text-right">
+                  Produto
+                </Label>
+                <div className="col-span-3 flex items-center gap-2">
                   <Input
-                    id="new-marca"
-                    name="marca"
-                    value={newProductFormData.marca}
+                    id="new-produto"
+                    name="produto"
+                    value={newProductFormData.produto}
                     onChange={handleNewProductFormChange}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-unidade" className="text-right">
-                    Qtde
-                  </Label>
-                  <div className="col-span-3 flex items-center gap-2">
-                     <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChange(-1)} disabled={(parseInt(newProductFormData.unidade, 10) || 1) <= 1}>
-                       <Minus className="h-4 w-4" />
-                     </Button>
-                     <Input
-                        id="new-unidade"
-                        name="unidade"
-                        value={newProductFormData.unidade}
-                        onChange={handleNewProductFormChange}
-                        className="w-16 text-center"
-                        type="number"
-                        min="1"
-                        required
-                      />
-                      <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChange(1)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="new-validade" className="text-right">
-                    Validade
-                  </Label>
-                  <Input
-                    id="new-validade"
-                    name="validade"
-                    type="date" 
-                    value={newProductFormData.validade}
-                    onChange={handleNewProductFormChange}
-                    className="col-span-3"
+                    className="flex-1"
                     required
                   />
-                </div>
-              </div>
-              <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
-                <Button
+                  <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                        setIsScannerActive(true);
-                    }}
-                    className="w-full sm:w-auto"
-                >
-                    <Camera className="mr-2 h-4 w-4" /> Escanear Código
-                </Button>
-                <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 sm:gap-0">
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline" className="w-full sm:w-auto">Cancelar</Button>
-                    </DialogClose>
-                    <Button type="button" onClick={handleAddNewProduct} className="w-full sm:w-auto">Salvar Produto</Button>
+                    size="icon"
+                    onClick={handleSuggestProductName}
+                    disabled={isSuggestingName || !newProductFormData.produto.trim()}
+                    aria-label="Sugerir Nome do Produto"
+                  >
+                    {isSuggestingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                  </Button>
                 </div>
-              </DialogFooter>
-            </>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-marca" className="text-right">
+                  Marca
+                </Label>
+                <Input
+                  id="new-marca"
+                  name="marca"
+                  value={newProductFormData.marca}
+                  onChange={handleNewProductFormChange}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-unidade" className="text-right">
+                  Qtde
+                </Label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChange(-1)} disabled={(parseInt(newProductFormData.unidade, 10) || 1) <= 1}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    id="new-unidade"
+                    name="unidade"
+                    value={newProductFormData.unidade}
+                    onChange={handleNewProductFormChange}
+                    className="w-16 text-center"
+                    type="number"
+                    min="1"
+                    step="1"
+                    required
+                  />
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChange(1)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-validade-btn" className="text-right">
+                  Validade
+                </Label>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="new-validade-btn"
+                      variant={"outline"}
+                      className={cn(
+                        "col-span-3 justify-start text-left font-normal",
+                        !newProductFormData.validade && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {newProductFormData.validade ? format(parseISO(newProductFormData.validade), "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newProductFormData.validade ? parseISO(newProductFormData.validade) : undefined}
+                      onSelect={(date) => {
+                        setNewProductFormData(prev => ({ ...prev, validade: date ? format(date, "yyyy-MM-dd") : '' }));
+                        setIsCalendarOpen(false);
+                      }}
+                      initialFocus
+                      disabled={(date) => date < startOfDay(new Date()) && !isToday(date) } // Disable past dates, but not today
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
           )}
+          <DialogFooter className="flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-between sm:items-center">
+            {isScannerActive ? (
+                <Button variant="outline" className="w-full sm:ml-auto" onClick={() => setIsScannerActive(false)}>
+                   Digitar Manualmente
+                </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsScannerActive(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Camera className="mr-2 h-4 w-4" /> Escanear Código
+                </Button>
+                <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:justify-end sm:space-x-2">
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto">Cancelar</Button>
+                  </DialogClose>
+                  <Button type="button" variant="outline" onClick={() => handleAddNewProduct(false)} className="w-full sm:w-auto">
+                    Salvar & Novo
+                  </Button>
+                  <Button type="button" onClick={() => handleAddNewProduct(true)} className="w-full sm:w-auto">
+                    Salvar Produto
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
