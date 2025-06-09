@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList } from '@/services/productService';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, GripVertical } from 'lucide-react'; // Added icons
+import { PlusCircle, List, Edit3, Trash2, Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
 const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIcon' && key !== 'icons' && typeof LucideIcons[key as keyof typeof LucideIcons] === 'object');
@@ -88,8 +88,10 @@ export default function DashboardPage() {
       setNewListName('');
       setIsAddListDialogOpen(false);
       toast({ title: "Lista Adicionada", description: `A lista "${newList.name}" foi criada.` });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Erro ao adicionar lista", description: "Não foi possível criar a nova lista." });
+    } catch (error: any) {
+      console.error("Detailed error adding list:", error);
+      const errorMessage = error.message || "Não foi possível criar a nova lista. Verifique o console para mais detalhes.";
+      toast({ variant: "destructive", title: "Erro ao adicionar lista", description: errorMessage });
     }
   };
 
