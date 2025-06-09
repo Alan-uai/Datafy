@@ -57,37 +57,49 @@ export default function DashboardPage() {
       setIsLoadingLists(true);
       try {
         const lists = await getProductLists(currentUser.uid);
-        console.log(`DashboardPage: getProductLists for user ${currentUser.uid} returned:`, lists);
-        setProductLists(lists);
-
-        if (lists.length > 0) {
-          const currentActiveListIsValid = lists.some(l => l.id === activeListId);
-          if (activeListId && currentActiveListIsValid) {
-            console.log(`DashboardPage: Active list ${activeListId} is still valid.`);
-          } else {
-            setActiveListId(lists[0].id);
-            console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
-          }
-        } else {
-          setActiveListId(null);
-          console.log(`DashboardPage: No lists found for user ${currentUser.uid}. activeListId is now null. initialFetchDone: ${initialFetchDone.current}`);
-          if (!initialFetchDone.current) {
-            console.log("DashboardPage: Initial fetch, no lists found, creating default list for user:", currentUser.uid);
-            const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
-            console.log("DashboardPage: Default list created by addProductList:", defaultList);
-            if (defaultList) {
-              setProductLists([defaultList]);
-              setActiveListId(defaultList.id);
-              console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
+        console.log(`DashboardPage: getProductLists for user ${currentUser.uid} returned:`, JSON.stringify(lists, null, 2));
+        
+        if (lists && Array.isArray(lists)) {
+            setProductLists(lists);
+            if (lists.length > 0) {
+              const currentActiveListIsValid = lists.some(l => l.id === activeListId);
+              if (activeListId && currentActiveListIsValid) {
+                console.log(`DashboardPage: Active list ${activeListId} is still valid.`);
+              } else {
+                setActiveListId(lists[0].id);
+                console.log(`DashboardPage: Setting activeListId to first list: ${lists[0].id}`);
+              }
             } else {
-              console.error("DashboardPage: Failed to create default list.");
-               toast({ variant: "destructive", title: "Erro ao criar lista padrão", description: "Não foi possível criar a lista de produtos inicial." });
+              setActiveListId(null);
+              console.log(`DashboardPage: No lists found for user ${currentUser.uid}. activeListId is now null. initialFetchDone: ${initialFetchDone.current}`);
+              if (!initialFetchDone.current) {
+                console.log("DashboardPage: Initial fetch, no lists found, creating default list for user:", currentUser.uid);
+                try {
+                    const defaultList = await addProductList(currentUser.uid, { name: "Meus Produtos", icon: "List" });
+                    console.log("DashboardPage: Default list created by addProductList:", defaultList);
+                    if (defaultList) {
+                    setProductLists([defaultList]);
+                    setActiveListId(defaultList.id);
+                    console.log(`DashboardPage: Default list set as active: ${defaultList.id}`);
+                    } else {
+                    console.error("DashboardPage: Failed to create default list (addProductList returned null/undefined).");
+                    toast({ variant: "destructive", title: "Erro ao criar lista padrão", description: "Não foi possível criar a lista de produtos inicial." });
+                    }
+                } catch (createError: any) {
+                    console.error("DashboardPage: Error creating default list:", createError);
+                    toast({ variant: "destructive", title: "Erro ao criar lista padrão automática", description: `Detalhes: ${createError.message}` });
+                }
+              }
             }
-          }
+        } else {
+            console.error(`DashboardPage: getProductLists for user ${currentUser.uid} did not return an array. Received:`, lists);
+            toast({ variant: "destructive", title: "Erro ao carregar dados", description: "Formato de dados inesperado ao buscar listas." });
+            setProductLists([]);
+            setActiveListId(null);
         }
       } catch (error: any) {
         console.error(`DashboardPage: Error in fetchLists for user ${currentUser.uid}. Message: ${error.message}`, error);
-        toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Verifique o console para detalhes. Erro: ${error.message}` });
+        toast({ variant: "destructive", title: "Erro ao buscar listas", description: `Não foi possível carregar suas listas de produtos. Erro: ${error.message}` });
         setProductLists([]); 
         setActiveListId(null);
       } finally {
@@ -112,10 +124,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     console.log("DashboardPage: currentUser effect triggered. UID:", currentUser?.uid);
-    if (currentUser?.uid) {
+    if (currentUser?.uid && !initialFetchDone.current) { // Adicionado !initialFetchDone.current para evitar múltiplas chamadas desnecessárias
         console.log("DashboardPage: currentUser.uid present, calling fetchLists. initialFetchDone current state:", initialFetchDone.current);
         fetchLists();
-    } else {
+    } else if (!currentUser?.uid) {
         console.log("DashboardPage: No currentUser.uid. Clearing lists and setting loading to false.");
         setProductLists([]);
         setActiveListId(null);
@@ -235,7 +247,7 @@ export default function DashboardPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  'px-2', 
+                  'px-2 gap-0', 
                   "group shrink-0 cursor-pointer flex items-center" 
                 )}
               >
