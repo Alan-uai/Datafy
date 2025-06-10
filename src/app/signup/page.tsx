@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent, useEffect } from 'react';
+import { useState, type FormEvent, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const getFirebaseErrorMessage = (errorCode: string): string => {
   switch (errorCode) {
@@ -42,23 +42,14 @@ const checkPasswordStrength = (password: string): PasswordStrength => {
   let score = 0;
   if (!password) return { score: 0, text: '', color: '' };
 
-  // Add points for length
   if (password.length >= 8) score++;
   if (password.length >= 12) score++;
-
-  // Add points for lowercase and uppercase letters
   if (/[a-z]/.test(password)) score++;
   if (/[A-Z]/.test(password)) score++;
-
-  // Add points for numbers
   if (/[0-9]/.test(password)) score++;
-
-  // Add points for special characters
   if (/[^a-zA-Z0-9]/.test(password)) score++;
   
-  // Reduce score if only one type of char or too short
   if (password.length < 6) score = Math.min(score, 1);
-
 
   let text = '';
   let color = '';
@@ -81,7 +72,7 @@ const checkPasswordStrength = (password: string): PasswordStrength => {
       text = 'Forte';
       color = 'text-green-500';
       break;
-    default: // 5 or 6
+    default: 
       text = 'Muito Forte';
       color = 'text-green-700';
       break;
@@ -92,7 +83,6 @@ const checkPasswordStrength = (password: string): PasswordStrength => {
     score = 0;
   }
 
-
   return { score: Math.min(score, 4) as PasswordStrength["score"], text, color };
 };
 
@@ -101,13 +91,15 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { setCurrentUser } = useAuth();
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({ score: 0, text: '', color: '' });
-  const passwordInputRef = React.useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (passwordInputRef.current === document.activeElement || password.length > 0) {
@@ -127,7 +119,7 @@ export default function SignupPage() {
       toast({ variant: 'destructive', title: 'Erro no Cadastro', description: message });
       return;
     }
-    if (passwordStrength.score < 2 && password.length > 0) { // Consider score 2 (Fraca) as minimum acceptable
+    if (passwordStrength.score < 2 && password.length > 0) { 
       const message = 'A senha é muito fraca. Por favor, escolha uma senha mais forte.';
       setError(message);
       toast({ variant: 'destructive', title: 'Senha Fraca', description: message });
@@ -175,18 +167,32 @@ export default function SignupPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha <span className="text-destructive">*</span></Label>
-              <Input
-                id="password"
-                type="password"
-                ref={passwordInputRef}
-                placeholder="Crie uma senha (mín. 6 caracteres)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onFocus={() => setPasswordStrength(checkPasswordStrength(password))}
-                onBlur={() => { if(!password) setPasswordStrength({ score: 0, text: '', color: ''})}}
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  ref={passwordInputRef}
+                  placeholder="Crie uma senha (mín. 6 caracteres)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setPasswordStrength(checkPasswordStrength(password))}
+                  onBlur={() => { if(!password) setPasswordStrength({ score: 0, text: '', color: ''})}}
+                  required
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
               {passwordStrength.text && (
                 <div className="mt-1 flex items-center">
                   <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -209,15 +215,29 @@ export default function SignupPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Senha <span className="text-destructive">*</span></Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirme sua senha"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirme sua senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={isLoading}
+                  aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </CardContent>
@@ -244,4 +264,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
