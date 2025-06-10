@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -32,6 +32,71 @@ const getFirebaseErrorMessage = (errorCode: string): string => {
   }
 };
 
+type PasswordStrength = {
+  score: 0 | 1 | 2 | 3 | 4; // 0: very weak, 1: weak, 2: medium, 3: strong, 4: very strong
+  text: string;
+  color: string;
+};
+
+const checkPasswordStrength = (password: string): PasswordStrength => {
+  let score = 0;
+  if (!password) return { score: 0, text: '', color: '' };
+
+  // Add points for length
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+
+  // Add points for lowercase and uppercase letters
+  if (/[a-z]/.test(password)) score++;
+  if (/[A-Z]/.test(password)) score++;
+
+  // Add points for numbers
+  if (/[0-9]/.test(password)) score++;
+
+  // Add points for special characters
+  if (/[^a-zA-Z0-9]/.test(password)) score++;
+  
+  // Reduce score if only one type of char or too short
+  if (password.length < 6) score = Math.min(score, 1);
+
+
+  let text = '';
+  let color = '';
+
+  switch (score) {
+    case 0:
+    case 1:
+      text = 'Muito Fraca';
+      color = 'text-destructive';
+      break;
+    case 2:
+      text = 'Fraca';
+      color = 'text-orange-500';
+      break;
+    case 3:
+      text = 'Média';
+      color = 'text-yellow-500';
+      break;
+    case 4:
+      text = 'Forte';
+      color = 'text-green-500';
+      break;
+    default: // 5 or 6
+      text = 'Muito Forte';
+      color = 'text-green-700';
+      break;
+  }
+  if (password.length > 0 && password.length < 6) {
+    text = 'Curta';
+    color = 'text-destructive';
+    score = 0;
+  }
+
+
+  return { score: Math.min(score, 4) as PasswordStrength["score"], text, color };
+};
+
+
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,6 +106,17 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { setCurrentUser } = useAuth();
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({ score: 0, text: '', color: '' });
+  const passwordInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (passwordInputRef.current === document.activeElement || password.length > 0) {
+      setPasswordStrength(checkPasswordStrength(password));
+    } else {
+      setPasswordStrength({ score: 0, text: '', color: '' });
+    }
+  }, [password]);
+
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
@@ -49,6 +125,12 @@ export default function SignupPage() {
       const message = 'As senhas não coincidem.';
       setError(message);
       toast({ variant: 'destructive', title: 'Erro no Cadastro', description: message });
+      return;
+    }
+    if (passwordStrength.score < 2 && password.length > 0) { // Consider score 2 (Fraca) as minimum acceptable
+      const message = 'A senha é muito fraca. Por favor, escolha uma senha mais forte.';
+      setError(message);
+      toast({ variant: 'destructive', title: 'Senha Fraca', description: message });
       return;
     }
     setIsLoading(true);
@@ -96,12 +178,34 @@ export default function SignupPage() {
               <Input
                 id="password"
                 type="password"
+                ref={passwordInputRef}
                 placeholder="Crie uma senha (mín. 6 caracteres)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordStrength(checkPasswordStrength(password))}
+                onBlur={() => { if(!password) setPasswordStrength({ score: 0, text: '', color: ''})}}
                 required
                 disabled={isLoading}
               />
+              {passwordStrength.text && (
+                <div className="mt-1 flex items-center">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        passwordStrength.score === 0 ? 'bg-destructive' :
+                        passwordStrength.score === 1 ? 'bg-destructive' :
+                        passwordStrength.score === 2 ? 'bg-orange-500' :
+                        passwordStrength.score === 3 ? 'bg-yellow-500' :
+                        'bg-green-500' 
+                      }`}
+                      style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                    />
+                  </div>
+                  <span className={`ml-2 text-xs font-medium ${passwordStrength.color}`}>
+                    {passwordStrength.text}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Senha <span className="text-destructive">*</span></Label>
@@ -140,3 +244,4 @@ export default function SignupPage() {
     </div>
   );
 }
+
