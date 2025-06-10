@@ -215,6 +215,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isRenameListDialogOpen && renameInputRef.current) {
       renameInputRef.current.focus();
+      renameInputRef.current.select();
     }
     if (isAddListDialogOpen && newListInputRef.current) {
       newListInputRef.current.focus();
@@ -356,7 +357,8 @@ export default function DashboardPage() {
                 className={cn(
                   buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
                   'p-0.5 gap-0.5', 
-                  "group shrink-0 cursor-pointer flex items-center" 
+                  "group shrink-0 cursor-pointer flex items-center",
+                  activeListId === list.id && 'font-semibold shadow-md'
                 )}
               >
                 <DynamicIcon name={list.icon} className="flex-shrink-0 h-4 w-4" />
@@ -511,7 +513,11 @@ export default function DashboardPage() {
                 Ícone
               </Label>
               <div className="col-span-3 flex items-center gap-2">
-                <DynamicIcon name={newListIcon} className="h-5 w-5 text-primary" />
+                {isSuggestingIcon ? (
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                ) : (
+                    <DynamicIcon name={newListIcon} className="h-5 w-5 text-primary" />
+                )}
                 <Input
                   id="new-list-icon-name"
                   value={newListIcon}
@@ -604,3 +610,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
