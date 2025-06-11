@@ -41,6 +41,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   isToday,
   isYesterday,
@@ -371,7 +372,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     if (newlyAddedProductId) {
       const timer = setTimeout(() => {
         setNewlyAddedProductId(null);
-      }, 2000); // Animation duration is ~0.8s, clear after a bit more
+      }, 2000); 
       return () => clearTimeout(timer);
     }
   }, [newlyAddedProductId]);
@@ -895,7 +896,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   };
 
 
-  const renderHeaderCell = (column: SortableKey, label: string, classNameExt: string = "", isSortable: boolean = true) => {
+  const renderHeaderCell = (column: SortableKey, label: string, tooltipText: string, classNameExt: string = "", isSortable: boolean = true) => {
     const isActiveSortColumn = sortBy === column && sortBy !== 'none' && !isSelectionModeActive && isSortable;
     const baseClasses = `py-3 ${isSelectionModeActive ? 'pl-2 pr-2' : 'px-2 md:px-4'} ${(!isSelectionModeActive && isSortable) ? 'cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30' : ''}`;
     const activeSortClasses = isActiveSortColumn ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold' : '';
@@ -914,7 +915,16 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
             }
         }}
       >
-        {label} {icon}
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span className="flex items-center">
+                    {label} {icon}
+                </span>
+            </TooltipTrigger>
+            <TooltipContent>
+                <p>{tooltipText}</p>
+            </TooltipContent>
+        </Tooltip>
       </ShadTableHeaderComponent>
     );
   };
@@ -1055,283 +1065,294 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
         </CardHeader>
         <CardContent className="px-1 pb-1 pt-0">
           <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <ShadTableRow
-                  onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
-                  onPointerUp={handleHeaderRowPointerUp}
-                  onPointerLeave={() => {
-                    if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
-                     headerPointerDownPositionRef.current = null;
-                  }}
-                  onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerMove(e.clientX, e.clientY)}
-                  onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
-                    if (e.touches.length === 1) handleHeaderRowPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-                  }}
-                  onTouchEnd={handleHeaderRowPointerUp}
-                  onTouchCancel={() => {
-                     if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
-                     headerPointerDownPositionRef.current = null;
-                  }}
-                  onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
-                    if (e.touches.length === 1) handleHeaderRowPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-                  }}
-                  className="relative"
-                >
-                  {isSelectionModeActive ? (
-                    <ShadTableHeaderComponent className="w-[50px] px-2 py-3">
-                       <Checkbox
-                          id="selectAll"
-                          aria-label="Selecionar todas as linhas visíveis"
-                          checked={selectAllCheckedState}
-                          onCheckedChange={handleSelectAll}
-                        />
-                    </ShadTableHeaderComponent>
-                  ) : null }
-                  {renderHeaderCell('id', 'ID', `w-[60px] ${isSelectionModeActive ? 'px-2 text-center' : 'pl-2 pr-1 text-left'}`)}
-                  {renderHeaderCell('produto', 'Produto')}
-                  {renderHeaderCell('marca', 'Marca')}
-                  {renderHeaderCell('unidade', 'Qtde', 'text-center')}
-                  <ShadTableHeaderComponent
-                    className={cn(
-                        `min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30' : ''}`,
-                        (sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive) ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold' : ''
-                    )}
-                    onClick={(e) => {
-                        if (!isSelectionModeActive) {
-                            e.stopPropagation();
-                            handleHeaderClick('validade');
-                        }
+            <TooltipProvider>
+              <Table>
+                <TableHeader>
+                  <ShadTableRow
+                    onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerDown(e.clientX, e.clientY)}
+                    onPointerUp={handleHeaderRowPointerUp}
+                    onPointerLeave={() => {
+                      if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+                       headerPointerDownPositionRef.current = null;
                     }}
+                    onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => handleHeaderRowPointerMove(e.clientX, e.clientY)}
+                    onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
+                      if (e.touches.length === 1) handleHeaderRowPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+                    }}
+                    onTouchEnd={handleHeaderRowPointerUp}
+                    onTouchCancel={() => {
+                       if (longPressHeaderTimerRef.current) clearTimeout(longPressHeaderTimerRef.current);
+                       headerPointerDownPositionRef.current = null;
+                    }}
+                    onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
+                      if (e.touches.length === 1) handleHeaderRowPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                    }}
+                    className="relative"
                   >
-                    Validade
-                    {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
-                    <Popover
-                        open={isAddActionPopoverOpen && !isSelectionModeActive}
-                         onOpenChange={(isOpen) => {
-                           if (!isOpen && isAddActionPopoverOpen) {
-                             setIsAddActionPopoverOpen(false);
-                           }
-                        }}
+                    {isSelectionModeActive ? (
+                      <ShadTableHeaderComponent className="w-[50px] px-2 py-3">
+                         <Checkbox
+                            id="selectAll"
+                            aria-label="Selecionar todas as linhas visíveis"
+                            checked={selectAllCheckedState}
+                            onCheckedChange={handleSelectAll}
+                          />
+                      </ShadTableHeaderComponent>
+                    ) : null }
+                    {renderHeaderCell('id', 'ID', 'ID sequencial do produto. Clique para ordenar.', `w-[60px] ${isSelectionModeActive ? 'px-2 text-center' : 'pl-2 pr-1 text-left'}`)}
+                    {renderHeaderCell('produto', 'Produto', 'Nome do produto. Clique para ordenar.')}
+                    {renderHeaderCell('marca', 'Marca', 'Marca do produto. Clique para ordenar.')}
+                    {renderHeaderCell('unidade', 'Qtde', 'Quantidade do produto. Clique para ordenar.', 'text-center')}
+                    <ShadTableHeaderComponent
+                      className={cn(
+                          `min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30' : ''}`,
+                          (sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive) ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold' : ''
+                      )}
+                      onClick={(e) => {
+                          if (!isSelectionModeActive) {
+                              e.stopPropagation();
+                              handleHeaderClick('validade');
+                          }
+                      }}
                     >
-                       <PopoverTrigger asChild>
-                         <span className="absolute right-0 top-0 h-full w-full" data-popover-anchor-for="add-action" />
-                       </PopoverTrigger>
-                       <PopoverContent
-                         side="top"
-                         align="end"
-                         className="w-auto p-1 z-[60]"
-                         onOpenAutoFocus={(e) => e.preventDefault()}
-                         onClick={(e) => e.stopPropagation()}
-                       >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsAddProductDialogOpen(true);
-                            setNewProductFormData({ ...initialNewProductFormData });
-                            setIsAddActionPopoverOpen(false);
-                            setIsScannerActive(false);
-                          }}
-                          aria-label="Adicionar novo produto"
-                        >
-                          <PlusCircle className="h-4 w-4 text-primary" />
-                        </Button>
-                      </PopoverContent>
-                    </Popover>
-                  </ShadTableHeaderComponent>
-                </ShadTableRow>
-              </TableHeader>
-              <motion.tbody layout className="[&_tr:last-child]:border-0">
-                <AnimatePresence>
-                  {isLoadingProducts && (
-                    <motion.tr key="loading-row" className="border-b">
-                      <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
-                        <div className="flex items-center justify-center">
-                           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando produtos...
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  )}
-                  {!isLoadingProducts && filteredProducts.map((product) => {
-                    const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
-                    const currentProductKey = product.originalId!;
-                    const isNewlyAdded = newlyAddedProductId === currentProductKey;
-
-                    let shockwaveAnimProps: any = {};
-                    const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
-
-                    if (shockwaveTargetInfo) {
-                        const { strength } = shockwaveTargetInfo;
-                        const displacementFactor = shockwaveTargetInfo.direction === 'up' ? -1 : 1;
-                        const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
-
-                        const baseScaleMagnitude = 0.05;
-                        let currentScaleMagnitude = 0;
-                         if (strength > 0) {
-                             const maxPossibleStrengthAtDistance1 = BASE_SHOCKWAVE_STRENGTH_PX - (1 - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
-                             if (maxPossibleStrengthAtDistance1 > 0) {
-                                 const strengthRatio = Math.max(0, strength / maxPossibleStrengthAtDistance1);
-                                 currentScaleMagnitude = baseScaleMagnitude * strengthRatio;
-                             }
-                         }
-                        const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
-
-                        shockwaveAnimProps = {
-                            y: ySequence,
-                            scale: scaleSequence,
-                            transition: { duration: SHOCKWAVE_DURATION / 1000, ease: "easeInOut" }
-                        };
-                    }
-
-                    let finalAnimateProps = { ...shockwaveAnimProps };
-                    if (isNewlyAdded) {
-                      finalAnimateProps.scale = [1, 1.02, 1];
-                    }
-
-                    let finalTransitionProps = shockwaveAnimProps.transition ? { ...shockwaveAnimProps.transition } : { duration: SHOCKWAVE_DURATION / 1000, ease: "easeInOut" };
-                    if (isNewlyAdded) {
-                      finalTransitionProps = { duration: 0.8, times: [0, 0.5, 1], ease: "circOut" };
-                    }
-
-
-                    return (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="flex items-center justify-end">
+                                    Validade
+                                    {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive && (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownZA className="inline-block ml-1 h-3 w-3" />)}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Data de validade. Clique para ordenar.</p>
+                            </TooltipContent>
+                        </Tooltip>
                       <Popover
-                        key={currentProductKey}
-                        open={activePopoverProductId === currentProductKey && !isSelectionModeActive && !product.isExploding}
-                        onOpenChange={(isOpen) => {
-                           if (isSelectionModeActive || product.isExploding) {
-                               if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
-                               return;
-                           }
-                           if (isOpen) {
-                             setSelectedProduct(product);
-                             setActivePopoverProductId(currentProductKey);
-                           } else {
-                             if (activePopoverProductId === currentProductKey) {
-                               setActivePopoverProductId(null);
+                          open={isAddActionPopoverOpen && !isSelectionModeActive}
+                           onOpenChange={(isOpen) => {
+                             if (!isOpen && isAddActionPopoverOpen) {
+                               setIsAddActionPopoverOpen(false);
                              }
-                           }
-                        }}
+                          }}
                       >
-                        <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
-                          <motion.tr
-                            layout
-                            layoutId={currentProductKey}
-                            initial={{ opacity: 1 }}
-                            animate={finalAnimateProps}
-                            transition={finalTransitionProps}
-                            className={styleString}
-                            data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
-                            onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
-                              if (product.isExploding || !product.originalId) return;
-                               handleRowInteractionStart(product.originalId, e.clientX, e.clientY);
+                         <PopoverTrigger asChild>
+                           <span className="absolute right-0 top-0 h-full w-full" data-popover-anchor-for="add-action" />
+                         </PopoverTrigger>
+                         <PopoverContent
+                           side="top"
+                           align="end"
+                           className="w-auto p-1 z-[60]"
+                           onOpenAutoFocus={(e) => e.preventDefault()}
+                           onClick={(e) => e.stopPropagation()}
+                         >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsAddProductDialogOpen(true);
+                              setNewProductFormData({ ...initialNewProductFormData });
+                              setIsAddActionPopoverOpen(false);
+                              setIsScannerActive(false);
                             }}
-                            onPointerUp={(e: PointerEvent<HTMLTableRowElement>) => {
-                              if (product.isExploding || !product.originalId) return;
-                              handleRowInteractionEnd(product, e.clientX, e.clientY, e.target);
-                            }}
-                            onPointerLeave={() => {
-                              if (product.isExploding) return;
-                              if (longPressTimerRef.current) {
-                                clearTimeout(longPressTimerRef.current);
-                                longPressTimerRef.current = null;
-                              }
-                               pointerDownPositionRef.current = null;
-                            }}
-                            onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => {
-                              if (product.isExploding) return;
-                              handlePointerMove(e.clientX, e.clientY);
-                            }}
-                            onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
-                              if (product.isExploding || !product.originalId) return;
-                              if (e.touches.length === 1) {
-                                  handleRowInteractionStart(product.originalId, e.touches[0].clientX, e.touches[0].clientY);
-                              }
-                            }}
-                            onTouchEnd={(e: TouchEvent<HTMLTableRowElement>) => {
-                              if (product.isExploding || !product.originalId) return;
-                              if (e.changedTouches.length === 1) {
-                                 handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
-                              }
-                            }}
-                            onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
-                               if (product.isExploding) return;
-                               if (e.touches.length === 1) {
-                                  handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-                               }
-                            }}
-                            onTouchCancel={() => {
-                               if (product.isExploding) return;
-                               if (longPressTimerRef.current) {
-                                clearTimeout(longPressTimerRef.current);
-                                longPressTimerRef.current = null;
-                              }
-                              pointerDownPositionRef.current = null;
-                            }}
+                            aria-label="Adicionar novo produto"
                           >
-                            {product.isExploding ? (
-                              <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative py-3">
-                                <Particle
-                                  onComplete={() => finalizeDeleteProduct(currentProductKey)}
-                                  particleColorClass={particleColorClass}
-                                />
-                              </TableCell>
-                            ) : (
-                              <>
-                                {isSelectionModeActive ? (
-                                  <TableCell data-is-checkbox-cell="true" className="py-0 px-2" onClick={(e) => e.stopPropagation()}>
-                                    <Checkbox
-                                        aria-label={`Selecionar produto ${product.produto}`}
-                                        checked={product.originalId ? selectedProductIds.includes(product.originalId) : false}
-                                        onCheckedChange={() => product.originalId && handleToggleSelectProduct(product.originalId)}
-                                      />
-                                  </TableCell>
-                                ): null }
-                                <TableCell className={`font-medium py-3 ${isSelectionModeActive ? 'px-1 text-center' : 'pl-2 pr-1 text-left'}`}>{product.id}</TableCell>
-                                <TableCell className="py-3 px-2 md:px-4">{product.produto}</TableCell>
-                                <TableCell className="py-3 px-2 md:px-4">{product.marca}</TableCell>
-                                <TableCell className="py-3 px-2 md:px-4 text-center">{product.unidade}</TableCell>
-                                <TableCell className="py-3 px-2 md:px-4 text-right">
-                                  {product.validade && isValid(parseISO(product.validade))
-                                    ? format(parseISO(product.validade), 'dd/MM/yyyy')
-                                    : 'N/A'}
-                                </TableCell>
-                              </>
-                            )}
-                          </motion.tr>
-                        </PopoverTrigger>
-                         {!isSelectionModeActive && !product.isExploding && (
-                          <PopoverContent side="top" align="end" className="w-auto p-1 z-50"
-                            onOpenAutoFocus={(e) => e.preventDefault()}
-                            onCloseAutoFocus={(e) => e.preventDefault()}
-                          >
-                            <div className="flex space-x-1">
-                              <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto" className="h-[1.125rem] w-[1.125rem]">
-                                <Pencil />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-[1.125rem] w-[1.125rem]">
-                                <Trash2 />
-                              </Button>
-                            </div>
-                          </PopoverContent>
-                         )}
+                            <PlusCircle className="h-4 w-4 text-primary" />
+                          </Button>
+                        </PopoverContent>
                       </Popover>
-                    );
-                  })}
-                   {!isLoadingProducts && nonExplodingFilteredProductsCount === 0 && (
-                     <motion.tr key="no-products-row" className="border-b">
-                       <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
-                         {nonExplodingClientProductsCount === 0
-                           ? "Nenhum produto nesta lista. Que tal adicionar um novo?"
-                           : "Nenhum produto encontrado com os filtros atuais."}
-                       </TableCell>
-                     </motion.tr>
-                   )}
-                </AnimatePresence>
-              </motion.tbody>
-            </Table>
+                    </ShadTableHeaderComponent>
+                  </ShadTableRow>
+                </TableHeader>
+                <motion.tbody layout className="[&_tr:last-child]:border-0">
+                  <AnimatePresence>
+                    {isLoadingProducts && (
+                      <motion.tr key="loading-row" className="border-b">
+                        <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
+                          <div className="flex items-center justify-center">
+                             <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando produtos...
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    )}
+                    {!isLoadingProducts && filteredProducts.map((product) => {
+                      const { styleString, particleColorClass } = getRowStyling(product.validade, product.originalId ? selectedProductIds.includes(product.originalId) : false, isSelectionModeActive, product.isExploding);
+                      const currentProductKey = product.originalId!;
+                      const isNewlyAdded = newlyAddedProductId === currentProductKey;
+
+                      let shockwaveAnimProps: any = {};
+                      const shockwaveTargetInfo = !product.isExploding ? shockwaveTargets.find(st => st.id === currentProductKey) : undefined;
+
+                      if (shockwaveTargetInfo) {
+                          const { strength } = shockwaveTargetInfo;
+                          const displacementFactor = shockwaveTargetInfo.direction === 'up' ? -1 : 1;
+                          const ySequence = [0, displacementFactor * strength, displacementFactor * strength * 0.4, displacementFactor * strength * -0.2, 0];
+
+                          const baseScaleMagnitude = 0.05;
+                          let currentScaleMagnitude = 0;
+                           if (strength > 0) {
+                               const maxPossibleStrengthAtDistance1 = BASE_SHOCKWAVE_STRENGTH_PX - (1 - 1) * SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP;
+                               if (maxPossibleStrengthAtDistance1 > 0) {
+                                   const strengthRatio = Math.max(0, strength / maxPossibleStrengthAtDistance1);
+                                   currentScaleMagnitude = baseScaleMagnitude * strengthRatio;
+                               }
+                           }
+                          const scaleSequence = [1, 1 + currentScaleMagnitude, 1 - currentScaleMagnitude * 0.6, 1 + currentScaleMagnitude * 0.2, 1];
+
+                          shockwaveAnimProps = {
+                              y: ySequence,
+                              scale: scaleSequence,
+                              transition: { duration: SHOCKWAVE_DURATION / 1000, ease: "easeInOut" }
+                          };
+                      }
+
+                      let finalAnimateProps = { ...shockwaveAnimProps };
+                      if (isNewlyAdded) {
+                        finalAnimateProps.scale = [1, 1.02, 1];
+                      }
+
+                      let finalTransitionProps = shockwaveAnimProps.transition ? { ...shockwaveAnimProps.transition } : { duration: SHOCKWAVE_DURATION / 1000, ease: "easeInOut" };
+                      if (isNewlyAdded) {
+                        finalTransitionProps = { duration: 0.8, times: [0, 0.5, 1], ease: "circOut" };
+                      }
+
+
+                      return (
+                        <Popover
+                          key={currentProductKey}
+                          open={activePopoverProductId === currentProductKey && !isSelectionModeActive && !product.isExploding}
+                          onOpenChange={(isOpen) => {
+                             if (isSelectionModeActive || product.isExploding) {
+                                 if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
+                                 return;
+                             }
+                             if (isOpen) {
+                               setSelectedProduct(product);
+                               setActivePopoverProductId(currentProductKey);
+                             } else {
+                               if (activePopoverProductId === currentProductKey) {
+                                 setActivePopoverProductId(null);
+                               }
+                             }
+                          }}
+                        >
+                          <PopoverTrigger asChild disabled={isSelectionModeActive || product.isExploding}>
+                            <motion.tr
+                              layout
+                              layoutId={currentProductKey}
+                              initial={{ opacity: 1 }}
+                              animate={finalAnimateProps}
+                              transition={finalTransitionProps}
+                              className={styleString}
+                              data-state={product.originalId && selectedProductIds.includes(product.originalId) ? "selected" : ""}
+                              onPointerDown={(e: PointerEvent<HTMLTableRowElement>) => {
+                                if (product.isExploding || !product.originalId) return;
+                                 handleRowInteractionStart(product.originalId, e.clientX, e.clientY);
+                              }}
+                              onPointerUp={(e: PointerEvent<HTMLTableRowElement>) => {
+                                if (product.isExploding || !product.originalId) return;
+                                handleRowInteractionEnd(product, e.clientX, e.clientY, e.target);
+                              }}
+                              onPointerLeave={() => {
+                                if (product.isExploding) return;
+                                if (longPressTimerRef.current) {
+                                  clearTimeout(longPressTimerRef.current);
+                                  longPressTimerRef.current = null;
+                                }
+                                 pointerDownPositionRef.current = null;
+                              }}
+                              onPointerMove={(e: PointerEvent<HTMLTableRowElement>) => {
+                                if (product.isExploding) return;
+                                handlePointerMove(e.clientX, e.clientY);
+                              }}
+                              onTouchStart={(e: TouchEvent<HTMLTableRowElement>) => {
+                                if (product.isExploding || !product.originalId) return;
+                                if (e.touches.length === 1) {
+                                    handleRowInteractionStart(product.originalId, e.touches[0].clientX, e.touches[0].clientY);
+                                }
+                              }}
+                              onTouchEnd={(e: TouchEvent<HTMLTableRowElement>) => {
+                                if (product.isExploding || !product.originalId) return;
+                                if (e.changedTouches.length === 1) {
+                                   handleRowInteractionEnd(product, e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
+                                }
+                              }}
+                              onTouchMove={(e: TouchEvent<HTMLTableRowElement>) => {
+                                 if (product.isExploding) return;
+                                 if (e.touches.length === 1) {
+                                    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+                                 }
+                              }}
+                              onTouchCancel={() => {
+                                 if (product.isExploding) return;
+                                 if (longPressTimerRef.current) {
+                                  clearTimeout(longPressTimerRef.current);
+                                  longPressTimerRef.current = null;
+                                }
+                                pointerDownPositionRef.current = null;
+                              }}
+                            >
+                              {product.isExploding ? (
+                                <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="p-0 relative py-3">
+                                  <Particle
+                                    onComplete={() => finalizeDeleteProduct(currentProductKey)}
+                                    particleColorClass={particleColorClass}
+                                  />
+                                </TableCell>
+                              ) : (
+                                <>
+                                  {isSelectionModeActive ? (
+                                    <TableCell data-is-checkbox-cell="true" className="py-0 px-2" onClick={(e) => e.stopPropagation()}>
+                                      <Checkbox
+                                          aria-label={`Selecionar produto ${product.produto}`}
+                                          checked={product.originalId ? selectedProductIds.includes(product.originalId) : false}
+                                          onCheckedChange={() => product.originalId && handleToggleSelectProduct(product.originalId)}
+                                        />
+                                    </TableCell>
+                                  ): null }
+                                  <TableCell className={`font-medium py-3 ${isSelectionModeActive ? 'px-1 text-center' : 'pl-2 pr-1 text-left'}`}>{product.id}</TableCell>
+                                  <TableCell className="py-3 px-2 md:px-4">{product.produto}</TableCell>
+                                  <TableCell className="py-3 px-2 md:px-4">{product.marca}</TableCell>
+                                  <TableCell className="py-3 px-2 md:px-4 text-center">{product.unidade}</TableCell>
+                                  <TableCell className="py-3 px-2 md:px-4 text-right">
+                                    {product.validade && isValid(parseISO(product.validade))
+                                      ? format(parseISO(product.validade), 'dd/MM/yyyy')
+                                      : 'N/A'}
+                                  </TableCell>
+                                </>
+                              )}
+                            </motion.tr>
+                          </PopoverTrigger>
+                           {!isSelectionModeActive && !product.isExploding && (
+                            <PopoverContent side="top" align="end" className="w-auto p-1 z-50"
+                              onOpenAutoFocus={(e) => e.preventDefault()}
+                              onCloseAutoFocus={(e) => e.preventDefault()}
+                            >
+                              <div className="flex space-x-1">
+                                <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto" className="h-[1.125rem] w-[1.125rem]">
+                                  <Pencil />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-[1.125rem] w-[1.125rem]">
+                                  <Trash2 />
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                           )}
+                        </Popover>
+                      );
+                    })}
+                     {!isLoadingProducts && nonExplodingFilteredProductsCount === 0 && (
+                       <motion.tr key="no-products-row" className="border-b">
+                         <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
+                           {nonExplodingClientProductsCount === 0
+                             ? "Nenhum produto nesta lista. Que tal adicionar um novo?"
+                             : "Nenhum produto encontrado com os filtros atuais."}
+                         </TableCell>
+                       </motion.tr>
+                     )}
+                  </AnimatePresence>
+                </motion.tbody>
+              </Table>
+            </TooltipProvider>
           </div>
         </CardContent>
       </Card>
@@ -1712,3 +1733,5 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     </>
   );
 }
+
+    
