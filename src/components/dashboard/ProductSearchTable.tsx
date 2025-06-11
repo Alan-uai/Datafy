@@ -1335,16 +1335,16 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                             </motion.tr>
                           </PopoverTrigger>
                            {!isSelectionModeActive && !product.isExploding && (
-                            <PopoverContent side="top" align="end" className="w-auto p-1 z-50"
+                            <PopoverContent side="top" align="end" className="w-auto p-0.5 z-50"
                               onOpenAutoFocus={(e) => e.preventDefault()}
                               onCloseAutoFocus={(e) => e.preventDefault()}
                             >
-                              <div className="flex space-x-1">
-                                <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto" className="h-[1.125rem] w-[1.125rem]">
-                                  <Pencil />
+                              <div className="flex space-x-0.5">
+                                <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Editar Produto" className="h-8 w-8">
+                                  <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-[1.125rem] w-[1.125rem]">
-                                  <Trash2 />
+                                <Button variant="ghost" size="icon" onClick={confirmDeleteSingleProduct} aria-label="Excluir Produto" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8">
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </PopoverContent>
@@ -1357,7 +1357,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                          <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
                            {nonExplodingClientProductsCount === 0
                              ? "Nenhum produto nesta lista. Que tal adicionar um novo?"
-                             : "Nenhum produto encontrado com os filtros atuais."}
+                             : "Nenhum produto encontrado com os filtros atuais. Tente refinar sua busca ou filtros."}
                          </TableCell>
                        </motion.tr>
                      )}
@@ -1747,3 +1747,4 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
 }
 
     
+

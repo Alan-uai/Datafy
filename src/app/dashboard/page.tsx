@@ -21,7 +21,7 @@ import { getProductLists, addProductList, updateProductListName, deleteProductLi
 import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
 import { generateExpirySummaryText } from '@/ai/flows/generate-expiry-summary-text-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Info } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Info, Inbox } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -102,7 +102,7 @@ export default function DashboardPage() {
                     if (defaultList) {
                       setProductLists([defaultList]);
                       setActiveListId(defaultList.id);
-                      toast({ title: "Lista Padrão Criada", description: `A lista "${defaultList.name}" foi criada para você.` });
+                      toast({ title: "Lista Padrão Criada", description: `A lista "${defaultList.name}" foi criada para você começar!` });
                     } else {
                       toast({ variant: "destructive", title: "Erro ao criar lista padrão", description: "Não foi possível criar a lista de produtos inicial." });
                     }
@@ -333,11 +333,22 @@ export default function DashboardPage() {
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
-  if (isLoadingLists && (!initialFetchDone.current || productLists.length === 0)) {
+  if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-4rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Carregando suas listas...</p>
+      <div className="py-8 px-4 md:px-6">
+        <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700 mb-6">
+            <div className="flex items-center p-2 space-x-2">
+                <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
+                <div className="h-9 w-32 bg-muted rounded animate-pulse"></div>
+                <div className="h-9 w-28 bg-muted rounded animate-pulse"></div>
+                 <div className="h-9 w-[120px] bg-muted/50 rounded animate-pulse ml-auto"></div>
+            </div>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-12rem)]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Carregando suas listas...</p>
+        </div>
       </div>
     );
   }
@@ -347,36 +358,44 @@ export default function DashboardPage() {
       <div className="mb-6">
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
           <div className="flex items-center p-2 space-x-2">
-            {productLists.map((list) => (
-              <div
-                key={list.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setActiveListId(list.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
-                className={cn(
-                  buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                  'p-0.5 gap-0.5', 
-                  "group shrink-0 cursor-pointer flex items-center",
-                  activeListId === list.id && 'font-semibold shadow-md'
-                )}
-              >
-                <DynamicIcon name={list.icon} className="flex-shrink-0 h-4 w-4" />
-                <span className="block truncate min-w-0">
-                  {list.name}
-                </span>
-                <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
-                   <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem]" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
-                     <Edit3 className="h-4 w-4" />
-                   </Button>
-                   {productLists.length > 1 && ( 
-                    <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem] text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
-                        <Trash2 className="h-4 w-4"/>
-                    </Button>
-                   )}
-                </div>
-              </div>
-            ))}
+            {isLoadingLists && productLists.length === 0 ? (
+                <>
+                    <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
+                    <div className="h-9 w-32 bg-muted rounded animate-pulse"></div>
+                    <div className="h-9 w-28 bg-muted rounded animate-pulse"></div>
+                </>
+            ) : (
+                productLists.map((list) => (
+                  <div
+                    key={list.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveListId(list.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
+                    className={cn(
+                      buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
+                      'p-0.5 gap-0.5', 
+                      "group shrink-0 cursor-pointer flex items-center",
+                      activeListId === list.id && 'font-semibold shadow-md'
+                    )}
+                  >
+                    <DynamicIcon name={list.icon} className="flex-shrink-0 h-4 w-4" />
+                    <span className="block truncate min-w-0">
+                      {list.name}
+                    </span>
+                    <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
+                       <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem]" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
+                         <Edit3 className="h-4 w-4" />
+                       </Button>
+                       {productLists.length > 1 && ( 
+                        <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem] text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
+                            <Trash2 className="h-4 w-4"/>
+                        </Button>
+                       )}
+                    </div>
+                  </div>
+                ))
+            )}
             <Button variant="outline" onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }} size="sm" className="shrink-0">
               <PlusCircle className="mr-2 h-4 w-4" />
               Nova Lista
@@ -394,9 +413,19 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
             {isLoadingStats ? (
-              <div className="flex items-center justify-center h-10">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Calculando estatísticas...</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
+                <div>
+                  <div className="h-3 w-16 sm:w-20 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                  <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                </div>
+                <div>
+                  <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                  <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                </div>
+                <div>
+                  <div className="h-3 w-12 sm:w-16 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                  <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                </div>
               </div>
             ) : listStats ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
@@ -459,17 +488,19 @@ export default function DashboardPage() {
           />
         </>
       ) : (
-         <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)]">
+         <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)] text-center">
             {isLoadingLists ? ( 
                 <>
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                    <p className="text-muted-foreground">Carregando listas...</p>
+                    <p className="text-muted-foreground">Carregando suas listas...</p>
                 </>
             ) : ( 
                  <>
-                    <List className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-2">Nenhuma lista de produtos encontrada.</p>
-                    <p className="text-sm text-muted-foreground mb-4">Crie sua primeira lista para começar a adicionar produtos.</p>
+                    <Inbox className="h-16 w-16 text-primary/70 mb-4" />
+                    <h3 className="text-xl font-semibold mb-2 text-foreground">Sua dashboard de produtos está pronta!</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md">
+                        Crie sua primeira lista para começar a organizar seus itens, controlar validades e muito mais.
+                    </p>
                     <Button onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Criar Nova Lista
