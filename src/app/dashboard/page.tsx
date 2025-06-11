@@ -553,7 +553,7 @@ export default function DashboardPage() {
             setNewListIcon('ListPlus'); 
           }
         }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Criar Nova Lista de Produtos</DialogTitle>
             <DialogDescription>
@@ -627,7 +627,7 @@ export default function DashboardPage() {
       </Dialog>
 
       <Dialog open={isRenameListDialogOpen} onOpenChange={setIsRenameListDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Renomear Lista: {listToRename?.name}</DialogTitle>
             <DialogDescription>
@@ -660,7 +660,7 @@ export default function DashboardPage() {
 
         {listToDelete && (
             <Dialog open={isDeleteListConfirmOpen} onOpenChange={setIsDeleteListConfirmOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Confirmar Exclusão da Lista</DialogTitle>
                     <DialogDescription>
@@ -677,3 +677,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

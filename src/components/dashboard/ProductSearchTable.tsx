@@ -861,7 +861,10 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
       if (closeDialogAfterSave) {
         setIsAddProductDialogOpen(false);
       } else {
-        if (newProductNameInputRef.current) newProductNameInputRef.current.focus();
+        if (newProductNameInputRef.current) {
+          newProductNameInputRef.current.focus();
+          newProductNameInputRef.current.select();
+        }
       }
       onProductsChanged?.();
     } catch (error: any) {
@@ -1005,14 +1008,17 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     if (nonExplodingClientProductsCount === 0) {
       return "Nenhum produto nesta lista. Que tal adicionar um novo?";
     }
-    if (searchTerm) {
+    if (searchTerm && nonExplodingFilteredProductsCount === 0) {
       return `Nenhum produto encontrado para "${searchTerm}". Tente um termo diferente.`;
     }
-    if (selectedDateFilter !== 'all') {
+    if (selectedDateFilter !== 'all' && nonExplodingFilteredProductsCount === 0) {
       const filterLabel = dateFilterOptions.find(opt => opt.value === selectedDateFilter)?.label || selectedDateFilter;
       return `Nenhum produto encontrado com o filtro de data: "${filterLabel}".`;
     }
-    return "Nenhum produto encontrado com os filtros atuais. Tente refinar sua busca ou filtros.";
+    if(nonExplodingFilteredProductsCount === 0 && (searchTerm || selectedDateFilter !== 'all')) {
+      return "Nenhum produto encontrado com os filtros atuais. Tente refinar sua busca ou filtros.";
+    }
+    return "Algo deu errado ou esta lista está vazia.";
   };
 
   return (
@@ -1689,7 +1695,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
       </Dialog>
 
       <Dialog open={isMoveProductsDialogOpen} onOpenChange={setIsMoveProductsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Mover Produtos Selecionados</DialogTitle>
             <DialogDescription>
@@ -1725,7 +1731,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
       </Dialog>
 
       <Dialog open={isBatchEditExpiryDialogOpen} onOpenChange={setIsBatchEditExpiryDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Validade em Lote</DialogTitle>
             <DialogDescription>
@@ -1757,3 +1763,4 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     </>
   );
 }
+
