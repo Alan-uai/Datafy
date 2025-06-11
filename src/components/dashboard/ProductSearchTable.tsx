@@ -144,6 +144,7 @@ const DRAG_THRESHOLD = 10;
 const SHOCKWAVE_DURATION = 700;
 const BASE_SHOCKWAVE_STRENGTH_PX = 15;
 const SHOCKWAVE_STRENGTH_DECREMENT_PER_STEP = 1.5;
+const SEARCH_DEBOUNCE_DELAY = 300;
 
 
 const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'> = {
@@ -237,6 +238,7 @@ interface ProductSearchTableProps {
 export function ProductSearchTable({ listId, productLists, onProductsChanged }: ProductSearchTableProps) {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const [searchInputText, setSearchInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
 
@@ -376,6 +378,16 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
       return () => clearTimeout(timer);
     }
   }, [newlyAddedProductId]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchTerm(searchInputText);
+    }, SEARCH_DEBOUNCE_DELAY);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInputText]);
 
 
   const finalizeDeleteProduct = (productOriginalId: string) => {
@@ -969,7 +981,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     }
   };
 
-  const isAnyFilterActive = searchTerm.trim() !== '' || selectedDateFilter !== 'all';
+  const isAnyFilterActive = searchInputText.trim() !== '' || selectedDateFilter !== 'all';
 
 
   if (!listId && !isLoadingProducts) {
@@ -999,8 +1011,8 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
               <Input
                 type="search"
                 placeholder="Buscar produtos nesta lista..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInputText}
+                onChange={(e) => setSearchInputText(e.target.value)}
                 className="pl-10 w-full"
               />
             </div>
@@ -1022,7 +1034,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setSearchTerm('');
+                    setSearchInputText('');
                     setSelectedDateFilter('all');
                   }}
                   className="w-full sm:w-auto text-muted-foreground hover:text-foreground"
