@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import type { KeyboardEvent } from 'react';
 import { ProductSearchTable } from '@/components/dashboard/ProductSearchTable';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,6 +73,7 @@ export default function DashboardPage() {
   const [isDeleteListConfirmOpen, setIsDeleteListConfirmOpen] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const newListInputRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const initialFetchDone = useRef(false);
 
@@ -222,6 +224,10 @@ export default function DashboardPage() {
     }
   }, [isRenameListDialogOpen, isAddListDialogOpen]);
 
+  useEffect(() => {
+    tabRefs.current = tabRefs.current.slice(0, productLists.length);
+  }, [productLists.length]);
+
 
   const handleSuggestIcon = async () => {
     if (!newListName.trim()) {
@@ -331,13 +337,37 @@ export default function DashboardPage() {
     }
   }, [currentUser?.uid, activeListId, productLists, calculateStatsAndSummary]);
 
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>, currentIndex: number) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const numTabs = productLists.length;
+      if (numTabs === 0) return;
+
+      let nextIndex;
+      if (event.key === 'ArrowRight') {
+        nextIndex = (currentIndex + 1) % numTabs;
+      } else {
+        nextIndex = (currentIndex - 1 + numTabs) % numTabs;
+      }
+      
+      const nextListId = productLists[nextIndex]?.id;
+      if (nextListId) {
+        setActiveListId(nextListId);
+        // Focus the new tab after state updates and re-render
+        setTimeout(() => {
+          tabRefs.current[nextIndex]?.focus();
+        }, 0);
+      }
+    }
+  };
+
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
 
   if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
       <div className="py-8 px-4 md:px-6">
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700 mb-6">
-            <div className="flex items-center p-2 space-x-2">
+            <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
                 <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
                 <div className="h-9 w-32 bg-muted rounded animate-pulse"></div>
                 <div className="h-9 w-28 bg-muted rounded animate-pulse"></div>
@@ -357,21 +387,25 @@ export default function DashboardPage() {
     <div className="py-8 px-4 md:px-6">
       <div className="mb-6">
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
-          <div className="flex items-center p-2 space-x-2">
+          <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
             {isLoadingLists && productLists.length === 0 ? (
                 <>
-                    <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
-                    <div className="h-9 w-32 bg-muted rounded animate-pulse"></div>
-                    <div className="h-9 w-28 bg-muted rounded animate-pulse"></div>
+                    <div className="h-9 w-24 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
+                    <div className="h-9 w-32 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
+                    <div className="h-9 w-28 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
                 </>
             ) : (
-                productLists.map((list) => (
+                productLists.map((list, index) => (
                   <div
                     key={list.id}
-                    role="button"
+                    id={`list-tab-${list.id}`}
+                    ref={el => tabRefs.current[index] = el}
+                    role="tab"
                     tabIndex={0}
+                    aria-selected={activeListId === list.id}
+                    aria-controls="product-table-section" 
                     onClick={() => setActiveListId(list.id)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveListId(list.id); }}
+                    onKeyDown={(e) => handleTabKeyDown(e, index)}
                     className={cn(
                       buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
                       'p-0.5 gap-0.5', 
@@ -384,11 +418,11 @@ export default function DashboardPage() {
                       {list.name}
                     </span>
                     <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
-                       <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem]" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}}>
+                       <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem]" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}} aria-label={`Renomear lista ${list.name}`}>
                          <Edit3 className="h-4 w-4" />
                        </Button>
                        {productLists.length > 1 && ( 
-                        <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem] text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}}>
+                        <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem] text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}} aria-label={`Excluir lista ${list.name}`}>
                             <Trash2 className="h-4 w-4"/>
                         </Button>
                        )}
@@ -405,110 +439,112 @@ export default function DashboardPage() {
         </ScrollArea>
       </div>
 
-      {activeListId && (
-        <>
-        <Card className="mb-6 shadow-md">
-          <CardHeader className="p-3 sm:p-4">
-            <CardTitle className="text-md sm:text-lg font-semibold">Resumo da Lista: {activeListName}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 pt-0">
-            {isLoadingStats ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
-                <div>
-                  <div className="h-3 w-16 sm:w-20 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                  <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
-                </div>
-                <div>
-                  <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                  <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
-                </div>
-                <div>
-                  <div className="h-3 w-12 sm:w-16 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                  <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
-                </div>
-              </div>
-            ) : listStats ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Total de Itens</p>
-                  <p className="text-xl sm:text-2xl font-bold">{listStats.total}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencendo (7 dias)</p>
-                  <p className={`text-xl sm:text-2xl font-bold ${listStats.expiringSoon > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-foreground'}`}>
-                    {listStats.expiringSoon}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>
-                  <p className={`text-xl sm:text-2xl font-bold ${listStats.expired > 0 ? 'text-destructive' : 'text-foreground'}`}>
-                    {listStats.expired}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis ou lista vazia.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6 shadow-md bg-accent/10 dark:bg-accent/20 border-accent">
-            <CardHeader className="p-3 sm:p-4 flex flex-row items-center justify-between">
-                <CardTitle className="text-md sm:text-lg font-semibold text-accent-foreground/90 flex items-center">
-                    <Info className="h-5 w-5 mr-2 text-accent" />
-                    Dica da Dashify IA
-                </CardTitle>
-                <Button variant="ghost" size="icon" onClick={handleProductsChanged} disabled={isLoadingSummary || isLoadingStats} className="h-7 w-7 text-accent hover:text-accent/80">
-                   {isLoadingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                </Button>
+      <section id="product-table-section" aria-labelledby={activeListId ? `list-tab-${activeListId}` : undefined}>
+        {activeListId && (
+          <>
+          <Card className="mb-6 shadow-md">
+            <CardHeader className="p-3 sm:p-4">
+              <CardTitle className="text-md sm:text-lg font-semibold">Resumo da Lista: {activeListName}</CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-4 pt-0">
-                {isLoadingSummary ? (
-                    <div className="space-y-2">
-                        <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
-                        <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
-                    </div>
-                ) : expirySummary ? (
-                    <p className="text-sm text-accent-foreground/80">{expirySummary}</p>
-                ) : (
-                    <p className="text-sm text-muted-foreground">Resumo da IA não disponível no momento.</p>
-                )}
-            </CardContent>
-        </Card>
-        </>
-      )}
-
-      {activeListId ? (
-        <>
-          <ProductSearchTable 
-            listId={activeListId} 
-            productLists={productLists}
-            key={activeListId} 
-            onProductsChanged={handleProductsChanged}
-          />
-        </>
-      ) : (
-         <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)] text-center">
-            {isLoadingLists ? ( 
-                <>
-                    <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                    <p className="text-muted-foreground">Carregando suas listas...</p>
-                </>
-            ) : ( 
-                 <>
-                    <Inbox className="h-16 w-16 text-primary/70 mb-4" />
-                    <h3 className="text-xl font-semibold mb-2 text-foreground">Sua dashboard de produtos está pronta!</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md">
-                        Crie sua primeira lista para começar a organizar seus itens, controlar validades e muito mais.
+              {isLoadingStats ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
+                  <div>
+                    <div className="h-3 w-16 sm:w-20 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                    <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                    <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 w-12 sm:w-16 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                    <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                  </div>
+                </div>
+              ) : listStats ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Total de Itens</p>
+                    <p className="text-xl sm:text-2xl font-bold">{listStats.total}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencendo (7 dias)</p>
+                    <p className={`text-xl sm:text-2xl font-bold ${listStats.expiringSoon > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-foreground'}`}>
+                      {listStats.expiringSoon}
                     </p>
-                    <Button onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Criar Nova Lista
-                    </Button>
-                </>
-            )}
-        </div>
-      )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>
+                    <p className={`text-xl sm:text-2xl font-bold ${listStats.expired > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                      {listStats.expired}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis ou lista vazia.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6 shadow-md bg-accent/10 dark:bg-accent/20 border-accent">
+              <CardHeader className="p-3 sm:p-4 flex flex-row items-center justify-between">
+                  <CardTitle className="text-md sm:text-lg font-semibold text-accent-foreground/90 flex items-center">
+                      <Info className="h-5 w-5 mr-2 text-accent" />
+                      Dica da Dashify IA
+                  </CardTitle>
+                  <Button variant="ghost" size="icon" onClick={handleProductsChanged} disabled={isLoadingSummary || isLoadingStats} className="h-7 w-7 text-accent hover:text-accent/80">
+                     {isLoadingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  </Button>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-4 pt-0">
+                  {isLoadingSummary ? (
+                      <div className="space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
+                          <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
+                      </div>
+                  ) : expirySummary ? (
+                      <p className="text-sm text-accent-foreground/80">{expirySummary}</p>
+                  ) : (
+                      <p className="text-sm text-muted-foreground">Resumo da IA não disponível no momento.</p>
+                  )}
+              </CardContent>
+          </Card>
+          </>
+        )}
+
+        {activeListId ? (
+          <>
+            <ProductSearchTable 
+              listId={activeListId} 
+              productLists={productLists}
+              key={activeListId} 
+              onProductsChanged={handleProductsChanged}
+            />
+          </>
+        ) : (
+           <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)] text-center">
+              {isLoadingLists ? ( 
+                  <>
+                      <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                      <p className="text-muted-foreground">Carregando suas listas...</p>
+                  </>
+              ) : ( 
+                   <>
+                      <Inbox className="h-16 w-16 text-primary/70 mb-4" />
+                      <h3 className="text-xl font-semibold mb-2 text-foreground">Sua dashboard de produtos está pronta!</h3>
+                      <p className="text-muted-foreground mb-6 max-w-md">
+                          Crie sua primeira lista para começar a organizar seus itens, controlar validades e muito mais.
+                      </p>
+                      <Button onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }}>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Criar Nova Lista
+                      </Button>
+                  </>
+              )}
+          </div>
+        )}
+      </section>
 
       <Dialog open={isAddListDialogOpen} onOpenChange={(isOpen) => {
           setIsAddListDialogOpen(isOpen);
@@ -641,7 +677,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    

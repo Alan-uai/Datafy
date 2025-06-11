@@ -341,7 +341,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   }, [clientSideProducts, selectedProductIds, isSelectionModeActive]);
 
 
-  useEffect(() => {
+ useEffect(() => {
     const isAnyProductExploding = clientSideProducts.some(p => p.isExploding);
     if (!isAnyProductExploding) {
       const anyProductSelected = selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length > 0;
@@ -1001,6 +1001,20 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   const nonExplodingFilteredProductsCount = filteredProducts.filter(p => !p.isExploding).length;
   const currentlySelectedProductsCount = selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length;
 
+  const getNoProductsMessage = () => {
+    if (nonExplodingClientProductsCount === 0) {
+      return "Nenhum produto nesta lista. Que tal adicionar um novo?";
+    }
+    if (searchTerm) {
+      return `Nenhum produto encontrado para "${searchTerm}". Tente um termo diferente.`;
+    }
+    if (selectedDateFilter !== 'all') {
+      const filterLabel = dateFilterOptions.find(opt => opt.value === selectedDateFilter)?.label || selectedDateFilter;
+      return `Nenhum produto encontrado com o filtro de data: "${filterLabel}".`;
+    }
+    return "Nenhum produto encontrado com os filtros atuais. Tente refinar sua busca ou filtros.";
+  };
+
   return (
     <>
       <Card className="shadow-xl">
@@ -1355,9 +1369,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                      {!isLoadingProducts && nonExplodingFilteredProductsCount === 0 && (
                        <motion.tr key="no-products-row" className="border-b">
                          <TableCell colSpan={isSelectionModeActive ? 6 : 5} className="text-center h-24 px-2 md:px-4 py-3">
-                           {nonExplodingClientProductsCount === 0
-                             ? "Nenhum produto nesta lista. Que tal adicionar um novo?"
-                             : "Nenhum produto encontrado com os filtros atuais. Tente refinar sua busca ou filtros."}
+                           {getNoProductsMessage()}
                          </TableCell>
                        </motion.tr>
                      )}
@@ -1745,6 +1757,3 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     </>
   );
 }
-
-    
-
