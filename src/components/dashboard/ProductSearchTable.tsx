@@ -14,7 +14,7 @@ import {
   TableRow as ShadTableRow, 
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus, FolderSymlink, CalendarCog, Wand2, CalendarDays } from 'lucide-react';
+import { Search, Pencil, Trash2, XCircle, PlusCircle, ArrowUpAZ, ArrowDownZA, Camera, Loader2, Minus, Plus, FolderSymlink, CalendarCog, Wand2, CalendarDays, FilterX } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -847,8 +847,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     setNewProductFormData(prev => ({ ...prev, produto: data, marca: prev.marca || '', unidade: prev.unidade || '1', validade: prev.validade || '' })); 
     toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${data}` });
     setIsScannerActive(false);
-    // Focus product name input after scan
-    setTimeout(() => { // Timeout to ensure DOM update before focus
+    setTimeout(() => { 
         if (newProductNameInputRef.current) {
             newProductNameInputRef.current.focus();
         }
@@ -947,6 +946,8 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     }
   };
 
+  const isAnyFilterActive = searchTerm.trim() !== '' || selectedDateFilter !== 'all';
+
 
   if (!listId && !isLoadingProducts) {
     return (
@@ -980,7 +981,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                 className="pl-10 w-full"
               />
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
                 <SelectTrigger className="w-full sm:w-auto">
                   <SelectValue placeholder="Filtrar por validade..." />
@@ -993,6 +994,20 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
                   ))}
                 </SelectContent>
               </Select>
+              {isAnyFilterActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedDateFilter('all');
+                  }}
+                  className="w-full sm:w-auto text-muted-foreground hover:text-foreground"
+                >
+                  <FilterX className="mr-2 h-4 w-4" />
+                  Limpar Filtros
+                </Button>
+              )}
             </div>
           </div>
           {isSelectionModeActive && (
@@ -1654,6 +1669,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
               value={batchNewExpiryDate}
               onChange={(e) => setBatchNewExpiryDate(e.target.value)}
               className="col-span-3"
+              min={format(new Date(), "yyyy-MM-dd")}
               required
             />
           </div>
@@ -1670,3 +1686,4 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     </>
   );
 }
+
