@@ -191,7 +191,7 @@ export default function DashboardPage() {
       } catch (summaryError: any) {
         console.error("Error generating expiry summary:", summaryError);
         setExpirySummary("Não foi possível gerar o resumo inteligente das validades.");
-        toast({ variant: "default", title: "Erro no Resumo IA", description: "O resumo por IA das validades falhou. Estatísticas básicas ainda disponíveis." });
+        // toast({ variant: "default", title: "Erro no Resumo IA", description: "O resumo por IA das validades falhou. Estatísticas básicas ainda disponíveis." });
       }
 
     } catch (error) {
@@ -354,7 +354,6 @@ export default function DashboardPage() {
       const nextListId = productLists[nextIndex]?.id;
       if (nextListId) {
         setActiveListId(nextListId);
-        // Focus the new tab after state updates and re-render
         setTimeout(() => {
           tabRefs.current[nextIndex]?.focus();
         }, 0);
@@ -450,11 +449,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-3 sm:p-4 pt-0 space-y-4">
               {isLoadingStats ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
-                  <div>
-                    <div className="h-3 w-16 sm:w-20 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                    <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-center">
                   <div>
                     <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
                     <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
@@ -465,11 +460,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : listStats ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Total de Itens</p>
-                    <p className="text-xl sm:text-2xl font-bold">{listStats.total}</p>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencendo (7 dias)</p>
                     <p className={`text-xl sm:text-2xl font-bold ${listStats.expiringSoon > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-foreground'}`}>
@@ -485,29 +476,6 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis ou lista vazia.</p>
-              )}
-
-              {(listStats || isLoadingSummary) && (
-                <>
-                  <Separator className="my-2" />
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm font-medium text-muted-foreground">
-                      <Wand2 className="h-4 w-4 mr-2 text-primary" />
-                      <span>Sugestão da Dashify IA:</span>
-                    </div>
-                    {isLoadingSummary ? (
-                      <div className="space-y-2 pt-1">
-                        <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
-                        <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
-                      </div>
-                    ) : expirySummary ? (
-                      <p className="text-sm text-foreground/90 pt-1">{expirySummary}</p>
-                    ) : (
-                      !isLoadingStats && listStats && listStats.total > 0 &&
-                      <p className="text-sm text-muted-foreground pt-1">Resumo da IA não disponível no momento.</p>
-                    )}
-                  </div>
-                </>
               )}
             </CardContent>
           </Card>
