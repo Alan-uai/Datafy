@@ -366,15 +366,17 @@ export default function DashboardPage() {
   if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
       <div className="py-8 px-4 md:px-6">
-        <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700 mb-6">
-            <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
-                <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
-                <div className="h-9 w-32 bg-muted rounded animate-pulse"></div>
-                <div className="h-9 w-28 bg-muted rounded animate-pulse"></div>
-                 <div className="h-9 w-[120px] bg-muted/50 rounded animate-pulse ml-auto"></div>
-            </div>
-            <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        <div className="sticky top-16 z-40 bg-background dark:bg-background py-3 shadow-sm">
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
+                <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
+                    <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
+                    <div className="h-9 w-32 bg-muted rounded animate-pulse"></div>
+                    <div className="h-9 w-28 bg-muted rounded animate-pulse"></div>
+                    <div className="h-9 w-[120px] bg-muted/50 rounded animate-pulse ml-auto"></div>
+                </div>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+        </div>
         <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-12rem)]">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <p className="mt-4 text-muted-foreground">Carregando suas listas...</p>
@@ -385,7 +387,7 @@ export default function DashboardPage() {
 
   return (
     <div className="py-8 px-4 md:px-6">
-      <div className="mb-6">
+      <div className="sticky top-16 z-40 bg-background dark:bg-background py-3 shadow-sm mb-6">
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
           <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
             {isLoadingLists && productLists.length === 0 ? (

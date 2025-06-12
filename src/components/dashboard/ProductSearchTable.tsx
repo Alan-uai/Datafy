@@ -445,6 +445,11 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
             handleToggleSelectProduct(product.originalId);
           }
         } else {
+           // Open popover for single click/tap if not in selection mode
+            if (!product.isExploding) {
+                setSelectedProduct(product);
+                setActivePopoverProductId(product.originalId || null);
+            }
         }
       }
     }
@@ -1005,7 +1010,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   const currentlySelectedProductsCount = selectedProductIds.filter(id => clientSideProducts.some(p => p.originalId === id && !p.isExploding)).length;
 
   const getNoProductsMessage = () => {
-    if (nonExplodingClientProductsCount === 0) {
+    if (nonExplodingClientProductsCount === 0 && !isLoadingProducts) {
       return "Nenhum produto nesta lista. Que tal adicionar um novo?";
     }
     if (searchTerm && nonExplodingFilteredProductsCount === 0) {
@@ -1018,13 +1023,16 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     if(nonExplodingFilteredProductsCount === 0 && (searchTerm || selectedDateFilter !== 'all')) {
       return "Nenhum produto encontrado com os filtros atuais. Tente refinar sua busca ou filtros.";
     }
+    if (isLoadingProducts) { // Added condition for loading state
+      return ""; // Return empty or a generic loading if preferred over the table's loading row
+    }
     return "Algo deu errado ou esta lista está vazia.";
   };
 
   return (
     <>
       <Card className="shadow-xl">
-        <CardHeader>
+        <CardHeader className="sticky top-[calc(4rem_+_4.75rem_+_2px)] z-30 bg-card dark:bg-card"> {/* Adjusted top value according to new calculation and made CardHeader sticky */}
            <div className="mt-4 flex flex-col gap-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
