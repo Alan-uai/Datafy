@@ -26,6 +26,7 @@ import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Info, Inbox
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
   isToday,
   isPast,
@@ -366,7 +367,7 @@ export default function DashboardPage() {
   if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
       <div className="py-8 px-4 md:px-6">
-        <div className="sticky top-16 z-40 bg-background dark:bg-background py-3 shadow-sm">
+        <div className="sticky top-[calc(var(--header-height,4rem))] z-40 bg-background dark:bg-background py-3 shadow-sm">
             <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
                 <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
                     <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
@@ -387,7 +388,7 @@ export default function DashboardPage() {
 
   return (
     <div className="py-8 px-4 md:px-6">
-      <div className="sticky top-16 z-40 bg-background dark:bg-background py-3 shadow-sm mb-6">
+      <div className="sticky top-[calc(var(--header-height,4rem))] z-40 bg-background dark:bg-background py-3 shadow-sm mb-6">
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
           <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
             {isLoadingLists && productLists.length === 0 ? (
@@ -443,12 +444,11 @@ export default function DashboardPage() {
 
       <section id="product-table-section" aria-labelledby={activeListId ? `list-tab-${activeListId}` : undefined}>
         {activeListId && (
-          <>
           <Card className="mb-6 shadow-md">
             <CardHeader className="p-3 sm:p-4">
               <CardTitle className="text-md sm:text-lg font-semibold">Resumo da Lista: {activeListName}</CardTitle>
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
+            <CardContent className="p-3 sm:p-4 pt-0 space-y-4">
               {isLoadingStats ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-center">
                   <div>
@@ -486,33 +486,31 @@ export default function DashboardPage() {
               ) : (
                 <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis ou lista vazia.</p>
               )}
+
+              {(listStats || isLoadingSummary) && (
+                <>
+                  <Separator className="my-2" />
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm font-medium text-muted-foreground">
+                      <Wand2 className="h-4 w-4 mr-2 text-primary" />
+                      <span>Sugestão da Dashify IA:</span>
+                    </div>
+                    {isLoadingSummary ? (
+                      <div className="space-y-2 pt-1">
+                        <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
+                        <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
+                      </div>
+                    ) : expirySummary ? (
+                      <p className="text-sm text-foreground/90 pt-1">{expirySummary}</p>
+                    ) : (
+                      !isLoadingStats && listStats && listStats.total > 0 &&
+                      <p className="text-sm text-muted-foreground pt-1">Resumo da IA não disponível no momento.</p>
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
-
-          <Card className="mb-6 shadow-md bg-accent/10 dark:bg-accent/20 border-accent">
-              <CardHeader className="p-3 sm:p-4 flex flex-row items-center justify-between">
-                  <CardTitle className="text-md sm:text-lg font-semibold text-accent-foreground/90 flex items-center">
-                      <Info className="h-5 w-5 mr-2 text-accent" />
-                      Dica da Dashify IA
-                  </CardTitle>
-                  <Button variant="ghost" size="icon" onClick={handleProductsChanged} disabled={isLoadingSummary || isLoadingStats} className="h-7 w-7 text-accent hover:text-accent/80">
-                     {isLoadingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  </Button>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-4 pt-0">
-                  {isLoadingSummary ? (
-                      <div className="space-y-2">
-                          <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
-                          <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
-                      </div>
-                  ) : expirySummary ? (
-                      <p className="text-sm text-accent-foreground/80">{expirySummary}</p>
-                  ) : (
-                      <p className="text-sm text-muted-foreground">Resumo da IA não disponível no momento.</p>
-                  )}
-              </CardContent>
-          </Card>
-          </>
         )}
 
         {activeListId ? (
@@ -628,7 +626,10 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isRenameListDialogOpen} onOpenChange={setIsRenameListDialogOpen}>
+      <Dialog open={isRenameListDialogOpen} onOpenChange={(isOpen) => {
+        setIsRenameListDialogOpen(isOpen);
+        if (!isOpen) setListToRename(null);
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Renomear Lista: {listToRename?.name}</DialogTitle>
@@ -655,13 +656,16 @@ export default function DashboardPage() {
             <DialogClose asChild>
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button type="button" onClick={handleRenameList}>Salvar</Button>
+            <Button type="button" onClick={handleRenameList} disabled={!renamedListName.trim()}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
         {listToDelete && (
-            <Dialog open={isDeleteListConfirmOpen} onOpenChange={setIsDeleteListConfirmOpen}>
+            <Dialog open={isDeleteListConfirmOpen} onOpenChange={(isOpen) => {
+                setIsDeleteListConfirmOpen(isOpen);
+                if (!isOpen) setListToDelete(null);
+            }}>
                 <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Confirmar Exclusão da Lista</DialogTitle>
