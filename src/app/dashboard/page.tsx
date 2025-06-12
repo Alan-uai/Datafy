@@ -20,12 +20,12 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts } from '@/services/productService';
 import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
-import { generateExpirySummaryText } from '@/ai/flows/generate-expiry-summary-text-flow';
+// import { generateExpirySummaryText } from '@/ai/flows/generate-expiry-summary-text-flow'; // Removed as per previous request
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Info, Inbox } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Inbox } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   isToday,
@@ -80,8 +80,8 @@ export default function DashboardPage() {
 
   const [listStats, setListStats] = useState<{ total: number; expiringSoon: number; expired: number } | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
-  const [expirySummary, setExpirySummary] = useState<string | null>(null);
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  // const [expirySummary, setExpirySummary] = useState<string | null>(null); // Removed
+  // const [isLoadingSummary, setIsLoadingSummary] = useState(false); // Removed
 
 
   const fetchLists = useCallback(async () => {
@@ -151,11 +151,9 @@ export default function DashboardPage() {
     }
   }, [currentUser?.uid, fetchLists]);
   
-  const calculateStatsAndSummary = useCallback(async (userId: string, listIdParam: string, listNameParam: string) => {
+  const calculateStats = useCallback(async (userId: string, listIdParam: string) => {
     setIsLoadingStats(true);
-    setIsLoadingSummary(true);
     setListStats(null);
-    setExpirySummary(null);
 
     try {
       const products: Product[] = await getProducts(userId, listIdParam);
@@ -165,8 +163,8 @@ export default function DashboardPage() {
       let expiringSoonCount = 0;
 
       products.forEach(p => {
-        if (p.isExploding) return;
-        totalCount++;
+        if (p.isExploding) return; // Skip exploding products
+        totalCount++; // Still count towards total for the list
         if (p.validade && isValid(parseISO(p.validade))) {
           const productDate = startOfDay(parseISO(p.validade));
           if (isPast(productDate) && !isToday(productDate)) {
@@ -185,35 +183,23 @@ export default function DashboardPage() {
       const currentStats = { total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount };
       setListStats(currentStats);
       
-      try {
-        const summaryResult = await generateExpirySummaryText({ listName: listNameParam, stats: currentStats });
-        setExpirySummary(summaryResult.summaryText);
-      } catch (summaryError: any) {
-        console.error("Error generating expiry summary:", summaryError);
-        setExpirySummary("Não foi possível gerar o resumo inteligente das validades.");
-        // toast({ variant: "default", title: "Erro no Resumo IA", description: "O resumo por IA das validades falhou. Estatísticas básicas ainda disponíveis." });
-      }
-
     } catch (error) {
       console.error("Error calculating list stats:", error);
       toast({ variant: "destructive", title: "Erro ao calcular estatísticas", description: "Não foi possível carregar as estatísticas da lista." });
       setListStats(null);
-      setExpirySummary(null);
     } finally {
       setIsLoadingStats(false);
-      setIsLoadingSummary(false);
     }
   }, [toast]);
 
   useEffect(() => {
     if (currentUser?.uid && activeListId) {
-      const activeListName = productLists.find(list => list.id === activeListId)?.name || "Lista Ativa";
-      calculateStatsAndSummary(currentUser.uid, activeListId, activeListName);
+      calculateStats(currentUser.uid, activeListId);
     } else {
       setListStats(null);
-      setExpirySummary(null);
     }
-  }, [activeListId, currentUser?.uid, productLists, calculateStatsAndSummary]);
+  }, [activeListId, currentUser?.uid, calculateStats]);
+
 
   useEffect(() => {
     if (isRenameListDialogOpen && renameInputRef.current) {
@@ -333,10 +319,9 @@ export default function DashboardPage() {
 
   const handleProductsChanged = useCallback(() => {
     if (currentUser?.uid && activeListId) {
-      const activeListName = productLists.find(list => list.id === activeListId)?.name || "Lista Ativa";
-      calculateStatsAndSummary(currentUser.uid, activeListId, activeListName);
+      calculateStats(currentUser.uid, activeListId);
     }
-  }, [currentUser?.uid, activeListId, productLists, calculateStatsAndSummary]);
+  }, [currentUser?.uid, activeListId, calculateStats]);
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>, currentIndex: number) => {
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
@@ -449,7 +434,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-3 sm:p-4 pt-0 space-y-4">
               {isLoadingStats ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-center">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center">
                   <div>
                     <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
                     <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
@@ -460,7 +445,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : listStats ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-center">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencendo (7 dias)</p>
                     <p className={`text-xl sm:text-2xl font-bold ${listStats.expiringSoon > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-foreground'}`}>
