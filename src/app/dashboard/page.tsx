@@ -33,6 +33,8 @@ import {
   isWithinInterval,
   addDays,
   startOfDay,
+  endOfDay,
+  differenceInHours,
   parseISO,
   isValid,
   format,
@@ -209,7 +211,6 @@ export default function DashboardPage() {
     // Generate AI Attention Report
     try {
       if (productsToAnalyze.length > 0) {
-        // Sanitize products to pass only plain objects to the Server Action
         const plainProductsForAI = productsToAnalyze.map(p => ({
           id: p.id,
           originalId: p.originalId,
@@ -245,7 +246,7 @@ export default function DashboardPage() {
   }, [activeListId, currentUser?.uid, fetchProductsForCurrentList]);
   
   useEffect(() => {
-    if (!isLoadingProductsForStats && listProducts.length >= 0) { // Check >= 0 to run even for empty list
+    if (!isLoadingProductsForStats && listProducts.length >= 0) { 
        calculateStatsAndReport(listProducts);
     }
   }, [listProducts, isLoadingProductsForStats, calculateStatsAndReport]);
@@ -368,9 +369,6 @@ export default function DashboardPage() {
   };
 
   const handleProductsChangedInTable = useCallback(() => {
-    // This callback is passed to ProductSearchTable.
-    // When products in the table change (add, edit, delete), this is called.
-    // We then re-fetch products for the current list to update stats and AI report.
     if (currentUser?.uid && activeListId) {
       fetchProductsForCurrentList(currentUser.uid, activeListId);
     }
@@ -405,12 +403,13 @@ export default function DashboardPage() {
   if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
       <div className="py-8 px-4 md:px-6">
-        <div className="sticky top-[calc(var(--header-height,4rem))] z-40 bg-background dark:bg-background py-3 shadow-sm">
+        <div className="sticky top-[var(--header-height,4rem)] z-40 bg-background dark:bg-background py-3 shadow-sm">
             <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
                 <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
-                    <div className="h-9 w-24 bg-muted rounded animate-pulse"></div>
-                    <div className="h-9 w-32 bg-muted rounded animate-pulse"></div>
-                    <div className="h-9 w-28 bg-muted rounded animate-pulse"></div>
+                    {/* Skeleton for list tabs */}
+                    <div className="h-9 w-24 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
+                    <div className="h-9 w-32 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
+                    <div className="h-9 w-28 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
                     <div className="h-9 w-[120px] bg-muted/50 rounded animate-pulse ml-auto"></div>
                 </div>
                 <ScrollBar orientation="horizontal" />
@@ -442,9 +441,9 @@ export default function DashboardPage() {
                     id={`list-tab-${list.id}`}
                     ref={el => tabRefs.current[index] = el}
                     role="tab"
-                    tabIndex={0}
+                    tabIndex={0} // Ensure it's focusable
                     aria-selected={activeListId === list.id}
-                    aria-controls="product-table-section" 
+                    aria-controls="product-table-section" // Points to the controlled product table section
                     onClick={() => setActiveListId(list.id)}
                     onKeyDown={(e) => handleTabKeyDown(e, index)}
                     className={cn(
@@ -542,15 +541,26 @@ export default function DashboardPage() {
                 </p>
                 {expiryAttentionReport.criticalItems.length > 0 && (
                   <ul className="space-y-2 text-sm pl-1">
-                    {expiryAttentionReport.criticalItems.map(item => (
-                      <li key={item.productName + item.expiryDate} className="p-2 border rounded-md bg-amber-50 dark:bg-amber-900/30">
-                        <p className="font-semibold text-amber-700 dark:text-amber-400">
-                          {item.productName} {item.brand ? `(${item.brand})` : ''}
-                        </p>
-                        <p>Qtde: {item.quantity} | Vence em: {format(parseISO(item.expiryDate), 'dd/MM/yyyy')} ({item.daysUntilExpiry} dias)</p>
-                        <p className="mt-1 text-xs italic text-muted-foreground"><Wand2 className="inline h-3 w-3 mr-1"/>{item.suggestion}</p>
-                      </li>
-                    ))}
+                    {expiryAttentionReport.criticalItems.map(item => {
+                      let daysRemainingText = `(${item.daysUntilExpiry} dias)`;
+                      if (item.daysUntilExpiry === 0) {
+                        const hoursLeft = differenceInHours(endOfDay(parseISO(item.expiryDate)), new Date());
+                        if (hoursLeft >= 1) {
+                          daysRemainingText = `(em aprox. ${hoursLeft} ${hoursLeft === 1 ? 'hora' : 'horas'})`;
+                        } else {
+                          daysRemainingText = '(vence hoje)';
+                        }
+                      }
+                      return (
+                        <li key={item.productName + item.expiryDate} className="p-2 border rounded-md bg-amber-50 dark:bg-amber-900/30">
+                          <p className="font-semibold text-amber-700 dark:text-amber-400">
+                            {item.productName} {item.brand ? `(${item.brand})` : ''}
+                          </p>
+                          <p>Qtde: {item.quantity} | Vence em: {format(parseISO(item.expiryDate), 'dd/MM/yyyy')} {daysRemainingText}</p>
+                          <p className="mt-1 text-xs italic text-muted-foreground"><Wand2 className="inline h-3 w-3 mr-1"/>{item.suggestion}</p>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -563,7 +573,7 @@ export default function DashboardPage() {
                 className="mt-3 w-full sm:w-auto"
                 onClick={() => {
                     if (currentUser?.uid && activeListId) {
-                        fetchProductsForCurrentList(currentUser.uid, activeListId); // This will trigger re-calculation
+                        fetchProductsForCurrentList(currentUser.uid, activeListId); 
                     }
                 }}
                 disabled={isLoadingProductsForStats || isLoadingAttentionReport || isLoadingStats}
@@ -594,7 +604,6 @@ export default function DashboardPage() {
                       <p className="text-muted-foreground">Carregando suas listas...</p>
                   </>
               ) : productLists.length === 0 && !initialFetchDone.current ? (
-                   // This case might briefly appear if default list creation is pending
                    <div className="flex flex-col items-center justify-center">
                      <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                      <p className="text-muted-foreground">Configurando sua primeira lista...</p>
