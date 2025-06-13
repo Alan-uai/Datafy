@@ -22,7 +22,7 @@ import { getProductLists, addProductList, updateProductListName, deleteProductLi
 import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
 import { generateExpiryAttentionReport, type ExpiryAttentionReport } from '@/ai/flows/generate-expiry-attention-report-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Inbox, AlertTriangle, ShieldAlert, Info } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Inbox, AlertTriangle, ShieldAlert, Info, CalendarDays, PackageSearch } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -38,6 +38,7 @@ import {
   parseISO,
   isValid,
   format,
+  differenceInDays, // Keep for basic stats if needed elsewhere
 } from 'date-fns';
 import type { Product } from '@/types';
 
@@ -77,7 +78,7 @@ export default function DashboardPage() {
   const [isDeleteListConfirmOpen, setIsDeleteListConfirmOpen] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const newListInputRef = useRef<HTMLInputElement>(null);
-  const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const initialFetchDone = useRef(false);
 
@@ -165,7 +166,6 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Error fetching products for stats/report:", error);
       setListProducts([]);
-      // Toast handled by getProducts in ProductSearchTable for user-facing table load
     } finally {
       setIsLoadingProductsForStats(false);
     }
@@ -177,7 +177,6 @@ export default function DashboardPage() {
     setListStats(null);
     setExpiryAttentionReport(null);
 
-    // Calculate basic stats (Expiring Soon, Expired)
     try {
       const today = startOfDay(new Date());
       let expiredCount = 0;
@@ -208,7 +207,6 @@ export default function DashboardPage() {
       setIsLoadingStats(false);
     }
 
-    // Generate AI Attention Report
     try {
       if (productsToAnalyze.length > 0) {
         const plainProductsForAI = productsToAnalyze.map(p => ({
@@ -375,7 +373,7 @@ export default function DashboardPage() {
   }, [currentUser?.uid, activeListId, fetchProductsForCurrentList]);
 
 
-  const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>, currentIndex: number) => {
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
       event.preventDefault();
       const numTabs = productLists.length;
@@ -395,18 +393,47 @@ export default function DashboardPage() {
           tabRefs.current[nextIndex]?.focus();
         }, 0);
       }
+    } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setActiveListId(productLists[currentIndex].id);
     }
+  };
+
+  const formatDaysRemainingText = (expiryDateString: string): string => {
+    if (!expiryDateString || !isValid(parseISO(expiryDateString))) {
+      return ""; // Or some default like "N/A"
+    }
+    const targetExpiryTime = endOfDay(parseISO(expiryDateString));
+    const now = new Date();
+    const totalHoursLeft = differenceInHours(targetExpiryTime, now);
+
+    if (totalHoursLeft < 0) {
+      return "(Vencido)"; // Should ideally be filtered by the flow, but good fallback.
+    }
+    if (totalHoursLeft < 1) {
+      return "(vence hoje, <1h)";
+    }
+    if (totalHoursLeft < 24) {
+      return `(aprox. ${Math.floor(totalHoursLeft)}h restantes)`;
+    }
+    
+    const days = Math.floor(totalHoursLeft / 24);
+    const remainingHours = totalHoursLeft % 24;
+
+    if (remainingHours > 0) {
+      return `(${days}d e ${remainingHours}h restantes)`;
+    }
+    return `(${days}d restantes)`;
   };
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Visão Geral";
 
   if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
-      <div className="py-8 px-4 md:px-6">
-        <div className="sticky top-[var(--header-height,4rem)] z-40 bg-background dark:bg-background py-3 shadow-sm">
-            <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
+      <div className="container mx-auto py-8 px-4 md:px-6">
+        <div className="sticky top-[var(--header-height,4rem)] z-40 bg-background py-3 shadow-sm mb-6">
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
                 <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
-                    {/* Skeleton for list tabs */}
                     <div className="h-9 w-24 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
                     <div className="h-9 w-32 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
                     <div className="h-9 w-28 bg-muted rounded animate-pulse" role="tab" aria-busy="true"></div>
@@ -424,9 +451,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="py-8 px-4 md:px-6">
-      <div className="sticky top-[calc(var(--header-height,4rem)_-_1px)] z-30 bg-background dark:bg-background py-3 shadow-sm mb-6">
-        <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
+    <div className="container mx-auto py-8 px-4 md:px-6">
+      <div className="sticky top-[calc(var(--header-height,4rem)_-_1px)] z-30 bg-background py-3 shadow-sm mb-6">
+        <ScrollArea className="w-full whitespace-nowrap rounded-md border">
           <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
             {isLoadingLists && productLists.length === 0 ? (
                 <>
@@ -436,41 +463,41 @@ export default function DashboardPage() {
                 </>
             ) : (
                 productLists.map((list, index) => (
-                  <div
+                  <button
                     key={list.id}
                     id={`list-tab-${list.id}`}
                     ref={el => tabRefs.current[index] = el}
                     role="tab"
-                    tabIndex={0} // Ensure it's focusable
+                    tabIndex={0}
                     aria-selected={activeListId === list.id}
-                    aria-controls="product-table-section" // Points to the controlled product table section
+                    aria-controls="product-table-section"
                     onClick={() => setActiveListId(list.id)}
                     onKeyDown={(e) => handleTabKeyDown(e, index)}
                     className={cn(
                       buttonVariants({ variant: activeListId === list.id ? 'default' : 'outline', size: 'sm' }),
-                      'p-0.5 gap-0.5', 
-                      "group shrink-0 cursor-pointer flex items-center",
+                      'px-3 py-1.5 h-auto min-h-[2.25rem]', 
+                      "group shrink-0 cursor-pointer flex items-center justify-center text-center",
                       activeListId === list.id && 'font-semibold shadow-md'
                     )}
                   >
-                    <DynamicIcon name={list.icon} className="flex-shrink-0 h-4 w-4" />
-                    <span className="block truncate min-w-0">
+                    <DynamicIcon name={list.icon} className="flex-shrink-0 h-4 w-4 mr-2" />
+                    <span className="block truncate">
                       {list.name}
                     </span>
-                    <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
-                       <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem]" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}} aria-label={`Renomear lista ${list.name}`}>
-                         <Edit3 className="h-4 w-4" />
+                    <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-focus-within:opacity-100 group-focus-within:w-auto transition-all duration-150 ease-in-out ml-1">
+                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openRenameDialog(list);}} aria-label={`Renomear lista ${list.name}`}>
+                         <Edit3 className="h-3.5 w-3.5" />
                        </Button>
                        {productLists.length > 1 && ( 
-                        <Button variant="ghost" size="icon" className="h-[1.125rem] w-[1.125rem] text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}} aria-label={`Excluir lista ${list.name}`}>
-                            <Trash2 className="h-4 w-4"/>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); openDeleteConfirmDialog(list);}} aria-label={`Excluir lista ${list.name}`}>
+                            <Trash2 className="h-3.5 w-3.5"/>
                         </Button>
                        )}
                     </div>
-                  </div>
+                  </button>
                 ))
             )}
-            <Button variant="outline" onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }} size="sm" className="shrink-0">
+            <Button variant="outline" onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }} size="sm" className="shrink-0 ml-auto h-9">
               <PlusCircle className="mr-2 h-4 w-4" />
               Nova Lista
             </Button>
@@ -486,7 +513,7 @@ export default function DashboardPage() {
               <ShieldAlert className="h-5 w-5 text-primary" />
               Radar de Validade: {activeListName}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Análise de itens críticos próximos da validade e com estoque considerável.
             </CardDescription>
           </CardHeader>
@@ -536,31 +563,24 @@ export default function DashboardPage() {
               </div>
             ) : expiryAttentionReport ? (
               <div className="pt-3 space-y-2">
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Info className="h-4 w-4 text-blue-500"/> {expiryAttentionReport.overallSummary}
+                <p className="text-sm text-muted-foreground flex items-start gap-1.5">
+                  <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0"/> <span>{expiryAttentionReport.overallSummary}</span>
                 </p>
                 {expiryAttentionReport.criticalItems.length > 0 && (
                   <ul className="space-y-2 text-sm pl-1">
-                    {expiryAttentionReport.criticalItems.map(item => {
-                      let daysRemainingText = `(${item.daysUntilExpiry} dias)`;
-                      if (item.daysUntilExpiry === 0) {
-                        const hoursLeft = differenceInHours(endOfDay(parseISO(item.expiryDate)), new Date());
-                        if (hoursLeft >= 1) {
-                          daysRemainingText = `(em aprox. ${hoursLeft} ${hoursLeft === 1 ? 'hora' : 'horas'})`;
-                        } else {
-                          daysRemainingText = '(vence hoje)';
-                        }
-                      }
-                      return (
+                    {expiryAttentionReport.criticalItems.map(item => (
                         <li key={item.productName + item.expiryDate} className="p-2 border rounded-md bg-amber-50 dark:bg-amber-900/30">
                           <p className="font-semibold text-amber-700 dark:text-amber-400">
                             {item.productName} {item.brand ? `(${item.brand})` : ''}
                           </p>
-                          <p>Qtde: {item.quantity} | Vence em: {format(parseISO(item.expiryDate), 'dd/MM/yyyy')} {daysRemainingText}</p>
-                          <p className="mt-1 text-xs italic text-muted-foreground"><Wand2 className="inline h-3 w-3 mr-1"/>{item.suggestion}</p>
+                          <p>Qtde: {item.quantity} | Vence em: {format(parseISO(item.expiryDate), 'dd/MM/yyyy')} {formatDaysRemainingText(item.expiryDate)}</p>
+                          <p className="mt-1 text-xs italic text-muted-foreground flex items-start gap-1">
+                            <Wand2 className="inline h-3 w-3 mr-0.5 mt-0.5 flex-shrink-0"/>
+                            <span>{item.suggestion}</span>
+                          </p>
                         </li>
-                      );
-                    })}
+                      )
+                    )}
                   </ul>
                 )}
               </div>
@@ -597,7 +617,7 @@ export default function DashboardPage() {
             />
           </>
         ) : (
-           <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-10rem)] text-center">
+           <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--header-height,4rem)-var(--list-tabs-height,5rem)-10rem)] text-center p-4">
               {isLoadingLists ? ( 
                   <>
                       <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
@@ -610,10 +630,10 @@ export default function DashboardPage() {
                    </div>
               ) : ( 
                    <>
-                      <Inbox className="h-16 w-16 text-primary/70 mb-4" />
-                      <h3 className="text-xl font-semibold mb-2 text-foreground">Sua dashboard de produtos está pronta!</h3>
+                      <PackageSearch className="h-16 w-16 text-primary/70 mb-4" />
+                      <h3 className="text-xl font-semibold mb-2 text-foreground">Nenhuma lista selecionada</h3>
                       <p className="text-muted-foreground mb-6 max-w-md">
-                          Crie ou selecione uma lista para começar a organizar seus itens, controlar validades e muito mais.
+                          Por favor, crie ou selecione uma lista acima para começar a organizar seus produtos.
                       </p>
                       <Button onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }}>
                           <PlusCircle className="mr-2 h-4 w-4" />
@@ -762,4 +782,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
