@@ -278,6 +278,7 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   const longPressInitiatedSelectionRef = useRef(false);
 
   const [isScannerActive, setIsScannerActive] = useState(false);
+  const [isSearchScannerActive, setIsSearchScannerActive] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isEditCalendarOpen, setIsEditCalendarOpen] = useState(false);
 
@@ -892,6 +893,17 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
     toast({ variant: "destructive", title: "Erro no Scanner", description: message });
   }, [toast]);
 
+  const handleSearchScanSuccess = useCallback((data: string) => {
+    setSearchInputText(data);
+    toast({ title: "Código de Barras Escaneado", description: `Busca preenchida com: ${data}` });
+    setIsSearchScannerActive(false);
+  }, [toast]);
+
+  const handleSearchScanError = useCallback((message: string) => {
+    toast({ variant: "destructive", title: "Erro no Scanner da Busca", description: message });
+    setIsSearchScannerActive(false);
+  }, [toast]);
+
 
   const productsForDisplay = useMemo(() => filteredProducts.filter(p => !p.isExploding), [filteredProducts]);
   const allFilteredSelected = productsForDisplay.length > 0 && productsForDisplay.every(p => p.originalId && selectedProductIds.includes(p.originalId));
@@ -1032,21 +1044,30 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
   return (
     <>
       <Card className="shadow-xl">
-        <CardHeader className="sticky top-[calc(4rem_+_4.75rem_+_2px)] z-30 bg-card dark:bg-card"> {/* Adjusted top value according to new calculation and made CardHeader sticky */}
-           <div className="mt-4 flex flex-col gap-4">
-            <div className="relative w-full">
+         <CardHeader className="sticky top-[calc(var(--header-height,4rem)_+_var(--list-tabs-height,4.75rem)_+_1px)] z-20 bg-card dark:bg-card py-4 border-b">
+           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="relative flex-grow w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar produtos nesta lista..."
+                placeholder="Buscar por ID, nome, marca..."
                 value={searchInputText}
                 onChange={(e) => setSearchInputText(e.target.value)}
-                className="pl-10 w-full"
+                className="pl-10 pr-10 w-full"
               />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSearchScannerActive(true)}
+                className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                aria-label="Escanear código de barras para busca"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center w-full sm:w-auto">
               <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
-                <SelectTrigger className="w-full sm:w-auto">
+                <SelectTrigger className="w-full sm:w-auto min-w-[180px]">
                   <SelectValue placeholder="Filtrar por validade..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -1765,6 +1786,32 @@ export function ProductSearchTable({ listId, productLists, onProductsChanged }: 
             <Button type="button" onClick={handleBatchUpdateExpiry} disabled={!batchNewExpiryDate}>
               Atualizar Validades
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSearchScannerActive} onOpenChange={(isOpen) => {
+          setIsSearchScannerActive(isOpen);
+        }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Escanear Código para Busca</DialogTitle>
+            <DialogDescription>
+              Posicione o código de barras em frente à câmera para preencher a busca.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <BarcodeScanner
+              onScanSuccess={handleSearchScanSuccess}
+              onScanError={handleSearchScanError}
+              isScanning={isSearchScannerActive}
+              setIsScanning={setIsSearchScannerActive}
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
