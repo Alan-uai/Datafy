@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ChangeEvent } from 'react';
 import { ProductSearchTable } from '@/components/dashboard/ProductSearchTable';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,15 +18,20 @@ import {
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts } from '@/services/productService';
+import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts, addProduct } from '@/services/productService';
 import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
 import { generateExpiryAttentionReport, type ExpiryAttentionReport } from '@/ai/flows/generate-expiry-attention-report-flow';
+import { suggestProductName } from '@/ai/flows/suggest-product-name-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, PackageSearch, ShieldAlert, Info } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, PackageSearch, ShieldAlert, Info, Plus, Camera, Minus, CalendarDays } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { BarcodeScanner } from '@/components/barcode/BarcodeScanner';
+
 import {
   isToday,
   isPast,
@@ -38,6 +43,7 @@ import {
   format,
   differenceInHours,
   differenceInMinutes,
+  endOfDay,
 } from 'date-fns';
 import type { Product } from '@/types';
 
@@ -58,6 +64,13 @@ const DynamicIcon = ({ name, ...props }: { name: string } & LucideIcons.LucidePr
   }
 };
 
+const initialNewProductFormData: Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'> = {
+  produto: '',
+  marca: '',
+  unidade: '1',
+  validade: '',
+};
+
 
 export default function DashboardPage() {
   const { currentUser } = useAuth();
@@ -65,20 +78,25 @@ export default function DashboardPage() {
   const [productLists, setProductLists] = useState<ProductList[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
+  
+  // State for Add List Dialog
   const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListIcon, setNewListIcon] = useState('ListPlus');
   const [isSuggestingIcon, setIsSuggestingIcon] = useState(false);
+  const newListInputRef = useRef<HTMLInputElement>(null);
 
+  // State for Rename List Dialog
   const [isRenameListDialogOpen, setIsRenameListDialogOpen] = useState(false);
   const [listToRename, setListToRename] = useState<ProductList | null>(null);
   const [renamedListName, setRenamedListName] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  
+  // State for Delete List Dialog
   const [listToDelete, setListToDelete] = useState<ProductList | null>(null);
   const [isDeleteListConfirmOpen, setIsDeleteListConfirmOpen] = useState(false);
-  const renameInputRef = useRef<HTMLInputElement>(null);
-  const newListInputRef = useRef<HTMLInputElement>(null);
+  
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
   const initialFetchDone = useRef(false);
 
   const [listProducts, setListProducts] = useState<Product[]>([]);
@@ -88,6 +106,14 @@ export default function DashboardPage() {
   
   const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
   const [isLoadingAttentionReport, setIsLoadingAttentionReport] = useState(false);
+
+  // State for Add Product Dialog (moved from ProductSearchTable)
+  const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
+  const [newProductFormData, setNewProductFormData] = useState<Omit<Product, 'id' | 'isExploding' | 'originalId' | 'listId'>>({ ...initialNewProductFormData });
+  const [isSuggestingProductNameInDialog, setIsSuggestingProductNameInDialog] = useState(false);
+  const newProductNameInputRefDialog = useRef<HTMLInputElement>(null);
+  const [isScannerActiveInDialog, setIsScannerActiveInDialog] = useState(false);
+  const [isCalendarOpenInDialog, setIsCalendarOpenInDialog] = useState(false);
 
 
   const fetchLists = useCallback(async () => {
@@ -257,7 +283,10 @@ export default function DashboardPage() {
     if (isAddListDialogOpen && newListInputRef.current) {
       newListInputRef.current.focus();
     }
-  }, [isRenameListDialogOpen, isAddListDialogOpen]);
+    if (isAddProductDialogOpen && !isScannerActiveInDialog && newProductNameInputRefDialog.current) {
+        newProductNameInputRefDialog.current.focus();
+    }
+  }, [isRenameListDialogOpen, isAddListDialogOpen, isAddProductDialogOpen, isScannerActiveInDialog]);
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, productLists.length);
@@ -285,7 +314,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleAddList = async () => {
+  const handleAddListSubmit = async () => {
     if (!newListName.trim()) {
       toast({ variant: "destructive", title: "Erro", description: "O nome da lista não pode estar vazio." });
       return;
@@ -407,22 +436,20 @@ export default function DashboardPage() {
 
     const totalMinutesLeft = differenceInMinutes(targetExpiryTime, now);
 
-    if (totalMinutesLeft <= 0) { // Already past or at the start of the expiry day
+    if (totalMinutesLeft <= 0) { 
       return "(Vencido)";
     }
     
-    if (totalMinutesLeft < 60) { // Less than 1 hour remaining
+    if (totalMinutesLeft < 60) { 
       return `(${totalMinutesLeft}min restantes)`;
     }
 
-    // More than or equal to 1 hour remaining
     const totalHoursLeft = Math.floor(totalMinutesLeft / 60);
 
-    if (totalHoursLeft < 24) { // Less than 1 day remaining (but >= 1 hour)
+    if (totalHoursLeft < 24) { 
       return `(${totalHoursLeft}h restantes)`;
     }
 
-    // 1 day or more remaining
     const days = Math.floor(totalHoursLeft / 24);
     const remainingHoursInDay = totalHoursLeft % 24;
 
@@ -432,8 +459,113 @@ export default function DashboardPage() {
     return `(${days}d restantes)`;
   };
 
-
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Visão Geral";
+
+
+  // --- Logic for Add Product Dialog ---
+  const handleNewProductFormChangeDialog = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewProductFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleNewQuantityChangeDialog = (amount: number) => {
+    setNewProductFormData(prev => {
+      const currentQuantity = parseInt(prev.unidade, 10) || 0;
+      const newQuantity = Math.max(1, currentQuantity + amount);
+      return { ...prev, unidade: newQuantity.toString() };
+    });
+  };
+
+ const handleSuggestProductNameDialog = async () => {
+    if (!newProductFormData.produto.trim()) {
+      toast({ title: "Entrada Vazia", description: "Digite algo no campo 'Produto' para obter uma sugestão.", variant: "default" });
+      return;
+    }
+    setIsSuggestingProductNameInDialog(true);
+    try {
+      const result = await suggestProductName({
+        currentInput: newProductFormData.produto,
+        currentBrand: newProductFormData.marca,
+      });
+      if (result.suggestedName) {
+        setNewProductFormData(prev => ({
+          ...prev,
+          produto: result.suggestedName,
+          marca: result.suggestedBrand || prev.marca,
+        }));
+        toast({ title: "Nome Sugerido!", description: `Sugestão aplicada: ${result.suggestedName}` });
+      } else {
+        toast({ title: "Sem Sugestão", description: "Não foi possível gerar uma sugestão clara.", variant: "default" });
+      }
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao Sugerir Nome", description: error.message || "Não foi possível obter uma sugestão de nome." });
+    } finally {
+      setIsSuggestingProductNameInDialog(false);
+    }
+  };
+
+  const handleAddNewProductDialog = async (closeDialogAfterSave: boolean = true) => {
+    const quantity = parseInt(newProductFormData.unidade, 10);
+    if (!newProductFormData.produto || !newProductFormData.validade || !(quantity > 0) ) {
+      toast({
+        title: "Campos Obrigatórios",
+        description: "Produto, Quantidade (maior que 0) e Validade são obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!currentUser?.uid) {
+      toast({ variant: "destructive", title: "Erro de Autenticação", description: "Usuário não autenticado." });
+      return;
+    }
+    if (!activeListId) {
+      toast({ variant: "destructive", title: "Erro", description: "Nenhuma lista selecionada para adicionar o produto." });
+      return;
+    }
+
+    try {
+      const productDataToSave = {
+        ...newProductFormData,
+        unidade: quantity.toString(),
+      };
+      const addedProduct = await addProduct(currentUser.uid, activeListId, productDataToSave);
+      // Instead of directly manipulating clientSideProducts, trigger a refetch.
+      if (currentUser?.uid && activeListId) {
+        fetchProductsForCurrentList(currentUser.uid, activeListId); 
+      }
+      toast({ title: "Produto Adicionado", description: `${addedProduct.produto} foi adicionado com sucesso.` });
+
+      setNewProductFormData({ ...initialNewProductFormData });
+      setIsScannerActiveInDialog(false);
+      if (closeDialogAfterSave) {
+        setIsAddProductDialogOpen(false);
+      } else {
+        if (newProductNameInputRefDialog.current) {
+          newProductNameInputRefDialog.current.focus();
+          newProductNameInputRefDialog.current.select();
+        }
+      }
+    } catch (error: any) {
+       toast({ variant: "destructive", title: "Erro ao adicionar produto", description: error.message || "Não foi possível adicionar o produto." });
+    }
+  };
+
+  const handleScanSuccessForDialog = useCallback((data: string) => {
+    setNewProductFormData(prev => ({ ...prev, produto: data, marca: prev.marca || '', unidade: prev.unidade || '1', validade: prev.validade || '' }));
+    toast({ title: "Código de Barras Escaneado", description: `Produto preenchido com: ${data}` });
+    setIsScannerActiveInDialog(false);
+    setTimeout(() => {
+        if (newProductNameInputRefDialog.current) {
+            newProductNameInputRefDialog.current.focus();
+        }
+    }, 0);
+  }, [toast]);
+
+  const handleScanErrorForDialog = useCallback((message: string) => {
+    toast({ variant: "destructive", title: "Erro no Scanner", description: message });
+    setIsScannerActiveInDialog(false); // Ensure scanner closes on error
+  }, [toast]);
+
 
   if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
@@ -458,7 +590,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-6">
+    <div className="container mx-auto py-8 px-4 md:px-6 relative">
       <div className="sticky top-[calc(var(--header-height,4rem)_-_1px)] z-30 bg-background py-3 shadow-sm mb-6">
         <ScrollArea className="w-full whitespace-nowrap rounded-md border">
           <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
@@ -613,7 +745,7 @@ export default function DashboardPage() {
       )}
 
 
-      <section id="product-table-section" aria-labelledby={activeListId ? `list-tab-${activeListId}` : undefined}>
+      <section id="product-table-section" aria-labelledby={activeListId ? `list-tab-${activeListId}` : undefined} className="pb-20"> {/* Added padding-bottom for FAB */}
         {activeListId ? (
           <>
             <ProductSearchTable 
@@ -652,6 +784,24 @@ export default function DashboardPage() {
         )}
       </section>
 
+      {/* Floating Action Button for Add Product */}
+      {activeListId && (
+        <Button
+          onClick={() => {
+            setNewProductFormData({ ...initialNewProductFormData }); // Reset form
+            setIsScannerActiveInDialog(false); // Ensure scanner is off
+            setIsAddProductDialogOpen(true); // Open dialog
+          }}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl z-40"
+          size="icon"
+          aria-label="Adicionar Novo Produto"
+        >
+          <Plus className="h-7 w-7" />
+        </Button>
+      )}
+
+
+      {/* Add List Dialog */}
       <Dialog open={isAddListDialogOpen} onOpenChange={(isOpen) => {
           setIsAddListDialogOpen(isOpen);
           if (!isOpen) {
@@ -727,11 +877,12 @@ export default function DashboardPage() {
             <DialogClose asChild>
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button type="button" onClick={handleAddList} disabled={!newListName.trim() || !newListIcon.trim()}>Criar Lista</Button>
+            <Button type="button" onClick={handleAddListSubmit} disabled={!newListName.trim() || !newListIcon.trim()}>Criar Lista</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Rename List Dialog */}
       <Dialog open={isRenameListDialogOpen} onOpenChange={(isOpen) => {
         setIsRenameListDialogOpen(isOpen);
         if (!isOpen) setListToRename(null);
@@ -767,6 +918,7 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete List Confirm Dialog */}
         {listToDelete && (
             <Dialog open={isDeleteListConfirmOpen} onOpenChange={(isOpen) => {
                 setIsDeleteListConfirmOpen(isOpen);
@@ -786,10 +938,169 @@ export default function DashboardPage() {
                 </DialogContent>
             </Dialog>
         )}
+
+      {/* Add Product Dialog (Moved to DashboardPage) */}
+      <Dialog open={isAddProductDialogOpen} onOpenChange={(isOpen) => {
+        setIsAddProductDialogOpen(isOpen);
+        if (!isOpen) {
+            setNewProductFormData({ ...initialNewProductFormData });
+            setIsScannerActiveInDialog(false);
+            setIsSuggestingProductNameInDialog(false);
+            setIsCalendarOpenInDialog(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isScannerActiveInDialog ? "Escanear Código de Barras" : "Adicionar Novo Produto"}</DialogTitle>
+            <DialogDescription>
+              {isScannerActiveInDialog
+                ? "Posicione o código de barras do produto em frente à câmera."
+                : "Preencha os detalhes abaixo ou escaneie um código de barras."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isScannerActiveInDialog ? (
+            <div className="py-4 space-y-4">
+              <BarcodeScanner
+                onScanSuccess={handleScanSuccessForDialog}
+                onScanError={handleScanErrorForDialog}
+                isScanning={isScannerActiveInDialog}
+                setIsScanning={setIsScannerActiveInDialog}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-product-name-dialog" className="text-right">
+                  Produto <span className="text-destructive">*</span>
+                </Label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Input
+                    id="new-product-name-dialog"
+                    name="produto"
+                    ref={newProductNameInputRefDialog}
+                    value={newProductFormData.produto}
+                    onChange={handleNewProductFormChangeDialog}
+                    className="flex-1"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleSuggestProductNameDialog}
+                    disabled={isSuggestingProductNameInDialog || !newProductFormData.produto.trim()}
+                    aria-label="Sugerir Nome do Produto"
+                  >
+                    {isSuggestingProductNameInDialog ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-product-brand-dialog" className="text-right">
+                  Marca
+                </Label>
+                <Input
+                  id="new-product-brand-dialog"
+                  name="marca"
+                  value={newProductFormData.marca}
+                  onChange={handleNewProductFormChangeDialog}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-product-quantity-dialog" className="text-right">
+                  Qtde <span className="text-destructive">*</span>
+                </Label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChangeDialog(-1)} disabled={(parseInt(newProductFormData.unidade, 10) || 1) <= 1}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    id="new-product-quantity-dialog"
+                    name="unidade"
+                    value={newProductFormData.unidade}
+                    onChange={handleNewProductFormChangeDialog}
+                    className="w-16 text-center"
+                    type="number"
+                    min="1"
+                    step="1"
+                    required
+                  />
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleNewQuantityChangeDialog(1)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-product-expiry-dialog-btn" className="text-right">
+                  Validade <span className="text-destructive">*</span>
+                </Label>
+                <Popover open={isCalendarOpenInDialog} onOpenChange={setIsCalendarOpenInDialog}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="new-product-expiry-dialog-btn"
+                      variant={"outline"}
+                      className={cn(
+                        "col-span-3 justify-start text-left font-normal",
+                        !newProductFormData.validade && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {newProductFormData.validade && isValid(parseISO(newProductFormData.validade)) ? format(parseISO(newProductFormData.validade), "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newProductFormData.validade ? parseISO(newProductFormData.validade) : undefined}
+                      onSelect={(date) => {
+                        setNewProductFormData(prev => ({ ...prev, validade: date ? format(date, "yyyy-MM-dd") : '' }));
+                        setIsCalendarOpenInDialog(false);
+                      }}
+                      initialFocus
+                      disabled={(date) => date < startOfDay(new Date()) && !isToday(date) }
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-between sm:items-center">
+            {isScannerActiveInDialog ? (
+                <Button variant="outline" className="w-full sm:ml-auto" onClick={() => {
+                    setIsScannerActiveInDialog(false);
+                    setTimeout(() => newProductNameInputRefDialog.current?.focus(), 0);
+                }}>
+                   Digitar Manualmente
+                </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsScannerActiveInDialog(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Camera className="mr-2 h-4 w-4" /> Escanear Código
+                </Button>
+                <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:justify-end sm:space-x-2">
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto">Cancelar</Button>
+                  </DialogClose>
+                  <Button type="button" variant="outline" onClick={() => handleAddNewProductDialog(false)} className="w-full sm:w-auto">
+                    Salvar & Novo
+                  </Button>
+                  <Button type="button" onClick={() => handleAddNewProductDialog(true)} className="w-full sm:w-auto">
+                    Salvar Produto
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
-
-    
-
-    
