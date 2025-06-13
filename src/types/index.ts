@@ -14,7 +14,7 @@ export interface Product {
   originalId?: string; // This will be the stable, unique key for React/Framer Motion
   listId: string; // ID of the ProductList it belongs to
   produto: string;
-  marca: string;
+  marca?: string; // Made optional for consistency with Zod schema
   unidade: string;
   validade: string;
   isExploding?: boolean;

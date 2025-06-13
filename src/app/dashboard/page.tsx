@@ -209,7 +209,18 @@ export default function DashboardPage() {
     // Generate AI Attention Report
     try {
       if (productsToAnalyze.length > 0) {
-        const report = await generateExpiryAttentionReport({ products: productsToAnalyze, attentionHorizonDays: 15, topNProducts: 3 });
+        // Sanitize products to pass only plain objects to the Server Action
+        const plainProductsForAI = productsToAnalyze.map(p => ({
+          id: p.id,
+          originalId: p.originalId,
+          listId: p.listId,
+          produto: p.produto,
+          marca: p.marca,
+          unidade: p.unidade,
+          validade: p.validade,
+          isExploding: p.isExploding,
+        }));
+        const report = await generateExpiryAttentionReport({ products: plainProductsForAI, attentionHorizonDays: 15, topNProducts: 3 });
         setExpiryAttentionReport(report);
       } else {
         setExpiryAttentionReport({ criticalItems: [], overallSummary: "Nenhum produto na lista para analisar.", analyzedProductsCount: 0, criticalProductsCount: 0 });
@@ -742,3 +753,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
