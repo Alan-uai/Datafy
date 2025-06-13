@@ -197,7 +197,7 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
                 : "Estoque considerável e validade próxima. Verifique a organização FIFO e/ou comunique ao gerente."
         }));
         
-        let fallbackSummary = `Atenção: ${criticalProductsCount} produto(s) em ${analyzedProductsCount} analisados requer(em) cuidados nos próximos ${attentionHorizonDays} dias.`;
+        let fallbackSummary = `Atenção: ${criticalProductsCount} produto(s) em ${analyzedCount} analisados requer(em) cuidados nos próximos ${attentionHorizonDays} dias.`;
         if (topCriticalItems.some(i => i.daysUntilExpiry === 0)) {
             fallbackSummary = `ALERTA CRÍTICO! Há itens vencendo HOJE! ` + fallbackSummary;
         }
