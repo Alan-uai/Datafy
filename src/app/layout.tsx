@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Dashify',
-  description: 'Your intelligent dashboard solution.',
+  title: 'Datafy',
+  description: 'Your intelligent data solution.',
 };
 
 export default function RootLayout({

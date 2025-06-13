@@ -130,7 +130,7 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       setCurrentUser(userCredential.user as FirebaseUser); 
       
-      toast({ title: 'Cadastro bem-sucedido!', description: 'Redirecionando para o dashboard...' });
+      toast({ title: 'Cadastro bem-sucedido!', description: 'Redirecionando para o painel...' });
       router.push('/dashboard');
     } catch (err: any) {
       const friendlyMessage = getFirebaseErrorMessage(err.code);
@@ -149,7 +149,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">Criar Conta</CardTitle>
-          <CardDescription>Crie sua conta Dashify para começar a organizar.</CardDescription>
+          <CardDescription>Crie sua conta Datafy para começar a organizar.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSignup}>
           <CardContent className="space-y-4">

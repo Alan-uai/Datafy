@@ -11,7 +11,7 @@ export function AppLogo({ className, iconSize = 24, textSize = "text-2xl" }: App
   return (
     <Link href="/" className={`flex items-center gap-2 ${className}`}>
       <LayoutDashboard size={iconSize} className="text-primary" />
-      <span className={`font-semibold ${textSize} text-foreground`}>Dashify</span>
+      <span className={`font-semibold ${textSize} text-foreground`}>Datafy</span>
     </Link>
   );
 }

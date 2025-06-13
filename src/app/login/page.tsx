@@ -64,7 +64,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: 'Login bem-sucedido!', description: 'Redirecionando para o dashboard...' });
+      toast({ title: 'Login bem-sucedido!', description: 'Redirecionando para o painel...' });
       router.push('/dashboard');
     } catch (err: any) {
       const friendlyMessage = getFirebaseErrorMessage(err.code);
@@ -81,7 +81,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      toast({ title: 'Login com Google bem-sucedido!', description: 'Redirecionando para o dashboard...' });
+      toast({ title: 'Login com Google bem-sucedido!', description: 'Redirecionando para o painel...' });
       router.push('/dashboard');
     } catch (err: any) {
       const friendlyMessage = getFirebaseErrorMessage(err.code);
@@ -100,7 +100,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">Login</CardTitle>
-          <CardDescription>Acesse sua conta Dashify para continuar.</CardDescription>
+          <CardDescription>Acesse sua conta Datafy para continuar.</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
