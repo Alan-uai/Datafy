@@ -37,6 +37,7 @@ import {
   isValid,
   format,
   differenceInHours,
+  differenceInMinutes,
 } from 'date-fns';
 import type { Product } from '@/types';
 
@@ -399,29 +400,34 @@ export default function DashboardPage() {
 
   const formatDaysRemainingText = (expiryDateString: string): string => {
     if (!expiryDateString || !isValid(parseISO(expiryDateString))) {
-      return ""; 
+      return "";
     }
-    // O ponto de "expiração" é o início do dia da data de validade.
-    const targetExpiryTime = startOfDay(parseISO(expiryDateString)); 
+    const targetExpiryTime = startOfDay(parseISO(expiryDateString));
     const now = new Date();
-    const totalHoursLeft = differenceInHours(targetExpiryTime, now);
 
-    if (totalHoursLeft < 0) {
-      return "(Vencido)"; 
+    const totalMinutesLeft = differenceInMinutes(targetExpiryTime, now);
+
+    if (totalMinutesLeft <= 0) { // Already past or at the start of the expiry day
+      return "(Vencido)";
     }
     
-    if (totalHoursLeft < 1) { 
-      return `(vence <1h)`;
+    if (totalMinutesLeft < 60) { // Less than 1 hour remaining
+      return `(${totalMinutesLeft}min restantes)`;
     }
-    if (totalHoursLeft < 24) { 
-      return `(${Math.floor(totalHoursLeft)}h restantes)`;
+
+    // More than or equal to 1 hour remaining
+    const totalHoursLeft = Math.floor(totalMinutesLeft / 60);
+
+    if (totalHoursLeft < 24) { // Less than 1 day remaining (but >= 1 hour)
+      return `(${totalHoursLeft}h restantes)`;
     }
-    
+
+    // 1 day or more remaining
     const days = Math.floor(totalHoursLeft / 24);
-    const remainingHours = Math.floor(totalHoursLeft % 24);
+    const remainingHoursInDay = totalHoursLeft % 24;
 
-    if (remainingHours > 0) {
-      return `(${days}d e ${remainingHours}h restantes)`;
+    if (remainingHoursInDay > 0) {
+      return `(${days}d e ${remainingHoursInDay}h restantes)`;
     }
     return `(${days}d restantes)`;
   };
@@ -783,5 +789,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
