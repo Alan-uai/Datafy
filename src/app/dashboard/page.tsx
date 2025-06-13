@@ -22,7 +22,7 @@ import { getProductLists, addProductList, updateProductListName, deleteProductLi
 import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
 import { generateExpiryAttentionReport, type ExpiryAttentionReport } from '@/ai/flows/generate-expiry-attention-report-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Inbox, AlertTriangle, ShieldAlert, Info, CalendarDays, PackageSearch } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, PackageSearch, ShieldAlert, Info } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,12 +33,10 @@ import {
   isWithinInterval,
   addDays,
   startOfDay,
-  endOfDay,
-  differenceInHours,
   parseISO,
   isValid,
   format,
-  differenceInDays, // Keep for basic stats if needed elsewhere
+  differenceInHours,
 } from 'date-fns';
 import type { Product } from '@/types';
 
@@ -209,7 +207,7 @@ export default function DashboardPage() {
 
     try {
       if (productsToAnalyze.length > 0) {
-        const plainProductsForAI = productsToAnalyze.map(p => ({
+        const plainProductsForAI: Product[] = productsToAnalyze.map(p => ({
           id: p.id,
           originalId: p.originalId,
           listId: p.listId,
@@ -401,30 +399,33 @@ export default function DashboardPage() {
 
   const formatDaysRemainingText = (expiryDateString: string): string => {
     if (!expiryDateString || !isValid(parseISO(expiryDateString))) {
-      return ""; // Or some default like "N/A"
+      return ""; 
     }
-    const targetExpiryTime = endOfDay(parseISO(expiryDateString));
+    // O ponto de "expiração" é o início do dia da data de validade.
+    const targetExpiryTime = startOfDay(parseISO(expiryDateString)); 
     const now = new Date();
     const totalHoursLeft = differenceInHours(targetExpiryTime, now);
 
     if (totalHoursLeft < 0) {
-      return "(Vencido)"; // Should ideally be filtered by the flow, but good fallback.
+      return "(Vencido)"; 
     }
-    if (totalHoursLeft < 1) {
-      return "(vence hoje, <1h)";
+    
+    if (totalHoursLeft < 1) { 
+      return `(vence <1h)`;
     }
-    if (totalHoursLeft < 24) {
-      return `(aprox. ${Math.floor(totalHoursLeft)}h restantes)`;
+    if (totalHoursLeft < 24) { 
+      return `(${Math.floor(totalHoursLeft)}h restantes)`;
     }
     
     const days = Math.floor(totalHoursLeft / 24);
-    const remainingHours = totalHoursLeft % 24;
+    const remainingHours = Math.floor(totalHoursLeft % 24);
 
     if (remainingHours > 0) {
       return `(${days}d e ${remainingHours}h restantes)`;
     }
     return `(${days}d restantes)`;
   };
+
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Visão Geral";
 
@@ -782,3 +783,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
