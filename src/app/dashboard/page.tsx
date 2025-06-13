@@ -20,12 +20,12 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts } from '@/services/productService';
 import { suggestListIcon } from '@/ai/flows/suggest-list-icon-flow';
-// import { generateExpirySummaryText } from '@/ai/flows/generate-expiry-summary-text-flow'; // Removed as per previous request
+import { generateExpiryAttentionReport, type ExpiryAttentionReport } from '@/ai/flows/generate-expiry-attention-report-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Inbox } from 'lucide-react';
+import { PlusCircle, List, Edit3, Trash2, Loader2, Wand2, RefreshCw, Inbox, AlertTriangle, ShieldAlert, Info } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   isToday,
@@ -35,6 +35,7 @@ import {
   startOfDay,
   parseISO,
   isValid,
+  format,
 } from 'date-fns';
 import type { Product } from '@/types';
 
@@ -78,10 +79,13 @@ export default function DashboardPage() {
 
   const initialFetchDone = useRef(false);
 
-  const [listStats, setListStats] = useState<{ total: number; expiringSoon: number; expired: number } | null>(null);
+  const [listProducts, setListProducts] = useState<Product[]>([]);
+  const [isLoadingProductsForStats, setIsLoadingProductsForStats] = useState(false);
+  const [listStats, setListStats] = useState<{ expiringSoon: number; expired: number } | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
-  // const [expirySummary, setExpirySummary] = useState<string | null>(null); // Removed
-  // const [isLoadingSummary, setIsLoadingSummary] = useState(false); // Removed
+  
+  const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
+  const [isLoadingAttentionReport, setIsLoadingAttentionReport] = useState(false);
 
 
   const fetchLists = useCallback(async () => {
@@ -151,20 +155,34 @@ export default function DashboardPage() {
     }
   }, [currentUser?.uid, fetchLists]);
   
-  const calculateStats = useCallback(async (userId: string, listIdParam: string) => {
-    setIsLoadingStats(true);
-    setListStats(null);
-
+  const fetchProductsForCurrentList = useCallback(async (userId: string, listIdParam: string) => {
+    setIsLoadingProductsForStats(true);
     try {
-      const products: Product[] = await getProducts(userId, listIdParam);
+      const products = await getProducts(userId, listIdParam);
+      setListProducts(products);
+    } catch (error) {
+      console.error("Error fetching products for stats/report:", error);
+      setListProducts([]);
+      // Toast handled by getProducts in ProductSearchTable for user-facing table load
+    } finally {
+      setIsLoadingProductsForStats(false);
+    }
+  }, []);
+
+  const calculateStatsAndReport = useCallback(async (productsToAnalyze: Product[]) => {
+    setIsLoadingStats(true);
+    setIsLoadingAttentionReport(true);
+    setListStats(null);
+    setExpiryAttentionReport(null);
+
+    // Calculate basic stats (Expiring Soon, Expired)
+    try {
       const today = startOfDay(new Date());
-      let totalCount = 0;
       let expiredCount = 0;
       let expiringSoonCount = 0;
 
-      products.forEach(p => {
-        if (p.isExploding) return; // Skip exploding products
-        totalCount++; // Still count towards total for the list
+      productsToAnalyze.forEach(p => {
+        if (p.isExploding) return; 
         if (p.validade && isValid(parseISO(p.validade))) {
           const productDate = startOfDay(parseISO(p.validade));
           if (isPast(productDate) && !isToday(productDate)) {
@@ -180,25 +198,46 @@ export default function DashboardPage() {
           }
         }
       });
-      const currentStats = { total: totalCount, expiringSoon: expiringSoonCount, expired: expiredCount };
-      setListStats(currentStats);
-      
+      setListStats({ expiringSoon: expiringSoonCount, expired: expiredCount });
     } catch (error) {
       console.error("Error calculating list stats:", error);
       toast({ variant: "destructive", title: "Erro ao calcular estatísticas", description: "Não foi possível carregar as estatísticas da lista." });
-      setListStats(null);
     } finally {
       setIsLoadingStats(false);
+    }
+
+    // Generate AI Attention Report
+    try {
+      if (productsToAnalyze.length > 0) {
+        const report = await generateExpiryAttentionReport({ products: productsToAnalyze, attentionHorizonDays: 15, topNProducts: 3 });
+        setExpiryAttentionReport(report);
+      } else {
+        setExpiryAttentionReport({ criticalItems: [], overallSummary: "Nenhum produto na lista para analisar.", analyzedProductsCount: 0, criticalProductsCount: 0 });
+      }
+    } catch (error: any) {
+      console.error("Error generating expiry attention report:", error);
+      toast({ variant: "destructive", title: "Erro na Análise IA", description: `Não foi possível gerar o relatório de atenção: ${error.message}` });
+      setExpiryAttentionReport(null);
+    } finally {
+      setIsLoadingAttentionReport(false);
     }
   }, [toast]);
 
   useEffect(() => {
     if (currentUser?.uid && activeListId) {
-      calculateStats(currentUser.uid, activeListId);
+      fetchProductsForCurrentList(currentUser.uid, activeListId);
     } else {
+      setListProducts([]);
       setListStats(null);
+      setExpiryAttentionReport(null);
     }
-  }, [activeListId, currentUser?.uid, calculateStats]);
+  }, [activeListId, currentUser?.uid, fetchProductsForCurrentList]);
+  
+  useEffect(() => {
+    if (!isLoadingProductsForStats && listProducts.length >= 0) { // Check >= 0 to run even for empty list
+       calculateStatsAndReport(listProducts);
+    }
+  }, [listProducts, isLoadingProductsForStats, calculateStatsAndReport]);
 
 
   useEffect(() => {
@@ -317,11 +356,15 @@ export default function DashboardPage() {
     }
   };
 
-  const handleProductsChanged = useCallback(() => {
+  const handleProductsChangedInTable = useCallback(() => {
+    // This callback is passed to ProductSearchTable.
+    // When products in the table change (add, edit, delete), this is called.
+    // We then re-fetch products for the current list to update stats and AI report.
     if (currentUser?.uid && activeListId) {
-      calculateStats(currentUser.uid, activeListId);
+      fetchProductsForCurrentList(currentUser.uid, activeListId);
     }
-  }, [currentUser?.uid, activeListId, calculateStats]);
+  }, [currentUser?.uid, activeListId, fetchProductsForCurrentList]);
+
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>, currentIndex: number) => {
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
@@ -346,7 +389,7 @@ export default function DashboardPage() {
     }
   };
 
-  const activeListName = productLists.find(list => list.id === activeListId)?.name || "Busca de Produtos";
+  const activeListName = productLists.find(list => list.id === activeListId)?.name || "Visão Geral";
 
   if (isLoadingLists && !initialFetchDone.current && productLists.length === 0) {
     return (
@@ -372,7 +415,7 @@ export default function DashboardPage() {
 
   return (
     <div className="py-8 px-4 md:px-6">
-      <div className="sticky top-[calc(var(--header-height,4rem))] z-40 bg-background dark:bg-background py-3 shadow-sm mb-6">
+      <div className="sticky top-[calc(var(--header-height,4rem)_-_1px)] z-30 bg-background dark:bg-background py-3 shadow-sm mb-6">
         <ScrollArea className="w-full whitespace-nowrap rounded-md border dark:border-slate-700">
           <div className="flex items-center p-2 space-x-2" role="tablist" aria-label="Listas de Produtos">
             {isLoadingLists && productLists.length === 0 ? (
@@ -426,15 +469,21 @@ export default function DashboardPage() {
         </ScrollArea>
       </div>
 
-      <section id="product-table-section" aria-labelledby={activeListId ? `list-tab-${activeListId}` : undefined}>
-        {activeListId && (
-          <Card className="mb-6 shadow-md">
-            <CardHeader className="p-3 sm:p-4">
-              <CardTitle className="text-md sm:text-lg font-semibold">Resumo da Lista: {activeListName}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 space-y-4">
+      {activeListId && (
+        <Card className="mb-6 shadow-md">
+          <CardHeader className="p-3 sm:p-4">
+            <CardTitle className="text-md sm:text-lg font-semibold flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-primary" />
+              Radar de Validade: {activeListName}
+            </CardTitle>
+            <CardDescription>
+              Análise de itens críticos próximos da validade e com estoque considerável.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-3 sm:p-4 pt-0 space-y-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center mb-3">
               {isLoadingStats ? (
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center">
+                <>
                   <div>
                     <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
                     <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
@@ -443,9 +492,9 @@ export default function DashboardPage() {
                     <div className="h-3 w-12 sm:w-16 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
                     <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
                   </div>
-                </div>
+                </>
               ) : listStats ? (
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center">
+                <>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencendo (7 dias)</p>
                     <p className={`text-xl sm:text-2xl font-bold ${listStats.expiringSoon > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-foreground'}`}>
@@ -458,21 +507,72 @@ export default function DashboardPage() {
                       {listStats.expired}
                     </p>
                   </div>
-                </div>
+                </>
               ) : (
-                <p className="text-sm text-muted-foreground text-center">Estatísticas não disponíveis ou lista vazia.</p>
+                <p className="col-span-2 text-sm text-muted-foreground text-center">Estatísticas não disponíveis.</p>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </div>
+            
+            <Separator />
 
+            {isLoadingAttentionReport ? (
+              <div className="space-y-3 pt-3">
+                <div className="h-4 w-3/4 bg-muted rounded animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-3 w-full bg-muted rounded animate-pulse"></div>
+                  <div className="h-3 w-5/6 bg-muted rounded animate-pulse"></div>
+                </div>
+                 <div className="h-3 w-1/2 bg-muted rounded animate-pulse"></div>
+              </div>
+            ) : expiryAttentionReport ? (
+              <div className="pt-3 space-y-2">
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Info className="h-4 w-4 text-blue-500"/> {expiryAttentionReport.overallSummary}
+                </p>
+                {expiryAttentionReport.criticalItems.length > 0 && (
+                  <ul className="space-y-2 text-sm pl-1">
+                    {expiryAttentionReport.criticalItems.map(item => (
+                      <li key={item.productName + item.expiryDate} className="p-2 border rounded-md bg-amber-50 dark:bg-amber-900/30">
+                        <p className="font-semibold text-amber-700 dark:text-amber-400">
+                          {item.productName} {item.brand ? `(${item.brand})` : ''}
+                        </p>
+                        <p>Qtde: {item.quantity} | Vence em: {format(parseISO(item.expiryDate), 'dd/MM/yyyy')} ({item.daysUntilExpiry} dias)</p>
+                        <p className="mt-1 text-xs italic text-muted-foreground"><Wand2 className="inline h-3 w-3 mr-1"/>{item.suggestion}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center pt-3">Não foi possível carregar a análise de validade crítica.</p>
+            )}
+             <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-3 w-full sm:w-auto"
+                onClick={() => {
+                    if (currentUser?.uid && activeListId) {
+                        fetchProductsForCurrentList(currentUser.uid, activeListId); // This will trigger re-calculation
+                    }
+                }}
+                disabled={isLoadingProductsForStats || isLoadingAttentionReport || isLoadingStats}
+            >
+                <RefreshCw className={cn("mr-2 h-4 w-4", (isLoadingProductsForStats || isLoadingAttentionReport || isLoadingStats) && "animate-spin")} />
+                Analisar Novamente
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+
+      <section id="product-table-section" aria-labelledby={activeListId ? `list-tab-${activeListId}` : undefined}>
         {activeListId ? (
           <>
             <ProductSearchTable 
               listId={activeListId} 
               productLists={productLists}
               key={activeListId} 
-              onProductsChanged={handleProductsChanged}
+              onProductsChanged={handleProductsChangedInTable}
             />
           </>
         ) : (
@@ -482,12 +582,18 @@ export default function DashboardPage() {
                       <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                       <p className="text-muted-foreground">Carregando suas listas...</p>
                   </>
+              ) : productLists.length === 0 && !initialFetchDone.current ? (
+                   // This case might briefly appear if default list creation is pending
+                   <div className="flex flex-col items-center justify-center">
+                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                     <p className="text-muted-foreground">Configurando sua primeira lista...</p>
+                   </div>
               ) : ( 
                    <>
                       <Inbox className="h-16 w-16 text-primary/70 mb-4" />
                       <h3 className="text-xl font-semibold mb-2 text-foreground">Sua dashboard de produtos está pronta!</h3>
                       <p className="text-muted-foreground mb-6 max-w-md">
-                          Crie sua primeira lista para começar a organizar seus itens, controlar validades e muito mais.
+                          Crie ou selecione uma lista para começar a organizar seus itens, controlar validades e muito mais.
                       </p>
                       <Button onClick={() => { setIsAddListDialogOpen(true); setNewListIcon('ListPlus'); }}>
                           <PlusCircle className="mr-2 h-4 w-4" />
@@ -636,4 +742,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
