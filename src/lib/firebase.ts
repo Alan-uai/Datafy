@@ -3,7 +3,6 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
-// --- BEGIN ENHANCED DEBUG LOGGING ---
 const firebaseConfigValues = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,14 +12,7 @@ const firebaseConfigValues = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-console.log("[Firebase Config Debug - Module Load/Server-Side]");
-console.table(firebaseConfigValues);
-
-if (typeof window !== 'undefined') { // Client-side logging
-  console.log('[Firebase Config Debug - Client-Side]');
-  console.table(firebaseConfigValues);
-}
-
+// Critical configuration check
 if (!firebaseConfigValues.apiKey || !firebaseConfigValues.projectId) {
   const errorMessage =
     "!!! CRITICAL FIREBASE CONFIG ERROR !!!\n" +
@@ -36,23 +28,27 @@ if (!firebaseConfigValues.apiKey || !firebaseConfigValues.projectId) {
     "After creating or updating .env.local, YOU MUST RESTART your Next.js development server.";
 
   console.error(errorMessage);
-  // Potentially throw an error here or handle it gracefully depending on desired app behavior
-  // For now, we'll let initialization proceed so other logs can be seen, but the app will likely fail.
+  // Throw an error to prevent the app from starting with a critically misconfigured Firebase
+  throw new Error("Firebase configuration is missing critical values. Check server logs.");
 }
-// --- END ENHANCED DEBUG LOGGING ---
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: firebaseConfigValues.apiKey,
+  authDomain: firebaseConfigValues.authDomain,
+  projectId: firebaseConfigValues.projectId,
+  storageBucket: firebaseConfigValues.storageBucket,
+  messagingSenderId: firebaseConfigValues.messagingSenderId,
+  appId: firebaseConfigValues.appId,
 };
 
 let app: FirebaseApp;
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
+  if (typeof window !== 'undefined') {
+    console.log('[Firebase Debug] Firebase app initialized on the client.');
+  } else {
+    console.log('[Firebase Debug] Firebase app initialized on the server.');
+  }
 } else {
   app = getApp();
 }
