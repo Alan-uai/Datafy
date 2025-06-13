@@ -33,7 +33,7 @@ const ProductSchema = z.object({
 const GenerateExpiryAttentionReportInputSchema = z.object({
   products: z.array(ProductSchema).describe('List of products to analyze.'),
   attentionHorizonDays: z.number().optional().default(15).describe('How many days in advance to look for expiries (e.g., 15 for next 15 days).'),
-  topNProducts: z.number().optional().default(5).describe('Maximum number of most critical products to return in the detailed list.'),
+  topNProducts: z.number().optional().default(3).describe('Maximum number of most critical products to return in the detailed list.'),
 });
 
 const CriticalExpiryItemSchema = z.object({
@@ -75,23 +75,26 @@ const suggestionPrompt = ai.definePrompt({
     prompt: `
     Você é um assistente de gerenciamento de estoque para um funcionário de supermercado.
     Analise os seguintes itens críticos que estão próximos da validade e possuem estoque considerável.
-    Para cada item, forneça uma sugestão curta e prática para o funcionário.
-    As sugestões devem ser genéricas e encorajar ações como: melhor organização FIFO, destaque na gôndola, ou consultar um gerente para promoções.
-    Não sugira descontos específicos, pois o funcionário pode não ter essa autonomia.
+    Para CADA item, forneça uma sugestão CURTA e PRÁTICA.
+    Se um item vence em 0 dias (HOJE), a sugestão DEVE refletir URGÊNCIA MÁXIMA (ex: "AÇÃO IMEDIATA! Vence HOJE. Destaque máximo, FIFO, alertar gerente para possível ação de preço ou descarte ao fim do dia.")
+    Se um item vence em 1-3 dias, a sugestão DEVE ser de ALERTA (ex: "Estoque alto e validade muito próxima (X dias). Priorize FIFO, destaque e informe gerente.")
+    Para outros itens (vencendo em mais de 3 dias mas dentro do horizonte), use uma sugestão padrão (ex: "Estoque considerável e validade próxima. Verifique FIFO e considere destacar.")
+    NÃO sugira descontos específicos, pois o funcionário pode não ter essa autonomia.
 
     Itens Críticos (Exibindo os Top {{displayedCriticalCount}} de {{totalCriticalCount}} encontrados):
     {{#each items}}
-    - Produto: {{productName}} {{#if brand}} ({{brand}}){{/if}}, Quantidade: {{quantity}}, Vence em: {{daysUntilExpiry}} dia(s).
+    - Produto: {{productName}}{{#if brand}} ({{brand}}){{/if}}, Quantidade: {{quantity}}, Vence em: {{daysUntilExpiry}} dia(s).
     {{/each}}
 
     Baseado nos itens acima e no fato que foram analisados {{analyzedProductsCount}} produtos no total, gere:
-    1. Uma lista de 'criticalItems', onde cada item da lista de entrada recebe um campo 'suggestion'.
-       Exemplo de sugestão: "Estoque alto e validade próxima. Verifique organização FIFO e considere destacar na gôndola."
-       Outra sugestão: "Atenção a este item! Comunique ao gerente sobre a validade para possível ação."
-    2. Um 'overallSummary' conciso e útil sobre a situação geral, mencionando o número de itens críticos encontrados em relação ao total analisado e o horizonte de dias.
-       Exemplo de sumário: "Alerta! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias. Priorize os {{displayedCriticalCount}} listados."
-       Se displayedCriticalCount for igual a totalCriticalCount: "Atenção! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias."
-       Se totalCriticalCount for 1: "Atenção! 1 item em {{analyzedProductsCount}} analisados precisa de atenção nos próximos {{attentionHorizonDays}} dias."
+    1. Uma lista 'criticalItems', onde CADA item da lista de entrada recebe seu campo 'suggestion' apropriado conforme as regras de urgência acima. Assegure que o número de itens em 'criticalItems' no output seja o mesmo que em 'items' no input.
+    2. Um 'overallSummary' conciso. Se houver itens vencendo HOJE (daysUntilExpiry = 0) entre os listados em 'items' no input, INICIE o sumário com "ALERTA CRÍTICO! Há itens vencendo HOJE!". Em todos os casos, mencione o número total de itens críticos (totalCriticalCount) e o horizonte de dias (attentionHorizonDays).
+       Exemplo de sumário (com item vencendo hoje): "ALERTA CRÍTICO! Há itens vencendo HOJE! No total, {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias. Priorize os {{displayedCriticalCount}} listados."
+       Exemplo de sumário (sem item vencendo hoje, totalCriticalCount = 1): "Atenção! 1 item em {{analyzedProductsCount}} analisados precisa de atenção nos próximos {{attentionHorizonDays}} dias."
+       Exemplo de sumário (sem item vencendo hoje, displayedCriticalCount = totalCriticalCount): "Atenção! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias."
+       Exemplo de sumário (sem item vencendo hoje, geral): "Alerta! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias. Priorize os {{displayedCriticalCount}} listados."
+
+    Retorne APENAS a estrutura JSON solicitada para 'criticalItems' e 'overallSummary'.
     `,
 });
 
@@ -109,32 +112,32 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
     outputSchema: ExpiryAttentionReportSchema,
   },
   async (input) => {
-    const { products, attentionHorizonDays = 15, topNProducts = 5 } = input;
+    const { products, attentionHorizonDays = 15, topNProducts = 3 } = input;
     const today = startOfDay(new Date());
     let processedProducts: CriticalExpiryItem[] = [];
     let analyzedCount = 0;
 
     products.forEach((p) => {
       if (!p.validade || !isValid(parseISO(p.validade))) {
-        return; // Skip products with invalid or no expiry date
+        return; 
       }
       const expiryDate = startOfDay(parseISO(p.validade));
+      
+      // Skip already strictly expired products (validity date is before today)
       if (!isFuture(expiryDate) && differenceInDays(expiryDate, today) < 0) {
-        return; // Skip already expired products
+        return; 
       }
       
       analyzedCount++;
       const daysUntilExpiry = differenceInDays(expiryDate, today);
 
+      // Only consider products expiring today or within the attention horizon
       if (daysUntilExpiry <= attentionHorizonDays && daysUntilExpiry >= 0) {
         const quantity = parseInt(p.unidade, 10);
         if (isNaN(quantity) || quantity <= 0) {
-          return; // Skip if quantity is not a positive number
+          return; 
         }
 
-        // Risk Score: Higher quantity and fewer days to expiry = higher risk
-        // Add 1 to daysUntilExpiry to prevent division by zero for items expiring today
-        // Weight quantity more heavily
         const riskScore = (quantity * 10) / (daysUntilExpiry + 1);
 
         processedProducts.push({
@@ -144,12 +147,11 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
           expiryDate: p.validade,
           daysUntilExpiry,
           riskScore,
-          suggestion: '', // Suggestion will be added by the prompt
+          suggestion: '', 
         });
       }
     });
 
-    // Sort by risk score (descending) and then by days until expiry (ascending)
     processedProducts.sort((a, b) => {
       if (b.riskScore !== a.riskScore) {
         return b.riskScore - a.riskScore;
@@ -158,7 +160,7 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
     });
 
     const topCriticalItems = processedProducts.slice(0, topNProducts);
-    const criticalProductsCount = processedProducts.length; // Total items meeting criteria before slicing for topN
+    const criticalProductsCount = processedProducts.length; 
 
     if (topCriticalItems.length === 0) {
       return {
@@ -168,17 +170,18 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
         criticalProductsCount: 0,
       };
     }
-
-    // Use a prompt to generate suggestions for the top critical items and an overall summary
-    const promptInputData = {
-      items: topCriticalItems.map(item => ({
+    
+    const itemsForPrompt = topCriticalItems.map(item => ({
         productName: item.productName,
         brand: item.brand,
         quantity: item.quantity,
         daysUntilExpiry: item.daysUntilExpiry,
-      })),
-      totalCriticalCount: criticalProductsCount, // Total critical items found
-      displayedCriticalCount: topCriticalItems.length, // Items being displayed in detail
+      }));
+
+    const promptInputData = {
+      items: itemsForPrompt,
+      totalCriticalCount: criticalProductsCount,
+      displayedCriticalCount: topCriticalItems.length,
       attentionHorizonDays: attentionHorizonDays,
       analyzedProductsCount: analyzedCount,
     };
@@ -189,20 +192,29 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
         console.warn("AI suggestion generation failed or returned unexpected number of items. Using fallback suggestions.");
         const fallbackSuggestions = topCriticalItems.map(item => ({
             ...item,
-            suggestion: "Estoque considerável e validade próxima. Verifique a organização FIFO na gôndola e/ou comunique ao gerente."
+            suggestion: item.daysUntilExpiry === 0 
+                ? "AÇÃO IMEDIATA! Vence HOJE. Destaque máximo, FIFO, alertar gerente."
+                : "Estoque considerável e validade próxima. Verifique a organização FIFO e/ou comunique ao gerente."
         }));
+        
+        let fallbackSummary = `Atenção: ${criticalProductsCount} produto(s) em ${analyzedProductsCount} analisados requer(em) cuidados nos próximos ${attentionHorizonDays} dias.`;
+        if (topCriticalItems.some(i => i.daysUntilExpiry === 0)) {
+            fallbackSummary = `ALERTA CRÍTICO! Há itens vencendo HOJE! ` + fallbackSummary;
+        }
+
         return {
             criticalItems: fallbackSuggestions,
-            overallSummary: criticalProductsCount > 0 ? `Atenção: ${criticalProductsCount} produto(s) em ${analyzedCount} analisados requer(em) cuidados nos próximos ${attentionHorizonDays} dias devido à validade e estoque.` : "Nenhum produto crítico identificado para o período.",
+            overallSummary: fallbackSummary,
             analyzedProductsCount: analyzedCount,
             criticalProductsCount: criticalProductsCount,
         };
     }
     
-    // Combine AI suggestions with the original critical items data
     const finalCriticalItems = topCriticalItems.map((item, index) => ({
         ...item,
-        suggestion: output.criticalItems[index]?.suggestion || "Verifique FIFO e destaque na gôndola. Consulte o gerente se necessário.",
+        suggestion: output.criticalItems[index]?.suggestion || (item.daysUntilExpiry === 0 
+            ? "AÇÃO IMEDIATA! Vence HOJE. Destaque, FIFO, alertar gerente." 
+            : "Verifique FIFO e destaque. Consulte o gerente se necessário."),
     }));
 
     return {
@@ -213,3 +225,4 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
     };
   }
 );
+
