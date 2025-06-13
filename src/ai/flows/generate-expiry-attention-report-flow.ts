@@ -24,7 +24,7 @@ const ProductSchema = z.object({
   originalId: z.string().optional(),
   listId: z.string(),
   produto: z.string(),
-  marca: z.string().optional(), // Changed to optional
+  marca: z.string().optional(),
   unidade: z.string(),
   validade: z.string(),
   isExploding: z.boolean().optional(),
@@ -52,6 +52,49 @@ const ExpiryAttentionReportSchema = z.object({
   analyzedProductsCount: z.number().describe('Total number of products analyzed (excluding already expired).'),
   criticalProductsCount: z.number().describe('Number of products identified as critical within the horizon.'),
 });
+
+// Define the schema for the input of the suggestion prompt
+const SuggestionPromptInputSchema = z.object({
+  items: z.array(z.object({
+    productName: z.string(),
+    brand: z.string().optional(),
+    quantity: z.string(),
+    daysUntilExpiry: z.number(),
+  })),
+  totalCriticalCount: z.number(),
+  displayedCriticalCount: z.number(),
+  attentionHorizonDays: z.number(),
+  analyzedProductsCount: z.number(),
+});
+
+// Define the suggestion prompt at the module level
+const suggestionPrompt = ai.definePrompt({
+    name: 'generateExpirySuggestionsPrompt',
+    input: { schema: SuggestionPromptInputSchema },
+    output: { schema: ExpiryAttentionReportSchema.pick({ criticalItems: true, overallSummary: true }) },
+    prompt: `
+    Você é um assistente de gerenciamento de estoque para um funcionário de supermercado.
+    Analise os seguintes itens críticos que estão próximos da validade e possuem estoque considerável.
+    Para cada item, forneça uma sugestão curta e prática para o funcionário.
+    As sugestões devem ser genéricas e encorajar ações como: melhor organização FIFO, destaque na gôndola, ou consultar um gerente para promoções.
+    Não sugira descontos específicos, pois o funcionário pode não ter essa autonomia.
+
+    Itens Críticos (Exibindo os Top {{displayedCriticalCount}} de {{totalCriticalCount}} encontrados):
+    {{#each items}}
+    - Produto: {{productName}} {{#if brand}} ({{brand}}){{/if}}, Quantidade: {{quantity}}, Vence em: {{daysUntilExpiry}} dia(s).
+    {{/each}}
+
+    Baseado nos itens acima e no fato que foram analisados {{analyzedProductsCount}} produtos no total, gere:
+    1. Uma lista de 'criticalItems', onde cada item da lista de entrada recebe um campo 'suggestion'.
+       Exemplo de sugestão: "Estoque alto e validade próxima. Verifique organização FIFO e considere destacar na gôndola."
+       Outra sugestão: "Atenção a este item! Comunique ao gerente sobre a validade para possível ação."
+    2. Um 'overallSummary' conciso e útil sobre a situação geral, mencionando o número de itens críticos encontrados em relação ao total analisado e o horizonte de dias.
+       Exemplo de sumário: "Alerta! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias. Priorize os {{displayedCriticalCount}} listados."
+       Se displayedCriticalCount for igual a totalCriticalCount: "Atenção! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias."
+       Se totalCriticalCount for 1: "Atenção! 1 item em {{analyzedProductsCount}} analisados precisa de atenção nos próximos {{attentionHorizonDays}} dias."
+    `,
+});
+
 
 export async function generateExpiryAttentionReport(
   input: GenerateExpiryAttentionReportInput
@@ -127,7 +170,7 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
     }
 
     // Use a prompt to generate suggestions for the top critical items and an overall summary
-    const promptInput = {
+    const promptInputData = {
       items: topCriticalItems.map(item => ({
         productName: item.productName,
         brand: item.brand,
@@ -139,35 +182,8 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
       attentionHorizonDays: attentionHorizonDays,
       analyzedProductsCount: analyzedCount,
     };
-
-    const suggestionPrompt = ai.definePrompt({
-        name: 'generateExpirySuggestionsPrompt',
-        input: { schema: z.any() }, // Keep it simple for this internal prompt
-        output: { schema: ExpiryAttentionReportSchema.pick({ criticalItems: true, overallSummary: true }) },
-        prompt: `
-        Você é um assistente de gerenciamento de estoque para um funcionário de supermercado.
-        Analise os seguintes itens críticos que estão próximos da validade e possuem estoque considerável.
-        Para cada item, forneça uma sugestão curta e prática para o funcionário.
-        As sugestões devem ser genéricas e encorajar ações como: melhor organização FIFO, destaque na gôndola, ou consultar um gerente para promoções.
-        Não sugira descontos específicos, pois o funcionário pode não ter essa autonomia.
-
-        Itens Críticos (Exibindo os Top {{displayedCriticalCount}} de {{totalCriticalCount}} encontrados):
-        {{#each items}}
-        - Produto: {{productName}} {{#if brand}} ({{brand}}){{/if}}, Quantidade: {{quantity}}, Vence em: {{daysUntilExpiry}} dia(s).
-        {{/each}}
-
-        Baseado nos itens acima e no fato que foram analisados {{analyzedProductsCount}} produtos no total, gere:
-        1. Uma lista de 'criticalItems', onde cada item da lista de entrada recebe um campo 'suggestion'.
-           Exemplo de sugestão: "Estoque alto e validade próxima. Verifique organização FIFO e considere destacar na gôndola."
-           Outra sugestão: "Atenção a este item! Comunique ao gerente sobre a validade para possível ação."
-        2. Um 'overallSummary' conciso e útil sobre a situação geral, mencionando o número de itens críticos encontrados em relação ao total analisado e o horizonte de dias.
-           Exemplo de sumário: "Alerta! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias. Priorize os {{displayedCriticalCount}} listados."
-           Se displayedCriticalCount for igual a totalCriticalCount: "Atenção! {{totalCriticalCount}} itens em {{analyzedProductsCount}} analisados precisam de atenção nos próximos {{attentionHorizonDays}} dias."
-           Se totalCriticalCount for 1: "Atenção! 1 item em {{analyzedProductsCount}} analisados precisa de atenção nos próximos {{attentionHorizonDays}} dias."
-        `,
-    });
     
-    const { output } = await suggestionPrompt(promptInput);
+    const { output } = await suggestionPrompt(promptInputData);
 
     if (!output || !output.criticalItems || output.criticalItems.length !== topCriticalItems.length) {
         console.warn("AI suggestion generation failed or returned unexpected number of items. Using fallback suggestions.");
@@ -197,5 +213,3 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
     };
   }
 );
-
-    
