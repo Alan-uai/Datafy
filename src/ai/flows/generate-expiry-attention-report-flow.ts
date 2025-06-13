@@ -24,7 +24,7 @@ const ProductSchema = z.object({
   originalId: z.string().optional(),
   listId: z.string(),
   produto: z.string(),
-  marca: z.string(),
+  marca: z.string().optional(), // Changed to optional
   unidade: z.string(),
   validade: z.string(),
   isExploding: z.boolean().optional(),
@@ -197,3 +197,5 @@ const generateExpiryAttentionReportFlow = ai.defineFlow(
     };
   }
 );
+
+    
