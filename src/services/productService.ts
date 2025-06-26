@@ -282,13 +282,13 @@ export const moveProductsToList = async (userId: string, productOriginalIds: str
     for (const productId of productOriginalIds) {
       const productRef = doc(db, PRODUCTS_COLLECTION, productId);
       // Optional: Fetch product to verify ownership (userId) before adding to batch
-      // const productSnap = await getDoc(productRef);
-      // if (productSnap.exists() && productSnap.data()?.userId === userId) {
-      //   batch.update(productRef, { listId: targetListId, updatedAt: Timestamp.now() });
-      // } else {
-      //   console.warn(`Product ${productId} not found or user ${userId} does not have permission to move it.`);
-      // }
-      // Assuming Firestore rules will handle ownership.
+      // const productSnap = await getDoc(productRef);\
+      // if (productSnap.exists() && productSnap.data()?.userId === userId) {\
+      //   batch.update(productRef, { listId: targetListId, updatedAt: Timestamp.now() });\
+      // } else {\
+      //   console.warn(`Product ${productId} not found or user ${userId} does not have permission to move it.`);\
+      // }\
+      // Assuming Firestore rules will handle ownership.\
       batch.update(productRef, { listId: targetListId, updatedAt: Timestamp.now() });
     }
     await batch.commit();
@@ -316,7 +316,7 @@ export const updateMultipleProductExpirations = async (userId: string, productOr
     const batch = writeBatch(db);
     for (const productId of productOriginalIds) {
       const productRef = doc(db, PRODUCTS_COLLECTION, productId);
-      // Assuming Firestore rules will handle ownership.
+      // Assuming Firestore rules will handle ownership.\
       batch.update(productRef, { validade: validadeTimestamp, updatedAt: Timestamp.now() });
     }
     await batch.commit();
@@ -326,3 +326,48 @@ export const updateMultipleProductExpirations = async (userId: string, productOr
   }
 };
 
+interface BarcodeProductDetails {
+  name: string;
+  brand?: string;
+  imageUrl?: string;
+  category?: string;
+}
+
+export const fetchProductDetailsFromBarcode = async (barcode: string): Promise<BarcodeProductDetails | null> => {
+  // This is a placeholder function. In a real application, you would integrate with a barcode API.
+  // Examples: Open Food Facts API, GS1 GEPIR, internal product database.
+
+  console.log(`Attempting to fetch product details for barcode: ${barcode}`);
+
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // --- Mock Data for Demonstration ---
+  if (barcode === "7891000000018") { // Example barcode for a common item
+    return {
+      name: "Leite Integral",
+      brand: "Marca do Campo",
+      imageUrl: "https://example.com/leite.jpg",
+      category: "Laticínios"
+    };
+  } else if (barcode === "7891000000025") { // Another example
+    return {
+      name: "Arroz Parboilizado 5kg",
+      brand: "Fazenda Feliz",
+      imageUrl: "https://example.com/arroz.jpg",
+      category: "Grãos"
+    };
+  } else if (barcode === "7891000000032") { // Yet another example
+    return {
+      name: "Biscoito Recheado Chocolate",
+      brand: "Doce Sabor",
+      imageUrl: "https://example.com/biscoito.jpg",
+      category: "Biscoitos"
+    };
+  } else {
+    // If barcode not found in mock data
+    console.log(`No mock data found for barcode: ${barcode}`);
+    return null;
+  }
+  // --- End Mock Data ---
+};

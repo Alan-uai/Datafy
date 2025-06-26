@@ -1,59 +1,34 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getFirestore } from "firebase/firestore"; // Import getFirestore
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
-
-const firebaseConfigValues = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-// Critical configuration check
-if (!firebaseConfigValues.apiKey || !firebaseConfigValues.projectId) {
-  const errorMessage =
-    "!!! CRITICAL FIREBASE CONFIG ERROR !!!\n" +
-    "NEXT_PUBLIC_FIREBASE_API_KEY or NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing or undefined.\n" +
-    "Ensure your .env.local file in the ROOT of your project contains all Firebase configuration variables.\n" +
-    "Example .env.local content:\n" +
-    "NEXT_PUBLIC_FIREBASE_API_KEY=\"YOUR_API_KEY\"\n" +
-    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=\"YOUR_AUTH_DOMAIN\"\n" +
-    "NEXT_PUBLIC_FIREBASE_PROJECT_ID=\"YOUR_PROJECT_ID\"\n" +
-    "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=\"YOUR_STORAGE_BUCKET\"\n" +
-    "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=\"YOUR_MESSAGING_SENDER_ID\"\n" +
-    "NEXT_PUBLIC_FIREBASE_APP_ID=\"YOUR_APP_ID\"\n" +
-    "After creating or updating .env.local, YOU MUST RESTART your Next.js development server.";
-
-  console.error(errorMessage);
-  // Throw an error to prevent the app from starting with a critically misconfigured Firebase
-  throw new Error("Firebase configuration is missing critical values. Check server logs.");
-}
-
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: firebaseConfigValues.apiKey,
-  authDomain: firebaseConfigValues.authDomain,
-  projectId: firebaseConfigValues.projectId,
-  storageBucket: firebaseConfigValues.storageBucket,
-  messagingSenderId: firebaseConfigValues.messagingSenderId,
-  appId: firebaseConfigValues.appId,
+  apiKey: "AIzaSyBWLYmeq9qrjaMfAKSBpP46b_CLXMAOWtc",
+  authDomain: "datafy-ed69d.firebaseapp.com",
+  projectId: "datafy-ed69d",
+  storageBucket: "datafy-ed69d.firebaseastorage.app",
+  messagingSenderId: "990528724406",
+  appId: "1:990528724406:web:c714dc4ed9291e3cb87517",
+  measurementId: "G-YWT6DV5548"
 };
 
-let app: FirebaseApp;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-  if (typeof window !== 'undefined') {
-    console.log('[Firebase Debug] Firebase app initialized on the client.');
-  } else {
-    console.log('[Firebase Debug] Firebase app initialized on the server.');
-  }
-} else {
-  app = getApp();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Analytics only in the browser environment
+let analytics;
+if (typeof window !== 'undefined') {
+  analytics = getAnalytics(app);
 }
 
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app); // Initialize Firestore
+const googleProvider = new GoogleAuthProvider();
 
-export { app, auth, db, GoogleAuthProvider, signInWithPopup };
+export { auth, db, googleProvider, signInWithPopup }; // Export db

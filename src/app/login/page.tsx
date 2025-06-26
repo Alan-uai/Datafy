@@ -4,16 +4,13 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, GoogleAuthProvider, signInWithPopup } from '@/lib/firebase';
+import { auth, googleProvider, signInWithPopup } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 // Ícone do Google (SVG simples)
 const GoogleIcon = () => (
@@ -25,6 +22,9 @@ const GoogleIcon = () => (
     <path fill="none" d="M0 0h48v48H0z"></path>
   </svg>
 );
+import { EmailPasswordLoginForm } from '@/components/auth/EmailPasswordLoginForm';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { Loader2 } from 'lucide-react';
 
 const getFirebaseErrorMessage = (errorCode: string): string => {
   switch (errorCode) {
@@ -51,7 +51,6 @@ const getFirebaseErrorMessage = (errorCode: string): string => {
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -78,7 +77,8 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setError(null);
     setIsGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
+    // Use the exported googleProvider instance directly
+    const provider = googleProvider;
     try {
       await signInWithPopup(auth, provider);
       toast({ title: 'Login com Google bem-sucedido!', description: 'Redirecionando para o painel...' });
@@ -102,60 +102,19 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-headline">Login</CardTitle>
           <CardDescription>Acesse sua conta Datafy para continuar.</CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading || isGoogleLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Sua senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={isLoading || isGoogleLoading}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading || isGoogleLoading}
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-             {error && <p className="text-sm text-destructive my-2">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Entrando...
-                </>
-              ) : (
-                'Entrar'
-              )}
-            </Button>
-          </CardContent>
-        </form>
-        
+
+        <CardContent className="space-y-4">
+          <EmailPasswordLoginForm
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            error={error}
+            isLoading={isLoading}
+            onSubmit={handleLogin}
+          />
+        </CardContent>
+
         <div className="px-6 pb-2 flex items-center">
           <Separator className="flex-1" />
           <span className="px-2 text-xs text-muted-foreground">OU</span>
@@ -163,19 +122,11 @@ export default function LoginPage() {
         </div>
 
         <CardContent>
-           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-            {isGoogleLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Entrando com Google...
-              </>
-            ) : (
-              <>
-                <GoogleIcon />
-                <span className="ml-2">Entrar com Google</span>
-              </>
-            )}
-          </Button>
+           <GoogleSignInButton
+            isGoogleLoading={isGoogleLoading}
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+           />
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4 pt-0">
