@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 6, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
-    {"offset": {"line": 60, "column": 0}, "map": {"version":3,"sources":["file:///home/user/Datafy/src/app/api/extract-product-from-image/route.ts"],"sourcesContent":["import { NextRequest, NextResponse } from 'next/server';\nimport  extractProductFromImage  from '@/ai/flows/extract-product-from-image-flow';\n\nexport async function POST(req: NextRequest) {\n  try {\n    const { base64Image } = await req.json();\n\n    if (!base64Image) {\n      return NextResponse.json({ error: 'Base64 image is required' }, { status: 400 });\n    }\n\n    const result = await extractProductFromImagem({ base64Image, imageType: 'image/jpeg' });\n    return NextResponse.json(result);\n  } catch (error: any) {\n    console.error('Error in extract-product-from-image API route:', error);\n    return NextResponse.json({ error: error.message || 'An unknown error occurred' }, { status: 500 });\n  }\n}"],"names":[],"mappings":";;;AAAA;;AAGO,eAAe,KAAK,GAAgB;IACzC,IAAI;QACF,MAAM,EAAE,WAAW,EAAE,GAAG,MAAM,IAAI,IAAI;QAEtC,IAAI,CAAC,aAAa;YAChB,OAAO,gIAAA,CAAA,eAAY,CAAC,IAAI,CAAC;gBAAE,OAAO;YAA2B,GAAG;gBAAE,QAAQ;YAAI;QAChF;QAEA,MAAM,SAAS,MAAM,yBAAyB;YAAE;YAAa,WAAW;QAAa;QACrF,OAAO,gIAAA,CAAA,eAAY,CAAC,IAAI,CAAC;IAC3B,EAAE,OAAO,OAAY;QACnB,QAAQ,KAAK,CAAC,kDAAkD;QAChE,OAAO,gIAAA,CAAA,eAAY,CAAC,IAAI,CAAC;YAAE,OAAO,MAAM,OAAO,IAAI;QAA4B,GAAG;YAAE,QAAQ;QAAI;IAClG;AACF","debugId":null}}]
-}
