@@ -1174,4 +1174,4 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
       </AlertDialog>
     </>
   );
-
+}
