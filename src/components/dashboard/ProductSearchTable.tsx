@@ -381,11 +381,8 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
           }
         } else {
             if (!product.isExploding && product.originalId) {
-                // Only set if not already the active popover to prevent conflicts
-                if (activePopoverProductId !== product.originalId) {
-                    setSelectedProduct(product);
-                    setActivePopoverProductId(product.originalId);
-                }
+                // Don't set state here, let the popover handle its own opening
+                setSelectedProduct(product);
             }
         }
       }
@@ -477,7 +474,6 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
         setExplodingProductOriginalIds(prev => [...prev, selectedProduct.originalId!]);
         await deleteProduct(currentUser.uid, selectedProduct.originalId);
         toast({ title: "Produto excluído", description: `${selectedProduct.produto} foi removido com sucesso.` });
- setProducts(prevProducts => prevProducts.filter(p => p.originalId !== selectedProduct.originalId)); // Update state locally
       } catch (error) {
         toast({ variant: "destructive", title: "Erro ao excluir", description: "Não foi possível excluir o produto." });
       } finally {
@@ -510,12 +506,12 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
         };
         await updateProduct(currentUser.uid, editingProduct.originalId, productDataToSave);
         toast({ title: "Produto atualizado", description: `${productDataToSave.produto} foi atualizado com sucesso.` });
- setProducts(prevProducts => prevProducts.map(p => p.originalId === editingProduct.originalId ? { ...p, ...productDataToSave } : p)); // Update state locally
       } catch (error) {
         toast({ variant: "destructive", title: "Erro ao atualizar", description: "Não foi possível atualizar o produto." });
       } finally {
         setIsEditDialogOpen(false);
         setEditingProduct(null);
+        onProductsChanged?.();
       }
     }
   };
@@ -657,10 +653,11 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
             setExplodingProductOriginalIds(prev => [...prev, ...nonExplodingSelectedIds]);
             await deleteMultipleProducts(currentUser.uid, nonExplodingSelectedIds);
             toast({ title: `${nonExplodingSelectedIds.length} produto(s) excluído(s) com sucesso.` });
- setProducts(prevProducts => prevProducts.filter(p => !nonExplodingSelectedIds.includes(p.originalId!))); // Update state locally
             setSelectedProductIds([]);
         } catch (error) {
             toast({ variant: "destructive", title: "Erro ao excluir selecionados", description: "Não foi possível excluir os produtos." });
+        } finally {
+            onProductsChanged?.();
         }
     } else if (nonExplodingSelectedIds.length === 0) {
         toast({variant: "default", title: "Nenhum item para excluir."});
@@ -1006,10 +1003,12 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
                           open={activePopoverProductId === currentProductKey && !isSelectionModeActive && !explodingProductOriginalIds.includes(product.originalId)}
                           onOpenChange={(isOpen) => {
                              if (isSelectionModeActive || explodingProductOriginalIds.includes(product.originalId)) {
-                                 if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
+                                 setActivePopoverProductId(null);
                                 return;
                             }
-                             if (!isOpen && activePopoverProductId === currentProductKey) {
+                             if (isOpen) {
+                               setActivePopoverProductId(currentProductKey);
+                             } else {
                                setActivePopoverProductId(null);
                                setSelectedProduct(null);
                              }
