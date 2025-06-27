@@ -42,7 +42,8 @@ import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { formatDaysRemainingText } from '@/utils/dateUtils';
 import ProductSkeleton from '@/components/dashboard/ProductSkeleton';
 import { AddMultipleProductsDialog } from '@/components/dashboard/AddMultipleProductsDialog';
-import { AddProductsFromImageDialog } from '@/components/dashboard/AddProductsFromImageDialog'; // New import
+import { AddProductsFromImageDialog } from '@/components/dashboard/AddProductsFromImageDialog';
+import { AddProductsFromFileDialog } from '@/components/dashboard/AddProductsFromFileDialog';
 
 import {
   isToday,
@@ -86,7 +87,8 @@ export default function DashboardPage() {
   const [isScannerActiveInDialog, setIsScannerActiveInDialog] = useState(false);
   const [isCalendarOpenInDialog, setIsCalendarOpenInDialog] = useState(false);
   const [isAddMultipleProductsDialogOpen, setIsAddMultipleProductsDialogOpen] = useState(false);
-  const [isAddProductsFromImageDialogOpen, setIsAddProductsFromImageDialogOpen] = useState(false); // New state
+  const [isAddProductsFromImageDialogOpen, setIsAddProductsFromImageDialogOpen] = useState(false);
+  const [isAddProductsFromFileDialogOpen, setIsAddProductsFromFileDialogOpen] = useState(false);
 
   const [listProducts, setListProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -204,7 +206,8 @@ export default function DashboardPage() {
   }, []);
   const handleOpenAddSingleProductDialog = useCallback(() => setIsAddProductDialogOpen(true), []);
   const handleOpenAddMultipleProductsDialog = useCallback(() => setIsAddMultipleProductsDialogOpen(true), []);
-  const handleOpenAddProductsFromImageDialog = useCallback(() => setIsAddProductsFromImageDialogOpen(true), []); // New handler
+  const handleOpenAddProductsFromImageDialog = useCallback(() => setIsAddProductsFromImageDialogOpen(true), []);
+  const handleOpenAddProductsFromFileDialog = useCallback(() => setIsAddProductsFromFileDialogOpen(true), []);
 
   const handleProductsChangedInTable = useCallback(() => {
     if (currentUser?.uid && activeListId) {
@@ -255,7 +258,8 @@ export default function DashboardPage() {
       <AddProductFAB
         onAddSingleProduct={handleOpenAddSingleProductDialog}
         onAddMultipleProducts={handleOpenAddMultipleProductsDialog}
-        onAddProductsFromImage={handleOpenAddProductsFromImageDialog} // New prop
+        onAddProductsFromImage={handleOpenAddProductsFromImageDialog}
+        onAddProductsFromFile={handleOpenAddProductsFromFileDialog}
       />
 
       <AddListDialog isOpen={isAddListDialogOpen} onOpenChange={setIsAddListDialogOpen} onListAdded={handleListAdded} userId={currentUser?.uid} />
@@ -269,10 +273,17 @@ export default function DashboardPage() {
         listId={activeListId || ""}
         userId={currentUser?.uid}
       />
-      <AddProductsFromImageDialog // New dialog component
+      <AddProductsFromImageDialog
         isOpen={isAddProductsFromImageDialogOpen}
         onOpenChange={setIsAddProductsFromImageDialogOpen}
-        onProductsAdded={handleMultipleProductsAdded} // Re-use this callback or create a new one if different logic is needed
+        onProductsAdded={handleMultipleProductsAdded}
+        listId={activeListId || ""}
+        userId={currentUser?.uid}
+      />
+      <AddProductsFromFileDialog
+        isOpen={isAddProductsFromFileDialogOpen}
+        onOpenChange={setIsAddProductsFromFileDialogOpen}
+        onProductsAdded={handleMultipleProductsAdded}
         listId={activeListId || ""}
         userId={currentUser?.uid}
       />

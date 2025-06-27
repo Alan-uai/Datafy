@@ -93,7 +93,12 @@ export const AddProductsFromImageDialog: React.FC<AddProductsFromImageDialogProp
         }
       } catch (error: any) {
         console.error("Error extracting products from image:", error);
-        toast({ variant: "destructive", title: "Erro na Extração", description: error.message || "Ocorreu um erro ao processar a imagem." });
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Erro ao Processar Imagem",
+          description: error?.message || "Não foi possível extrair produtos da imagem. Verifique se a imagem contém produtos válidos e tente novamente.",
+        });
       } finally {
         setIsLoading(false);
       }

@@ -12,13 +12,15 @@ import {
 interface AddProductFABProps {
   onAddSingleProduct: () => void;
   onAddMultipleProducts: () => void;
-  onAddProductsFromImage: () => void; // New prop for image import
+  onAddProductsFromImage: () => void;
+  onAddProductsFromFile: () => void;
 }
 
 export const AddProductFAB: React.FC<AddProductFABProps> = ({
   onAddSingleProduct,
   onAddMultipleProducts,
   onAddProductsFromImage,
+  onAddProductsFromFile,
 }) => {
   return (
     <DropdownMenu>
@@ -45,6 +47,11 @@ export const AddProductFAB: React.FC<AddProductFABProps> = ({
         <DropdownMenuItem onClick={onAddProductsFromImage}>
           <Camera className="mr-2 h-4 w-4" />
           Adicionar por Foto
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onAddProductsFromFile}>
+          <FileText className="mr-2 h-4 w-4" />
+          Adicionar por Arquivo
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

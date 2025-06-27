@@ -1082,11 +1082,11 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
                                         />
                                     </TableCell>
                                   ): null }
-                                  <TableCell className={`font-medium py-3 ${isSelectionModeActive ? 'px-1 text-center' : 'pl-2 pr-1 text-left'}`}>{product.id}</TableCell>
-                                  <TableCell className="py-3 px-2 md:px-4">{product.produto}</TableCell>
-                                  <TableCell className="py-3 px-2 md:px-4">{product.marca}</TableCell>
+                                  <TableCell className={`font-medium py-3 text-center ${isSelectionModeActive ? 'px-1' : 'px-2'}`}>{product.id}</TableCell>
+                                  <TableCell className="py-3 px-2 md:px-4 text-center">{product.produto}</TableCell>
+                                  <TableCell className="py-3 px-2 md:px-4 text-center">{product.marca}</TableCell>
                                   <TableCell className="py-3 px-2 md:px-4 text-center">{product.unidade}</TableCell>
-                                  <TableCell className="py-3 px-2 md:px-4 text-right">
+                                  <TableCell className="py-3 px-2 md:px-4 text-center">
                                     {product.validade && isValid(parseISO(product.validade))
                                       ? format(parseISO(product.validade), 'dd/MM/yyyy')
                                       : 'N/A'}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { AppLogo } from '@/components/shared/AppLogo';
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from '@/hooks/use-toast';
+import { BarChart3 } from 'lucide-react';
 
 
 export function DashboardHeader() {
@@ -58,7 +58,7 @@ export function DashboardHeader() {
       toast({ variant: 'destructive', title: 'Erro no Logout', description: 'Não foi possível fazer logout.' });
     }
   };
-  
+
   const getInitials = (email?: string | null) => {
     if (!email) return "?";
     const parts = email.split('@')[0].split(/[._-]/);
@@ -113,15 +113,13 @@ export function DashboardHeader() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {/* <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Perfil</span>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer">
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Perfil e Estatísticas
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Configurações</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator /> */}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sair</span>
