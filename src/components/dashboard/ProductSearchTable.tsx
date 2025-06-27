@@ -380,9 +380,12 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
             handleToggleSelectProduct(product.originalId);
           }
         } else {
-            if (!product.isExploding) {
-                setSelectedProduct(product);
-                setActivePopoverProductId(product.originalId || null);
+            if (!product.isExploding && product.originalId) {
+                // Only set if not already the active popover to prevent conflicts
+                if (activePopoverProductId !== product.originalId) {
+                    setSelectedProduct(product);
+                    setActivePopoverProductId(product.originalId);
+                }
             }
         }
       }
@@ -1006,13 +1009,9 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
                                  if (activePopoverProductId === currentProductKey) setActivePopoverProductId(null);
                                 return;
                             }
-                             if (isOpen) {
-                               setSelectedProduct(product);
-                               setActivePopoverProductId(currentProductKey);
-                             } else {
-                               if (activePopoverProductId === currentProductKey) {
-                                 setActivePopoverProductId(null);
-                               }
+                             if (!isOpen && activePopoverProductId === currentProductKey) {
+                               setActivePopoverProductId(null);
+                               setSelectedProduct(null);
                              }
                           }}
                         >
