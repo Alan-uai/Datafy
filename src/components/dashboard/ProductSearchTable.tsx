@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { Product, ProductList } from '@/types';
@@ -268,9 +267,9 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
 
   // Shockwave state remains as it's for delete animation within the table
- 
+
   const [shockwaveTargets, setShockwaveTargets] = useState<ShockwaveTarget[]>([]);
-  
+
 
 
  useEffect(() => {
@@ -328,7 +327,7 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
   }, [products]); // Depend on the products prop
  // Note: Adding explodingProductOriginalIds to dependency array here could cause issues if products are filtered out too early by the effect. Let's keep it simple for now based on the original issue description. Adding `products` ensures the effect runs when the products list itself changes.
 
- 
+
 
   const finalizeDeleteProduct = (productOriginalId: string) => {
     setExplodingProductOriginalIds(prev => prev.filter(id => id !== productOriginalId));
@@ -712,7 +711,7 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
         : (column === 'id' || column === 'unidade' ? <ArrowDown01 className="inline-block ml-1 h-3 w-3" /> : <ArrowDownAZ className="inline-block ml-1 h-3 w-3" />)
       )
       : null;
-    
+
     return (
       <ShadTableHeaderComponent
  key={column}
