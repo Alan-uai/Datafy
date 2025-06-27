@@ -479,7 +479,6 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
       } finally {
         setIsDeleteDialogOpen(false);
         setSelectedProduct(null);
-        onProductsChanged?.();
       }
     }
   };
@@ -511,7 +510,6 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
       } finally {
         setIsEditDialogOpen(false);
         setEditingProduct(null);
-        onProductsChanged?.();
       }
     }
   };
@@ -656,8 +654,6 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
             setSelectedProductIds([]);
         } catch (error) {
             toast({ variant: "destructive", title: "Erro ao excluir selecionados", description: "Não foi possível excluir os produtos." });
-        } finally {
-            onProductsChanged?.();
         }
     } else if (nonExplodingSelectedIds.length === 0) {
         toast({variant: "default", title: "Nenhum item para excluir."});
@@ -748,7 +744,6 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
       await moveProductsToList(currentUser.uid, selectedProductIds, targetMoveListId);
       setSelectedProductIds([]);
       setIsMoveProductsDialogOpen(false);
-      onProductsChanged?.();
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao Mover Produtos", description: error.message || "Não foi possível mover os produtos." });
     }
@@ -911,14 +906,14 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
                           />
                       </ShadTableHeaderComponent>
                     ) : null }
-                    {renderHeaderCell('id', 'ID', 'ID sequencial do produto. Clique para ordenar.', `w-[60px] ${isSelectionModeActive ? 'px-2 text-center' : 'pl-2 pr-1 text-left'}`)}
+                    {renderHeaderCell('id', 'ID', 'ID sequencial do produto. Clique para ordenar.', `w-[60px] ${isSelectionModeActive ? 'px-2' : 'px-2'}`)}
                     {renderHeaderCell('produto', 'Produto', 'Nome do produto. Clique para ordenar.')}
                     {renderHeaderCell('marca', 'Marca', 'Marca do produto. Clique para ordenar.')}
-                    {renderHeaderCell('unidade', 'Qtde', 'Quantidade do produto. Clique para ordenar.', 'text-center')}
- <ShadTableHeaderComponent // Keep Validade separately for explicit right alignment initially
+                    {renderHeaderCell('unidade', 'Qtde', 'Quantidade do produto. Clique para ordenar.')}
+ <ShadTableHeaderComponent
                       className={cn(
-                          `min-w-[130px] text-right px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30' : ''}`,
- (sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive) ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold text-center' : '' // Remove text-center here
+                          `min-w-[130px] text-center px-2 md:px-4 py-3 relative ${!isSelectionModeActive ? 'cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/30' : ''}`,
+ (sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive) ? 'bg-primary/10 dark:bg-primary/20 text-primary font-semibold' : ''
                       )}
                       onClick={(e) => {
                           if (!isSelectionModeActive) {
@@ -930,11 +925,11 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
                     >
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <span className="flex items-center justify-end">
+                                <span className="flex items-center justify-center">
                                     Validade
  {sortBy === 'validade' && sortBy !== 'none' && !isSelectionModeActive &&
  (sortDirection === 'asc' ? <ArrowUpAZ className="inline-block ml-1 h-3 w-3" /> : <ArrowDownAZ className="inline-block ml-1 h-3 w-3" />)
- } {/* Keep AZ icons for validity */}
+ }
                                 </span>
                             </TooltipTrigger>
                             <TooltipContent>
