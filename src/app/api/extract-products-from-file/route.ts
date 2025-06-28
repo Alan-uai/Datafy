@@ -193,8 +193,7 @@ async function extractFromWord(buffer: ArrayBuffer): Promise<ExtractedProduct[]>
 async function extractFromCSV(buffer: ArrayBuffer): Promise<ExtractedProduct[]> {
   const csvParser = await getCsvParser();
   const text = Buffer.from(buffer).toString('utf-8');
-  const lines = text.split('
-');
+  const lines = text.split('\n');
   const products: ExtractedProduct[] = [];
 
   // Skip header and process each line

@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 
 export default function HomePage() {
   const router = useRouter();
@@ -20,10 +20,5 @@ export default function HomePage() {
     }
   }, [currentUser, loading, router]);
 
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      <p className="mt-4 text-muted-foreground">Carregando Datafy...</p>
-    </div>
-  );
+  return <LoadingSpinner fullPage={true} />;
 }

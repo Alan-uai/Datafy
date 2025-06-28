@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -29,7 +28,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [voiceActivationKeyword, setVoiceActivationKeyword] = useState('datafy');
   const [auditoryFeedback, setAuditoryFeedback] = useState(true);
   const [language, setLanguage] = useState('pt-BR');
-  
+
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const voiceCommandActiveModeRef = useRef(false);
 
@@ -55,10 +54,10 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const patterns = [
       // Pattern 1: "adicionar produto [nome] marca [marca] [quantidade] unidades vence em [data]"
       /(?:adicionar\s+produto\s+|adicionar\s+)([^,]+?)(?:\s*,?\s*marca\s+([^,]+?))?(?:\s*,?\s*(\d+)\s*(?:unidades?|quantidade?))?(?:\s*(?:e\s*)?(?:vence\s*(?:em\s*)?|validade\s*)?(.+))?/i,
-      
+
       // Pattern 2: "adicionar [produto], [marca], [quantidade], [dia] do [mes]"
       /adicionar\s+([^,]+),?\s*([^,]+),?\s*(\d+),?\s*(\d+)\s*do?\s*(\d+)/i,
-      
+
       // Pattern 3: More flexible pattern for natural speech
       /adicionar\s+(.+?)(?:\s+marca\s+(.+?))?(?:\s+(\d+)\s*(?:unidades?|quantidade?))?(?:\s+(?:vence|validade)\s+(.+))?$/i,
     ];
@@ -72,7 +71,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
           const marca = match[2]?.trim() || '';
           const unidade = match[3] || '1';
           const dateText = match[4]?.trim();
-          
+
           if (produto) {
             return {
               produto: produto,
@@ -96,7 +95,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
           const marca = match[2]?.trim() || '';
           const unidade = match[3] || '1';
           const dateText = match[4]?.trim();
-          
+
           if (produto) {
             return {
               produto: produto,
@@ -113,15 +112,15 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const parseVoiceDate = (dateText: string): string => {
     if (!dateText) return '';
-    
+
     const cleanText = dateText.toLowerCase().trim();
-    
+
     // Try to extract numeric dates first (15/06, 15 de junho, etc.)
     const numericDateMatch = cleanText.match(/(\d{1,2})\s*(?:de|do|\/)?\s*(\d{1,2}|\w+)/);
     if (numericDateMatch) {
       const day = numericDateMatch[1];
       const monthOrNum = numericDateMatch[2];
-      
+
       // Check if second part is a month name
       const monthNumber = getMonthNumber(monthOrNum);
       if (monthNumber !== '01') { // Not default value
@@ -131,7 +130,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return `${new Date().getFullYear()}-${monthOrNum.padStart(2, '0')}-${day.padStart(2, '0')}`;
       }
     }
-    
+
     const numbers = {
       'um': '1', 'dois': '2', 'três': '3', 'quatro': '4', 'cinco': '5',
       'seis': '6', 'sete': '7', 'oito': '8', 'nove': '9', 'dez': '10',
@@ -252,11 +251,11 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
           'data fi',
           'data fai'
         ];
-        
+
         const hasActivationKeyword = activationVariants.some(variant => 
           lowerCaseFinalTranscript.includes(variant)
         );
-        
+
         if (hasActivationKeyword) {
           voiceCommandActiveModeRef.current = true;
           setIsActivated(true);
@@ -266,7 +265,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
       } else {
         const productCommand = parseProductCommand(lowerCaseFinalTranscript);
         const deleteCommand = parseDeleteCommand(lowerCaseFinalTranscript);
-        
+
         if (productCommand) {
           console.log("Comando de produto detectado:", productCommand);
           window.dispatchEvent(new CustomEvent('addProductFromVoice', { detail: productCommand }));
@@ -341,7 +340,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       return;
     }
-    
+
     // Only start recognition if voice command is enabled AND we have all settings loaded
     if (voiceCommandEnabled && voiceActivationKeyword && typeof window !== 'undefined') {
       startVoiceRecognition();
@@ -352,7 +351,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const newState = !voiceCommandEnabled;
     setVoiceCommandEnabled(newState);
     localStorage.setItem('datafy-voice-command-enabled', JSON.stringify(newState));
-    
+
     if (newState) {
       startVoiceRecognition();
     } else if (recognitionRef.current) {
@@ -388,7 +387,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
     testRecognition.onresult = (event: SpeechRecognitionEvent) => {
       testResult = event.results[0][0].transcript;
       console.log("Transcrito:", testResult);
-      
+
       const lowerCase = testResult.toLowerCase();
       const hasDatafy = lowerCase.includes(voiceActivationKeyword.toLowerCase());
       const hasAddCommand = lowerCase.includes("adicionar") || lowerCase.includes("adicionar produto");
@@ -398,11 +397,11 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
       let message = `Transcrito: "${testResult}"\n\n`;
       message += `✓ Palavra de ativação "${voiceActivationKeyword}": ${hasDatafy ? 'DETECTADA' : 'NÃO DETECTADA'}\n`;
       message += `✓ Comando "adicionar": ${hasAddCommand ? 'DETECTADO' : 'NÃO DETECTADO'}\n`;
-      
+
       if (productCommand) {
         message += `✓ Produto parseado: ${productCommand.produto}, Marca: ${productCommand.marca}, Unidades: ${productCommand.unidade}, Validade: ${productCommand.validade}\n`;
       }
-      
+
       if (deleteCommand) {
         message += `✓ Comando de exclusão parseado: Apagar produto ID ${deleteCommand.productId}\n`;
       }
