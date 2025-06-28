@@ -123,7 +123,7 @@ async function extractFromPDF(buffer: ArrayBuffer): Promise<ExtractedProduct[]> 
   try {
     const base64Data = Buffer.from(buffer).toString("base64");
     const contents = [
-      { text: "Extract product information from this document. For each product, identify its name (produto), brand (marca), quantity (unidade), and expiration date (validade). If a quantity is not explicitly mentioned, assume '1'. If an expiration date is not found, leave it empty. Output the results as a JSON array of objects, like this: [{"produto": "Nome do Produto", "marca": "Marca", "unidade": "1", "validade": "YYYY-MM-DD"}]. Ensure dates are in YYYY-MM-DD format. If no products are found, return an empty array." },
+      { text: "Extract product information from this document. For each product, identify its name (produto), brand (marca), quantity (unidade), and expiration date (validade). If a quantity is not explicitly mentioned, assume '1'. If an expiration date is not found, leave it empty. Output the results as a JSON array of objects, like this: [{\\\"produto\\\": \\\"Nome do Produto\\\", \\\"marca\\\": \\\"Marca\\\", \\\"unidade\\\": \\\"1\\\", \\\"validade\\\": \\\"YYYY-MM-DD\\\"}]. Ensure dates are in YYYY-MM-DD format. If no products are found, return an empty array." },
       {
         inlineData: {
           mimeType: 'application/pdf',
