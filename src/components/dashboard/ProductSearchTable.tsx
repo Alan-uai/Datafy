@@ -230,6 +230,11 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
+  const [searchInputText, setSearchInputText] = useState('');
+  const [selectedDateFilter, setSelectedDateFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<SortableKey | 'none'>('none');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
