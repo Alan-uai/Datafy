@@ -9,6 +9,7 @@ interface VoiceCommandContextType {
   isActivated: boolean;
   toggleVoiceCommand: () => void;
   addProductFromVoice: (productData: any) => void;
+  testMicrophone: () => void;
 }
 
 const VoiceCommandContext = createContext<VoiceCommandContextType | undefined>(undefined);
@@ -145,8 +146,27 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return months[monthName.toLowerCase()] || '01';
   };
 
-  // Voice Command Logic
-  useEffect(() => {
+  const parseDeleteCommand = (transcript: string) => {
+    const patterns = [
+      /apagar produto\s+(\d+)/i,
+      /excluir produto\s+(\d+)/i,
+      /remover produto\s+(\d+)/i,
+      /deletar produto\s+(\d+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = transcript.match(pattern);
+      if (match) {
+        return {
+          action: 'delete',
+          productId: parseInt(match[1])
+        };
+      }
+    }
+    return null;
+  };
+
+  const startVoiceRecognition = () => {
     if (!voiceCommandEnabled || !('webkitSpeechRecognition' in window)) {
       return;
     }
@@ -179,10 +199,17 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       } else {
         const productCommand = parseProductCommand(lowerCaseFinalTranscript);
+        const deleteCommand = parseDeleteCommand(lowerCaseFinalTranscript);
+        
         if (productCommand) {
           console.log("Comando de produto detectado:", productCommand);
-          // Dispatch custom event with product data
           window.dispatchEvent(new CustomEvent('addProductFromVoice', { detail: productCommand }));
+          voiceCommandActiveModeRef.current = false;
+          setIsActivated(false);
+          recognitionInstance.stop();
+        } else if (deleteCommand) {
+          console.log("Comando de exclusão detectado:", deleteCommand);
+          window.dispatchEvent(new CustomEvent('deleteProductFromVoice', { detail: deleteCommand }));
           voiceCommandActiveModeRef.current = false;
           setIsActivated(false);
           recognitionInstance.stop();
@@ -225,9 +252,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     };
 
-    if (voiceCommandEnabled) {
-      recognitionInstance.start();
-    }
+    recognitionInstance.start();
 
     return () => {
       if (recognitionRef.current) {
@@ -237,6 +262,18 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
         voiceCommandActiveModeRef.current = false;
       }
     };
+  };
+
+  // Voice Command Logic - only starts when manually activated
+  useEffect(() => {
+    if (!voiceCommandEnabled) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        setIsListening(false);
+        setIsActivated(false);
+        voiceCommandActiveModeRef.current = false;
+      }
+    }
   }, [voiceCommandEnabled, voiceActivationKeyword, auditoryFeedback, language]);
 
   const toggleVoiceCommand = () => {
@@ -244,7 +281,9 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setVoiceCommandEnabled(newState);
     localStorage.setItem('datafy-voice-command-enabled', JSON.stringify(newState));
     
-    if (!newState && recognitionRef.current) {
+    if (newState) {
+      startVoiceRecognition();
+    } else if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
       setIsActivated(false);
@@ -257,12 +296,62 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
     console.log('Product added from voice:', productData);
   };
 
+  const testMicrophone = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("Seu navegador não suporta reconhecimento de voz. Use Google Chrome.");
+      return;
+    }
+
+    const testRecognition: SpeechRecognition = new (window as any).webkitSpeechRecognition();
+    testRecognition.continuous = false;
+    testRecognition.interimResults = false;
+    testRecognition.lang = language;
+
+    let testResult = "";
+
+    testRecognition.onstart = () => {
+      alert("Teste iniciado! Diga 'Datafy adicionar produto arroz marca pileco 5 unidades vence 15 de junho' para testar completamente.");
+    };
+
+    testRecognition.onresult = (event: SpeechRecognitionEvent) => {
+      testResult = event.results[0][0].transcript;
+      console.log("Transcrito:", testResult);
+      
+      const lowerCase = testResult.toLowerCase();
+      const hasDatafy = lowerCase.includes(voiceActivationKeyword.toLowerCase());
+      const hasAddCommand = lowerCase.includes("adicionar") || lowerCase.includes("adicionar produto");
+      const productCommand = parseProductCommand(lowerCase);
+      const deleteCommand = parseDeleteCommand(lowerCase);
+
+      let message = `Transcrito: "${testResult}"\n\n`;
+      message += `✓ Palavra de ativação "${voiceActivationKeyword}": ${hasDatafy ? 'DETECTADA' : 'NÃO DETECTADA'}\n`;
+      message += `✓ Comando "adicionar": ${hasAddCommand ? 'DETECTADO' : 'NÃO DETECTADO'}\n`;
+      
+      if (productCommand) {
+        message += `✓ Produto parseado: ${productCommand.produto}, Marca: ${productCommand.marca}, Unidades: ${productCommand.unidade}, Validade: ${productCommand.validade}\n`;
+      }
+      
+      if (deleteCommand) {
+        message += `✓ Comando de exclusão parseado: Apagar produto ID ${deleteCommand.productId}\n`;
+      }
+
+      alert(message);
+    };
+
+    testRecognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      alert(`Erro no teste: ${event.error}`);
+    };
+
+    testRecognition.start();
+  };
+
   return (
     <VoiceCommandContext.Provider value={{
       isListening,
       isActivated,
       toggleVoiceCommand,
-      addProductFromVoice
+      addProductFromVoice,
+      testMicrophone
     }}>
       {children}
       {voiceCommandEnabled && (

@@ -7,8 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { useVoiceCommand } from '@/contexts/VoiceCommandContext';
 
 export default function SettingsPage() {
+  const { testMicrophone } = useVoiceCommand();
+  
   // State for Visual Experience
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
 
@@ -24,12 +27,8 @@ export default function SettingsPage() {
   const [reportFrequency, setReportFrequency] = useState("weekly");
 
   // State for Voice Command Customization
-  const [voiceCommandEnabled, setVoiceCommandEnabled] = useState(true);
+  const [voiceCommandEnabled, setVoiceCommandEnabled] = useState(false);
   const [voiceActivationKeyword, setVoiceActivationKeyword] = useState("datafy");
-  const [auditoryFeedback, setAuditoryFeedback] = useState(true);
-  const [isVoiceCommandListening, setIsVoiceCommandListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const voiceCommandActiveModeRef = useRef(false); // true if "datafy" has been said
 
   // State for Display Preferences
   const [defaultSortOrder, setDefaultSortOrder] = useState("expiry_date_asc");
@@ -58,9 +57,8 @@ export default function SettingsPage() {
     loadSetting('datafy-ai-suggest-product-name', setSuggestProductNameAI, JSON.parse, true);
     loadSetting('datafy-ai-suggest-list-icon', setSuggestListIconAI, JSON.parse, true);
     loadSetting('datafy-ai-report-frequency', setReportFrequency, (v) => v, "weekly");
-    loadSetting('datafy-voice-command-enabled', setVoiceCommandEnabled, JSON.parse, true);
+    loadSetting('datafy-voice-command-enabled', setVoiceCommandEnabled, JSON.parse, false);
     loadSetting('datafy-voice-activation-keyword', setVoiceActivationKeyword, (v) => v, "datafy");
-    loadSetting('datafy-auditory-feedback', setAuditoryFeedback, JSON.parse, true);
     loadSetting('datafy-default-sort-order', setDefaultSortOrder, (v) => v, "expiry_date_asc");
     loadSetting('datafy-default-filters', setDefaultFilters, (v) => v, "none");
     loadSetting('datafy-language', setLanguage, (v) => v, "pt-BR");
@@ -108,20 +106,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     localStorage.setItem('datafy-voice-command-enabled', JSON.stringify(voiceCommandEnabled));
-    if (!voiceCommandEnabled && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsVoiceCommandListening(false);
-      voiceCommandActiveModeRef.current = false;
-    }
   }, [voiceCommandEnabled]);
 
   useEffect(() => {
     localStorage.setItem('datafy-voice-activation-keyword', voiceActivationKeyword);
   }, [voiceActivationKeyword]);
-
-  useEffect(() => {
-    localStorage.setItem('datafy-auditory-feedback', JSON.stringify(auditoryFeedback));
-  }, [auditoryFeedback]);
 
   useEffect(() => {
     localStorage.setItem('datafy-default-sort-order', defaultSortOrder);
@@ -141,205 +130,7 @@ export default function SettingsPage() {
     // Implement actual date format application if needed
   }, [dateFormat]);
 
-  // Function to parse voice commands for product addition
-  const parseProductCommand = (transcript: string) => {
-    // Patterns for product addition commands
-    const patterns = [
-      // "adicionar produto arroz, marca Pileco, 78 unidades e vence em vinte e sete de junho"
-      /adicionar produto\s+([^,]+),?\s*marca\s+([^,]+),?\s*(\d+)\s*unidades?\s*e?\s*vence\s*em\s+(.+)/i,
-      // "adicionar arroz, pileco, 78, 27 do 06"
-      /adicionar\s+([^,]+),?\s*([^,]+),?\s*(\d+),?\s*(\d+)\s*do?\s*(\d+)/i,
-      // "adicionar arroz marca pileco 78 unidades vence 27 de junho"
-      /adicionar\s+([^\s]+)\s*marca\s+([^\s]+)\s*(\d+)\s*unidades?\s*vence\s*(\d+)\s*de\s*(\w+)/i,
-    ];
-
-    for (const pattern of patterns) {
-      const match = transcript.match(pattern);
-      if (match) {
-        if (pattern === patterns[0]) {
-          // Full format: "adicionar produto arroz, marca Pileco, 78 unidades e vence em vinte e sete de junho"
-          return {
-            produto: match[1].trim(),
-            marca: match[2].trim(),
-            quantidade: match[3],
-            validade: parseVoiceDate(match[4])
-          };
-        } else if (pattern === patterns[1]) {
-          // Short format: "adicionar arroz, pileco, 78, 27 do 06"
-          const day = match[4];
-          const month = match[5];
-          const year = new Date().getFullYear();
-          return {
-            produto: match[1].trim(),
-            marca: match[2].trim(),
-            quantidade: match[3],
-            validade: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-          };
-        } else if (pattern === patterns[2]) {
-          // Alternative format: "adicionar arroz marca pileco 78 unidades vence 27 de junho"
-          const day = match[4];
-          const monthName = match[5];
-          const monthNumber = getMonthNumber(monthName);
-          const year = new Date().getFullYear();
-          return {
-            produto: match[1].trim(),
-            marca: match[2].trim(),
-            quantidade: match[3],
-            validade: `${year}-${monthNumber.padStart(2, '0')}-${day.padStart(2, '0')}`
-          };
-        }
-      }
-    }
-    return null;
-  };
-
-  const parseVoiceDate = (dateText: string): string => {
-    // Convert voice date like "vinte e sete de junho" to "2025-06-27"
-    const numbers = {
-      'um': '1', 'dois': '2', 'três': '3', 'quatro': '4', 'cinco': '5',
-      'seis': '6', 'sete': '7', 'oito': '8', 'nove': '9', 'dez': '10',
-      'onze': '11', 'doze': '12', 'treze': '13', 'quatorze': '14', 'quinze': '15',
-      'dezesseis': '16', 'dezessete': '17', 'dezoito': '18', 'dezenove': '19',
-      'vinte': '20', 'vinte e um': '21', 'vinte e dois': '22', 'vinte e três': '23',
-      'vinte e quatro': '24', 'vinte e cinco': '25', 'vinte e seis': '26',
-      'vinte e sete': '27', 'vinte e oito': '28', 'vinte e nove': '29',
-      'trinta': '30', 'trinta e um': '31'
-    };
-
-    const months = {
-      'janeiro': '01', 'fevereiro': '02', 'março': '03', 'abril': '04',
-      'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
-      'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
-    };
-
-    let day = '';
-    let month = '';
-    const year = new Date().getFullYear();
-
-    // Extract day
-    for (const [word, num] of Object.entries(numbers)) {
-      if (dateText.includes(word)) {
-        day = num;
-        break;
-      }
-    }
-
-    // Extract month
-    for (const [monthName, monthNum] of Object.entries(months)) {
-      if (dateText.includes(monthName)) {
-        month = monthNum;
-        break;
-      }
-    }
-
-    if (day && month) {
-      return `${year}-${month}-${day.padStart(2, '0')}`;
-    }
-
-    return '';
-  };
-
-  const getMonthNumber = (monthName: string): string => {
-    const months: { [key: string]: string } = {
-      'janeiro': '01', 'fevereiro': '02', 'março': '03', 'abril': '04',
-      'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
-      'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
-    };
-    return months[monthName.toLowerCase()] || '01';
-  };
-
-  // Voice Command Logic (only initialize when enabled)
-  useEffect(() => {
-    if (!voiceCommandEnabled || !('webkitSpeechRecognition' in window)) {
-      if (!('webkitSpeechRecognition' in window)) {
-        console.warn("Seu navegador não suporta reconhecimento de voz. Por favor, utilize Google Chrome.");
-      }
-      return;
-    }
-
-    const recognitionInstance: SpeechRecognition = new (window as any).webkitSpeechRecognition();
-    recognitionInstance.continuous = true;
-    recognitionInstance.interimResults = true;
-    recognitionInstance.lang = language; // Use selected language
-    recognitionRef.current = recognitionInstance;
-
-    recognitionInstance.onstart = () => {
-      setIsVoiceCommandListening(true);
-      console.log("Reconhecimento de voz iniciado.");
-      if (auditoryFeedback) {
-        // Play a short sound or haptic feedback
-        // new Audio('path/to/start_sound.mp3').play(); // Placeholder for sound
-      }
-    };
-
-    recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
-      const finalTranscript = Array.from(event.results)
-        .map(result => result[0].transcript)
-        .join('');
-
-      const lowerCaseFinalTranscript = finalTranscript.toLowerCase().trim();
-      const activationKeywordLower = voiceActivationKeyword.toLowerCase().trim();
-
-      if (!voiceCommandActiveModeRef.current) {
-        if (lowerCaseFinalTranscript.includes(activationKeywordLower)) {
-          voiceCommandActiveModeRef.current = true;
-          console.log(`Palavra de ativação "${voiceActivationKeyword}" detectada. Modo de comando ativado.`);
-          if (auditoryFeedback) {
-            // Play a sound indicating activation
-          }
-          recognitionInstance.stop(); // Stop and restart to clear buffer and ensure fresh listening
-        }
-      } else {
-        // Parse advanced product addition commands
-        const productCommand = parseProductCommand(lowerCaseFinalTranscript);
-        if (productCommand) {
-          console.log("Comando de produto detectado:", productCommand);
-          // Here you would trigger the product addition with the parsed data
-          // This could dispatch an event or call a function to add the product
-          alert(`Produto detectado: ${productCommand.produto}, Marca: ${productCommand.marca}, Quantidade: ${productCommand.quantidade}, Validade: ${productCommand.validade}`);
-          voiceCommandActiveModeRef.current = false;
-          recognitionInstance.stop();
-        } else if (lowerCaseFinalTranscript.includes("parar de ouvir") || lowerCaseFinalTranscript.includes("cancelar")) {
-          alert("Comando de voz desativado.");
-          voiceCommandActiveModeRef.current = false;
-          recognitionInstance.stop();
-        }
-      }
-    };
-
-    recognitionInstance.onend = () => {
-      setIsVoiceCommandListening(false);
-      console.log("Reconhecimento de voz encerrado.");
-      if (voiceCommandEnabled && !voiceCommandActiveModeRef.current) {
-        recognitionInstance.start(); // Restart for continuous listening for activation keyword
-      }
-    };
-
-    recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error("Erro no reconhecimento de voz:", event.error);
-      setIsVoiceCommandListening(false);
-      voiceCommandActiveModeRef.current = false;
-      if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-        alert("Permissão para usar o microfone foi negada. Por favor, permita o acesso nas configurações do seu navegador.");
-      } else if (event.error === 'no-speech') {
-        if (voiceCommandEnabled) {
-          recognitionInstance.start();
-        }
-      }
-    };
-
-    if (voiceCommandEnabled) {
-      recognitionInstance.start();
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        setIsVoiceCommandListening(false);
-        voiceCommandActiveModeRef.current = false;
-      }
-    };
-  }, [voiceCommandEnabled, voiceActivationKeyword, auditoryFeedback, language]); // Dependencies
+  
 
   const handleExportData = () => {
     alert("Exportar dados (implementação necessária)");
@@ -481,15 +272,18 @@ export default function SettingsPage() {
                 placeholder="Ex: Datafy, Assistente"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="auditory-feedback">Feedback Auditivo ao Ativar</Label>
-              <Switch
-                id="auditory-feedback"
-                checked={auditoryFeedback}
-                onCheckedChange={setAuditoryFeedback}
-              />
+            <div>
+              <Button 
+                onClick={testMicrophone}
+                className="w-full"
+                variant="outline"
+              >
+                Testar Microfone e Comandos
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Teste se o microfone está funcionando e se os comandos são reconhecidos corretamente.
+              </p>
             </div>
-            {/* The Start/Stop Voice Command button is now handled by the voiceCommandEnabled switch logic */}
           </div>
         </section>
 

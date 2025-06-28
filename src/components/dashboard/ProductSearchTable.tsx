@@ -55,6 +55,7 @@ import { getProducts, updateProduct, deleteProduct, deleteMultipleProducts, move
 import { ProductList as ProductListType } from '@/types'; // Import ProductList type
 import { cn } from '@/lib/utils';
 import { ArrowUp01, ArrowDown01 } from 'lucide-react'; // Import numerical sort icons
+import { useVoiceCommand } from '@/contexts/VoiceCommandContext';
 
 
 const normalizeString = (str: string) => {
@@ -229,6 +230,7 @@ interface ProductSearchTableProps {
 export function ProductSearchTable({ listId, products, isLoadingProducts, onProductsChanged }: ProductSearchTableProps) {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { } = useVoiceCommand();
 
   const [searchInputText, setSearchInputText] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('all');
