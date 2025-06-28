@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
@@ -6,7 +7,11 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, getProducts, type ProductList, type Product } from '@/services/productService';
 import { useToast } from '@/hooks/use-toast';
-import { User, Package, Calendar, AlertTriangle, BarChart3, TrendingUp, ShoppingCart, Clock } from 'lucide-react';
+import { 
+  User, Package, Calendar, AlertTriangle, BarChart3, TrendingUp, 
+  ShoppingCart, Clock, DollarSign, Award, Download, RefreshCw,
+  Loader2, Brain, Target, Zap
+} from 'lucide-react';
 import { 
   isToday, 
   isPast, 
@@ -16,11 +21,36 @@ import {
   parseISO, 
   isValid, 
   format,
-  differenceInDays 
+  differenceInDays,
+  startOfMonth,
+  subMonths,
+  getMonth,
+  getYear
 } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface DashboardStats {
   totalLists: number;
@@ -30,6 +60,14 @@ interface DashboardStats {
   expiringInNext30Days: number;
   productsPerList: { listName: string; count: number }[];
   topBrands: { brand: string; count: number }[];
+  wasteValue: number;
+  efficiency: number;
+  categoryStats: { [category: string]: number };
+  temporalPatterns: {
+    addedThisMonth: number;
+    addedLastMonth: number;
+    mostActiveDay: string;
+  };
 }
 
 interface ExpiringProduct {
@@ -40,6 +78,14 @@ interface ExpiringProduct {
   daysUntilExpiry: number;
   listName: string;
   unidade: string;
+  estimatedValue?: number;
+}
+
+interface AIInsight {
+  type: 'suggestion' | 'warning' | 'tip';
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
 }
 
 export default function ProfilePage() {
@@ -48,6 +94,34 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [expiringProducts, setExpiringProducts] = useState<ExpiringProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+
+  // Categorize products
+  const categorizeProduct = (productName: string): string => {
+    const name = productName.toLowerCase();
+    if (name.includes('leite') || name.includes('queijo') || name.includes('iogurte') || name.includes('manteiga')) return 'Laticínios';
+    if (name.includes('carne') || name.includes('frango') || name.includes('peixe') || name.includes('bacon')) return 'Carnes';
+    if (name.includes('arroz') || name.includes('feijão') || name.includes('macarrão') || name.includes('pão')) return 'Grãos';
+    if (name.includes('tomate') || name.includes('cebola') || name.includes('alface') || name.includes('cenoura')) return 'Vegetais';
+    if (name.includes('banana') || name.includes('maçã') || name.includes('laranja') || name.includes('uva')) return 'Frutas';
+    if (name.includes('água') || name.includes('suco') || name.includes('refrigerante') || name.includes('café')) return 'Bebidas';
+    return 'Outros';
+  };
+
+  // Estimate product value (simplified)
+  const estimateProductValue = (productName: string, quantity: string): number => {
+    const name = productName.toLowerCase();
+    const qty = parseFloat(quantity) || 1;
+    
+    // Basic price estimates in R$
+    if (name.includes('carne')) return qty * 25;
+    if (name.includes('queijo')) return qty * 15;
+    if (name.includes('leite')) return qty * 4;
+    if (name.includes('arroz')) return qty * 5;
+    if (name.includes('feijão')) return qty * 8;
+    return qty * 3; // Default estimate
+  };
 
   const calculateStats = useCallback(async () => {
     if (!currentUser?.uid) return;
@@ -65,10 +139,18 @@ export default function ProfilePage() {
       }
 
       const today = startOfDay(new Date());
+      const thisMonthStart = startOfMonth(new Date());
+      const lastMonthStart = startOfMonth(subMonths(new Date(), 1));
+      
       let expired = 0;
       let expiringIn7Days = 0;
       let expiringIn30Days = 0;
+      let wasteValue = 0;
+      let addedThisMonth = 0;
+      let addedLastMonth = 0;
       const expiring: ExpiringProduct[] = [];
+      const categoryStats: { [category: string]: number } = {};
+      const dayStats: { [day: string]: number } = {};
 
       // Count products by list
       const productsPerList = lists.map(list => ({
@@ -87,14 +169,34 @@ export default function ProfilePage() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      // Analyze expiry dates
+      // Analyze products
       allProducts.forEach(product => {
+        // Category analysis
+        const category = categorizeProduct(product.produto);
+        categoryStats[category] = (categoryStats[category] || 0) + 1;
+
+        // Temporal analysis
+        if (product.createdAt) {
+          const createdDate = new Date(product.createdAt.seconds * 1000);
+          if (createdDate >= thisMonthStart) {
+            addedThisMonth++;
+          } else if (createdDate >= lastMonthStart && createdDate < thisMonthStart) {
+            addedLastMonth++;
+          }
+          
+          const dayName = format(createdDate, 'EEEE');
+          dayStats[dayName] = (dayStats[dayName] || 0) + 1;
+        }
+
+        // Expiry analysis
         if (product.validade && isValid(parseISO(product.validade))) {
           const productDate = startOfDay(parseISO(product.validade));
           const daysUntilExpiry = differenceInDays(productDate, today);
+          const estimatedValue = estimateProductValue(product.produto, product.unidade);
 
           if (isPast(productDate) && !isToday(productDate)) {
             expired++;
+            wasteValue += estimatedValue;
           } else if (daysUntilExpiry >= 0 && daysUntilExpiry <= 30) {
             if (daysUntilExpiry <= 7) {
               expiringIn7Days++;
@@ -108,11 +210,19 @@ export default function ProfilePage() {
               validade: product.validade,
               daysUntilExpiry,
               listName: product.listName,
-              unidade: product.unidade
+              unidade: product.unidade,
+              estimatedValue
             });
           }
         }
       });
+
+      // Calculate efficiency score (0-100)
+      const totalValue = allProducts.reduce((sum, p) => sum + estimateProductValue(p.produto, p.unidade), 0);
+      const efficiency = totalValue > 0 ? Math.max(0, Math.round(((totalValue - wasteValue) / totalValue) * 100)) : 100;
+
+      // Find most active day
+      const mostActiveDay = Object.entries(dayStats).reduce((a, b) => dayStats[a[0]] > dayStats[b[0]] ? a : b, ['Segunda', 0])[0];
 
       // Sort expiring products by urgency
       expiring.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
@@ -124,7 +234,15 @@ export default function ProfilePage() {
         expiringInNext7Days: expiringIn7Days,
         expiringInNext30Days: expiringIn30Days,
         productsPerList,
-        topBrands
+        topBrands,
+        wasteValue,
+        efficiency,
+        categoryStats,
+        temporalPatterns: {
+          addedThisMonth,
+          addedLastMonth,
+          mostActiveDay
+        }
       });
 
       setExpiringProducts(expiring);
@@ -136,9 +254,90 @@ export default function ProfilePage() {
     }
   }, [currentUser?.uid, toast]);
 
+  const generateAIInsights = useCallback(async () => {
+    if (!stats) return;
+    
+    setIsGeneratingInsights(true);
+    try {
+      // Simulate AI analysis (in a real app, this would call your AI service)
+      const insights: AIInsight[] = [];
+
+      if (stats.efficiency < 70) {
+        insights.push({
+          type: 'warning',
+          title: 'Eficiência Baixa',
+          description: `Sua eficiência está em ${stats.efficiency}%. Considere melhorar o controle de validades.`,
+          priority: 'high'
+        });
+      }
+
+      if (stats.wasteValue > 50) {
+        insights.push({
+          type: 'warning',
+          title: 'Alto Desperdício',
+          description: `R$ ${stats.wasteValue.toFixed(2)} em produtos vencidos. Implemente o sistema FIFO.`,
+          priority: 'high'
+        });
+      }
+
+      if (stats.temporalPatterns.addedThisMonth > stats.temporalPatterns.addedLastMonth * 1.5) {
+        insights.push({
+          type: 'tip',
+          title: 'Aumento de Compras',
+          description: 'Você tem comprado mais este mês. Monitore para evitar desperdício.',
+          priority: 'medium'
+        });
+      }
+
+      const topCategory = Object.entries(stats.categoryStats).reduce((a, b) => a[1] > b[1] ? a : b, ['', 0]);
+      if (topCategory[1] > stats.totalProducts * 0.4) {
+        insights.push({
+          type: 'suggestion',
+          title: 'Diversificação',
+          description: `${topCategory[0]} representa ${Math.round((topCategory[1] / stats.totalProducts) * 100)}% dos produtos. Considere diversificar.`,
+          priority: 'low'
+        });
+      }
+
+      setAiInsights(insights);
+    } catch (error) {
+      console.error("Error generating insights:", error);
+    } finally {
+      setIsGeneratingInsights(false);
+    }
+  }, [stats]);
+
   useEffect(() => {
     calculateStats();
   }, [calculateStats]);
+
+  useEffect(() => {
+    if (stats) {
+      generateAIInsights();
+    }
+  }, [stats, generateAIInsights]);
+
+  const exportReport = () => {
+    if (!stats) return;
+    
+    const report = {
+      generatedAt: new Date().toISOString(),
+      user: currentUser?.email,
+      metrics: stats,
+      expiringProducts: expiringProducts,
+      insights: aiInsights
+    };
+    
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `relatorio-analytics-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast({ title: "Relatório exportado", description: "Download iniciado com sucesso!" });
+  };
 
   const getExpiryRowStyle = (daysUntilExpiry: number) => {
     if (daysUntilExpiry < 0) return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400";
@@ -155,13 +354,32 @@ export default function ProfilePage() {
     return `Vence em ${days} dia(s)`;
   };
 
+  const categoryChartData = {
+    labels: Object.keys(stats?.categoryStats || {}),
+    datasets: [{
+      data: Object.values(stats?.categoryStats || {}),
+      backgroundColor: [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+      ]
+    }]
+  };
+
+  const temporalChartData = {
+    labels: ['Mês Passado', 'Este Mês'],
+    datasets: [{
+      label: 'Produtos Adicionados',
+      data: [stats?.temporalPatterns.addedLastMonth || 0, stats?.temporalPatterns.addedThisMonth || 0],
+      backgroundColor: ['#36A2EB', '#4BC0C0']
+    }]
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <BarChart3 className="mx-auto h-8 w-8 animate-pulse mb-4" />
-            <p>Carregando estatísticas...</p>
+            <Loader2 className="mx-auto h-8 w-8 animate-spin mb-4" />
+            <p>Carregando analytics avançados...</p>
           </div>
         </div>
       </div>
@@ -172,16 +390,30 @@ export default function ProfilePage() {
     <div className="container mx-auto py-8 px-4 md:px-6">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <User className="h-8 w-8" />
-          <h1 className="text-3xl font-bold">Perfil do Usuário</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <User className="h-8 w-8" />
+              <h1 className="text-3xl font-bold">Analytics Avançado</h1>
+            </div>
+            <p className="text-muted-foreground">
+              {currentUser?.email || 'Usuário'} • Dashboard completo de inteligência de estoque
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={exportReport} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+            <Button onClick={calculateStats} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
         </div>
-        <p className="text-muted-foreground">
-          {currentUser?.email || 'Usuário'} • Visão geral das suas listas e produtos
-        </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -207,7 +439,7 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vencidos</CardTitle>
+            <CardTitle className="text-sm font-medium">Produtos Vencidos</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -228,23 +460,57 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Second row - advanced metrics */}
+      {/* Advanced Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-</Card>
-      </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Desperdiçado</CardTitle>
+            <DollarSign className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">R$ {stats?.wasteValue?.toFixed(2) || '0.00'}</div>
+            <p className="text-xs text-muted-foreground">Em produtos vencidos</p>
+          </CardContent>
+        </Card>
 
-      {/* Second row - advanced metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-</Card>
-      </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Score de Eficiência</CardTitle>
+            <Award className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${(stats?.efficiency || 0) >= 80 ? 'text-green-600' : (stats?.efficiency || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+              {stats?.efficiency || 0}%
+            </div>
+            <p className="text-xs text-muted-foreground">Gestão de estoque</p>
+          </CardContent>
+        </Card>
 
-      {/* Second row - advanced metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-</Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Adicionados Este Mês</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.temporalPatterns?.addedThisMonth || 0}</div>
+            <p className="text-xs text-muted-foreground">vs {stats?.temporalPatterns?.addedLastMonth || 0} mês passado</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Dia Mais Ativo</CardTitle>
+            <Target className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-bold">{stats?.temporalPatterns?.mostActiveDay || 'N/A'}</div>
+            <p className="text-xs text-muted-foreground">Para adicionar produtos</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Products per List */}
         <Card>
           <CardHeader>
@@ -272,33 +538,83 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Top Brands */}
+        {/* Category Distribution */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Marcas Mais Cadastradas
+              <Package className="h-5 w-5" />
+              Por Categoria
             </CardTitle>
-            <CardDescription>Top 5 marcas nos seus produtos</CardDescription>
+            <CardDescription>Distribuição por tipo de produto</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {stats?.topBrands.map((brand, index) => (
-                <div key={index}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">{brand.brand}</span>
-                    <span>{brand.count} produtos</span>
-                  </div>
-                  <Progress 
-                    value={(brand.count / (stats.totalProducts || 1)) * 100} 
-                    className="h-2"
-                  />
-                </div>
-              ))}
+            <div className="h-64 flex items-center justify-center">
+              {Object.keys(stats?.categoryStats || {}).length > 0 ? (
+                <Doughnut data={categoryChartData} options={{ maintainAspectRatio: false }} />
+              ) : (
+                <p className="text-muted-foreground">Sem dados de categoria</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Temporal Patterns */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Padrões Temporais
+            </CardTitle>
+            <CardDescription>Comparação mensal de atividade</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 flex items-center justify-center">
+              <Bar data={temporalChartData} options={{ maintainAspectRatio: false }} />
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Insights */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5" />
+            Insights de IA
+            {isGeneratingInsights && <Loader2 className="h-4 w-4 animate-spin" />}
+          </CardTitle>
+          <CardDescription>Análises inteligentes baseadas nos seus dados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {aiInsights.length > 0 ? (
+            <div className="space-y-4">
+              {aiInsights.map((insight, index) => (
+                <div key={index} className={cn(
+                  "p-4 rounded-lg border-l-4",
+                  insight.priority === 'high' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
+                  insight.priority === 'medium' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                )}>
+                  <div className="flex items-start gap-3">
+                    {insight.type === 'warning' ? <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" /> :
+                     insight.type === 'suggestion' ? <Zap className="h-5 w-5 text-blue-500 mt-0.5" /> :
+                     <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />}
+                    <div>
+                      <h4 className="font-semibold">{insight.title}</h4>
+                      <p className="text-sm text-muted-foreground">{insight.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Brain className="mx-auto h-12 w-12 mb-4 opacity-50" />
+              <p>Gerando insights inteligentes...</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Expiring Products Table */}
       <Card>
@@ -308,7 +624,7 @@ export default function ProfilePage() {
             Produtos Próximos ao Vencimento
           </CardTitle>
           <CardDescription>
-            Todos os produtos que vencem nos próximos 30 dias (visualização apenas)
+            Todos os produtos que vencem nos próximos 30 dias com valores estimados
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -323,6 +639,7 @@ export default function ProfilePage() {
                     <TableHead className="text-center">Lista</TableHead>
                     <TableHead className="text-center">Validade</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Valor Est.</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -337,6 +654,9 @@ export default function ProfilePage() {
                       </TableCell>
                       <TableCell className="text-center font-medium">
                         {formatDaysText(product.daysUntilExpiry)}
+                      </TableCell>
+                      <TableCell className="text-center font-medium">
+                        R$ {product.estimatedValue?.toFixed(2) || '0.00'}
                       </TableCell>
                     </TableRow>
                   ))}
