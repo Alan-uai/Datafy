@@ -44,3 +44,10 @@ export interface GenerateExpiryAttentionReportInput {
   topNProducts?: number; // How many top critical products to report
 }
 
+export interface ExtractedProduct {
+  produto: string;
+  marca: string;
+  unidade: string;
+  validade: string;
+}
+
