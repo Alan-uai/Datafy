@@ -22,6 +22,14 @@ export async function POST(req: NextRequest) {
     const listId = formData.get('listId') as string;
     const userId = formData.get('userId') as string;
 
+    console.log('Received form data:', { 
+      hasFile: !!file, 
+      fileName: file?.name, 
+      fileType: file?.type, 
+      listId, 
+      userId 
+    });
+
     if (!file || !listId || !userId) {
       return NextResponse.json(
         { error: 'Arquivo, listId e userId são obrigatórios' },
@@ -32,53 +40,69 @@ export async function POST(req: NextRequest) {
     console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
 
     let extractedProducts: ExtractedProduct[] = [];
-    const buffer = await file.arrayBuffer();
+    
+    try {
+      const buffer = await file.arrayBuffer();
+      console.log('File buffer created successfully, size:', buffer.byteLength);
 
     try {
-      if (file.type === 'application/pdf') {
-        extractedProducts = await extractFromPDF(buffer);
-      } else if (file.type.includes('spreadsheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        extractedProducts = await extractFromExcel(buffer);
-      } else if (file.type.includes('word') || file.name.endsWith('.docx')) {
-        extractedProducts = await extractFromWord(buffer);
-      } else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-        extractedProducts = await extractFromCSV(buffer);
-      } else {
-        return NextResponse.json(
-          { error: 'Tipo de arquivo não suportado' },
-          { status: 400 }
-        );
-      }
+        if (file.type === 'application/pdf') {
+          console.log('Extracting from PDF...');
+          extractedProducts = await extractFromPDF(buffer);
+        } else if (file.type.includes('spreadsheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+          console.log('Extracting from Excel...');
+          extractedProducts = await extractFromExcel(buffer);
+        } else if (file.type.includes('word') || file.name.endsWith('.docx')) {
+          console.log('Extracting from Word...');
+          extractedProducts = await extractFromWord(buffer);
+        } else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+          console.log('Extracting from CSV...');
+          extractedProducts = await extractFromCSV(buffer);
+        } else {
+          console.log('Unsupported file type:', file.type);
+          return NextResponse.json(
+            { error: `Tipo de arquivo não suportado: ${file.type}` },
+            { status: 400 }
+          );
+        }
 
-      console.log(`Extracted ${extractedProducts.length} products from ${file.name}`);
+        console.log(`Extracted ${extractedProducts.length} products from ${file.name}:`, extractedProducts);
 
-      // Add products to Firebase
-      const addedProducts = [];
-      for (const productData of extractedProducts) {
-        if (productData.produto && productData.produto.trim()) {
-          try {
-            const newProduct = await addProduct(userId, listId, {
-              produto: productData.produto.trim(),
-              marca: productData.marca?.trim() || '',
-              unidade: productData.unidade?.trim() || '1',
-              validade: productData.validade || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            });
-            addedProducts.push(newProduct);
-          } catch (error) {
-            console.error(`Error adding product ${productData.produto}:`, error);
+        // Add products to Firebase
+        const addedProducts = [];
+        for (const productData of extractedProducts) {
+          if (productData.produto && productData.produto.trim()) {
+            try {
+              const newProduct = await addProduct(userId, listId, {
+                produto: productData.produto.trim(),
+                marca: productData.marca?.trim() || '',
+                unidade: productData.unidade?.trim() || '1',
+                validade: productData.validade || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              });
+              addedProducts.push(newProduct);
+              console.log('Successfully added product:', newProduct);
+            } catch (addError) {
+              console.error(`Error adding product ${productData.produto}:`, addError);
+            }
           }
         }
+
+        return NextResponse.json({
+          products: addedProducts,
+          message: `${addedProducts.length} produto(s) adicionado(s) de ${file.name}`,
+        });
+
+      } catch (parseError) {
+        console.error('Error parsing file:', parseError);
+        return NextResponse.json(
+          { error: `Erro ao processar arquivo: ${parseError?.message || 'Erro desconhecido'}` },
+          { status: 500 }
+        );
       }
-
-      return NextResponse.json({
-        products: addedProducts,
-        message: `${addedProducts.length} produto(s) adicionado(s) de ${file.name}`,
-      });
-
-    } catch (parseError) {
-      console.error('Error parsing file:', parseError);
+    } catch (bufferError) {
+      console.error('Error creating buffer from file:', bufferError);
       return NextResponse.json(
-        { error: `Erro ao processar arquivo: ${parseError.message}` },
+        { error: 'Erro ao ler o arquivo' },
         { status: 500 }
       );
     }

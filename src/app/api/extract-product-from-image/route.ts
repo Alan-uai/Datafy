@@ -54,10 +54,19 @@ async function extractProductsFromImageBasic(base64Image: string) {
     // Convert base64 to buffer
     const imageBuffer = Buffer.from(base64Image, 'base64');
     
-    // Initialize Tesseract worker
-    const worker = await createWorker('por'); // Portuguese language
+    // Initialize Tesseract worker with proper configuration for Next.js
+    const worker = await createWorker({
+      logger: m => console.log(m),
+      workerPath: 'https://unpkg.com/tesseract.js@latest/dist/worker.min.js',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      corePath: 'https://unpkg.com/tesseract.js-core@latest/tesseract-core.wasm.js',
+    });
     
     try {
+      // Load Portuguese language
+      await worker.loadLanguage('por');
+      await worker.initialize('por');
+      
       // Perform OCR
       const { data: { text } } = await worker.recognize(imageBuffer);
       console.log('OCR extracted text:', text);
@@ -84,27 +93,42 @@ function parseTextForProducts(text: string) {
   const products = [];
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   
-  // Common product keywords in Portuguese
+  // Common product keywords in Portuguese (expanded)
   const productKeywords = [
     'leite', 'pão', 'arroz', 'feijão', 'açúcar', 'sal', 'óleo', 'farinha', 
     'macarrão', 'biscoito', 'café', 'refrigerante', 'suco', 'água', 'carne', 
     'frango', 'peixe', 'queijo', 'presunto', 'margarina', 'manteiga', 'iogurte', 
     'tomate', 'cebola', 'alho', 'batata', 'cenoura', 'banana', 'maçã', 'laranja',
-    'detergente', 'sabão', 'shampoo', 'pasta', 'escova'
+    'detergente', 'sabão', 'shampoo', 'pasta', 'escova', 'coca', 'pepsi',
+    'guaraná', 'sprite', 'fanta', 'heinz', 'nestlé', 'danone', 'vigor',
+    'sadia', 'perdigão', 'seara', 'aurora', 'friboi', 'swift'
   ];
   
-  // Date patterns
-  const datePattern = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/g;
+  // Date patterns (more flexible)
+  const datePattern = /(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/g;
+  
+  console.log('Analyzing lines for products:', lines);
   
   for (const line of lines) {
     const lowerLine = line.toLowerCase();
     
+    // Skip lines that are clearly not products
+    if (line.length < 2 || /^\d+$/.test(line) || /^[R$]+\s*\d/.test(line)) {
+      continue;
+    }
+    
     // Check if line contains product-like content
     const hasProductKeyword = productKeywords.some(keyword => lowerLine.includes(keyword));
     const hasProductPattern = /[a-záéíóúçàãõ\s]+(kg|g|ml|l|un|unid|pct|pacote|caixa|lata|garrafa|litro|quilo|gramas)/i.test(lowerLine);
-    const isProductLine = hasProductKeyword || hasProductPattern || (line.length > 3 && /^[a-záéíóúçàãõ\s\d\.\-]+$/i.test(line));
+    const hasListStructure = /^[\-\*\•]\s*/.test(line); // Lines starting with bullets or dashes
+    const containsLetters = /[a-záéíóúçàãõ]/i.test(line);
+    
+    const isProductLine = hasProductKeyword || hasProductPattern || hasListStructure || 
+                         (containsLetters && line.length > 2 && !/^(data|valor|total|subtotal)/i.test(line));
     
     if (isProductLine) {
+      console.log('Processing product line:', line);
+      
       // Extract date if present
       let validade = '';
       const dateMatch = line.match(datePattern);
@@ -112,13 +136,17 @@ function parseTextForProducts(text: string) {
         validade = formatDate(dateMatch[0]);
       }
       
-      // Extract product name (remove dates and numbers)
+      // Clean product name
       let productName = line
-        .replace(datePattern, '')
-        .replace(/\b(validade|venc|exp|data|prazo)\b/gi, '')
-        .replace(/\b\d+[\/\-]\d+[\/\-]\d+\b/g, '')
-        .replace(/\d+[.,]\d+/g, '') // Remove prices
+        .replace(/^[\-\*\•]\s*/, '') // Remove bullets
+        .replace(datePattern, '') // Remove dates
+        .replace(/\b(validade|venc|exp|data|prazo|val)\b/gi, '') // Remove date keywords
+        .replace(/\b\d+[\/\-\.]\d+[\/\-\.]\d+\b/g, '') // Remove date patterns
+        .replace(/\d+[.,]\d+/g, '') // Remove decimal numbers
         .replace(/R\$\s*\d+/gi, '') // Remove currency
+        .replace(/\b(kg|g|ml|l|un|unid|pct|pacote|caixa|lata|garrafa|litro|quilo|gramas)\b/gi, '') // Remove units
+        .replace(/\d+\s*(kg|g|ml|l)/gi, '') // Remove quantity + unit
+        .replace(/\s+/g, ' ') // Normalize spaces
         .trim();
       
       // Extract unit information
@@ -128,7 +156,13 @@ function parseTextForProducts(text: string) {
         unidade = `${unitMatch[1]}${unitMatch[2]}`;
       }
       
-      if (productName && productName.length > 2) {
+      // Clean up common OCR errors
+      productName = productName
+        .replace(/[|!@#$%^&*()_+={}[\]:";'<>?,./\\]/g, '') // Remove special chars
+        .replace(/\b\d+\b/g, '') // Remove standalone numbers
+        .trim();
+      
+      if (productName && productName.length > 2 && productName.length < 50) {
         products.push({
           produto: productName,
           marca: '',
@@ -139,9 +173,13 @@ function parseTextForProducts(text: string) {
     }
   }
   
-  // Remove duplicates
+  console.log('Extracted products before deduplication:', products);
+  
+  // Remove duplicates and filter
   const uniqueProducts = products.filter((product, index, self) => 
-    index === self.findIndex(p => p.produto.toLowerCase() === product.produto.toLowerCase())
+    index === self.findIndex(p => 
+      p.produto.toLowerCase().trim() === product.produto.toLowerCase().trim()
+    )
   );
   
   return uniqueProducts.slice(0, 10); // Limit to 10 products
