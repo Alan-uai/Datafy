@@ -1,31 +1,30 @@
-
-import type { Metadata } from 'next';
-import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from "@/components/ui/toaster";
+import { VoiceCommandProvider } from '@/contexts/VoiceCommandContext';
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Datafy',
-  description: 'Your intelligent data solution.',
+  title: "Datafy - Gestão Inteligente de Produtos",
+  description: "Gerencie seus produtos com inteligência artificial",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <meta name="google-site-verification" content="61R8OVspaoozKuOZ6BEv4ny26aZ9YRlayoeUk1BLerc" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
+    <html lang="pt-BR">
+      <body className={inter.className}>
         <AuthProvider>
-          {children}
-          <Toaster />
+          <VoiceCommandProvider>
+            {children}
+            <Toaster />
+          </VoiceCommandProvider>
         </AuthProvider>
       </body>
     </html>

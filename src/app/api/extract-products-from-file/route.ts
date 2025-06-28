@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { addProduct } from '@/services/productService';
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -7,6 +6,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const getXlsx = () => import('xlsx');
 const getMammoth = () => import('mammoth');
 const getCsvParser = () => import('csv-parser').then(mod => mod.default);
+const getExcelJS = () => import('exceljs');
 
 // Initialize GoogleGenerativeAI (ensure GEMINI_API_KEY is securely handled, e.g., via environment variables)
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || ""); // Use environment variable
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
 
     let extractedProducts: ExtractedProduct[] = [];
-    
+
     try {
       const buffer = await file.arrayBuffer();
       console.log('File buffer created successfully, size:', buffer.byteLength);
@@ -156,26 +156,29 @@ async function extractFromPDF(buffer: ArrayBuffer): Promise<ExtractedProduct[]> 
 }
 
 async function extractFromExcel(buffer: ArrayBuffer): Promise<ExtractedProduct[]> {
-  const XLSX = await getXlsx();
-  const workbook = XLSX.read(buffer, { type: 'array' });
-  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-  const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-  
+  const ExcelJS = await getExcelJS();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+
+  const worksheet = workbook.getWorksheet(1);
   const products: ExtractedProduct[] = [];
-  
-  // Skip header row and process data
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if (row && row.length > 0 && row[0]) {
-      products.push({
-        produto: String(row[0]).trim(),
-        marca: row[1] ? String(row[1]).trim() : '',
-        unidade: row[2] ? String(row[2]).trim() : '1',
-        validade: row[3] ? formatDate(String(row[3])) : '',
-      });
-    }
+
+  if (worksheet) {
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) { // Skip header
+        const cells = row.values as any[];
+        if (cells[1]) { // Skip empty rows
+          products.push({
+            produto: cells[1]?.toString() || '',
+            marca: cells[2]?.toString() || '',
+            unidade: cells[3]?.toString() || '1',
+            validade: cells[4] ? formatDate(cells[4].toString()) : '',
+          });
+        }
+      }
+    });
   }
-  
+
   return products;
 }
 
@@ -183,7 +186,7 @@ async function extractFromWord(buffer: ArrayBuffer): Promise<ExtractedProduct[]>
   const mammoth = await getMammoth();
   const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
   const text = result.value;
-  
+
   return extractProductsFromText(text);
 }
 
@@ -193,7 +196,7 @@ async function extractFromCSV(buffer: ArrayBuffer): Promise<ExtractedProduct[]> 
   const lines = text.split('
 ');
   const products: ExtractedProduct[] = [];
-  
+
   // Skip header and process each line
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -209,7 +212,7 @@ async function extractFromCSV(buffer: ArrayBuffer): Promise<ExtractedProduct[]> 
       }
     }
   }
-  
+
   return products;
 }
 
@@ -217,22 +220,22 @@ function extractProductsFromText(text: string): ExtractedProduct[] {
   const products: ExtractedProduct[] = [];
   const lines = text.split('
 ');
-  
+
   // Common product keywords to help identify products
   const productKeywords = ['leite', 'pão', 'arroz', 'feijão', 'açúcar', 'sal', 'óleo', 'farinha', 'macarrão', 'biscoito', 'café', 'refrigerante', 'suco', 'água', 'carne', 'frango', 'peixe', 'queijo', 'presunto', 'margarina', 'manteiga', 'iogurte', 'verdura', 'fruta', 'tomate', 'cebola', 'alho', 'batata', 'cenoura'];
-  
+
   // Date patterns
   const datePattern = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})|(\d{2,4})[\/\-](\d{1,2})[\/\-](\d{1,2})/g;
-  
+
   for (const line of lines) {
     const cleanLine = line.trim();
     if (!cleanLine || cleanLine.length < 3) continue;
-    
+
     // Check if line contains product-like content
     const lowerLine = cleanLine.toLowerCase();
     const hasProductKeyword = productKeywords.some(keyword => lowerLine.includes(keyword));
     const hasProductPattern = /[a-záéíóúçàãõ\s]+(kg|g|ml|l|un|unid|pct|pacote|caixa|lata|garrafa|litro|quilo)/i.test(lowerLine);
-    
+
     if (hasProductKeyword || hasProductPattern || (cleanLine.length > 3 && /^[a-záéíóúçàãõ\s\d\.]+$/i.test(cleanLine))) {
       // Extract date if present
       let validade = '';
@@ -240,14 +243,14 @@ function extractProductsFromText(text: string): ExtractedProduct[] {
       if (dateMatch) {
         validade = formatDate(dateMatch[0]);
       }
-      
+
       // Extract product name (remove dates and common non-product words)
       let productName = cleanLine
         .replace(datePattern, '')
         .replace(/(validade|venc|exp|data|prazo)/gi, '')
         .replace(/\d+[\/\-]\d+[\/\-]\d+/g, '')
         .trim();
-      
+
       if (productName && productName.length > 2) {
         products.push({
           produto: productName,
@@ -258,23 +261,23 @@ function extractProductsFromText(text: string): ExtractedProduct[] {
       }
     }
   }
-  
+
   return products;
 }
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
-  
+
   // Remove extra characters
   const cleanDate = dateStr.replace(/[^\d\/\-]/g, '');
-  
+
   // Try to parse different date formats
   const dateFormats = [
     /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/, // DD/MM/YYYY or DD-MM-YYYY
     /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/, // DD/MM/YY or DD-MM-YY
     /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/, // YYYY/MM/DD or YYYY-MM-DD
   ];
-  
+
   for (const format of dateFormats) {
     const match = cleanDate.match(format);
     if (match) {
@@ -289,6 +292,6 @@ function formatDate(dateStr: string): string {
       }
     }
   }
-  
+
   return '';
 }

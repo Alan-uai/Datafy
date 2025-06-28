@@ -227,6 +227,44 @@ export default function DashboardPage() {
 
   const activeListName = productLists.find(list => list.id === activeListId)?.name || "Visão Geral";
 
+  // Effect to fetch products when selectedListId changes
+  useEffect(() => {
+    if (currentUser?.uid && activeListId) {
+      fetchProductsForCurrentList(currentUser.uid, activeListId);
+    } else {
+      setListProducts([]);
+    }
+  }, [currentUser?.uid, activeListId, fetchProductsForCurrentList]);
+
+  // Listen for voice commands
+  useEffect(() => {
+    const handleVoiceProductAdd = async (event: CustomEvent) => {
+      if (!currentUser?.uid || !activeListId) return;
+
+      try {
+        const productData = event.detail;
+        const newProduct = await addProduct(currentUser.uid, activeListId, productData);
+        handleProductAdded(newProduct);
+        toast({ 
+          title: "Produto Adicionado por Voz", 
+          description: `${newProduct.produto} foi adicionado com sucesso.` 
+        });
+      } catch (error: any) {
+        toast({ 
+          variant: "destructive", 
+          title: "Erro ao adicionar produto por voz", 
+          description: error.message || "Não foi possível adicionar o produto." 
+        });
+      }
+    };
+
+    window.addEventListener('addProductFromVoice', handleVoiceProductAdd as EventListener);
+
+    return () => {
+      window.removeEventListener('addProductFromVoice', handleVoiceProductAdd as EventListener);
+    };
+  }, [currentUser?.uid, activeListId, toast, handleProductAdded]);
+
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 relative">

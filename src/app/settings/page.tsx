@@ -141,10 +141,119 @@ export default function SettingsPage() {
     // Implement actual date format application if needed
   }, [dateFormat]);
 
-  // Voice Command Logic (remains in useEffect to handle start/stop based on `voiceCommandEnabled`)
+  // Function to parse voice commands for product addition
+  const parseProductCommand = (transcript: string) => {
+    // Patterns for product addition commands
+    const patterns = [
+      // "adicionar produto arroz, marca Pileco, 78 unidades e vence em vinte e sete de junho"
+      /adicionar produto\s+([^,]+),?\s*marca\s+([^,]+),?\s*(\d+)\s*unidades?\s*e?\s*vence\s*em\s+(.+)/i,
+      // "adicionar arroz, pileco, 78, 27 do 06"
+      /adicionar\s+([^,]+),?\s*([^,]+),?\s*(\d+),?\s*(\d+)\s*do?\s*(\d+)/i,
+      // "adicionar arroz marca pileco 78 unidades vence 27 de junho"
+      /adicionar\s+([^\s]+)\s*marca\s+([^\s]+)\s*(\d+)\s*unidades?\s*vence\s*(\d+)\s*de\s*(\w+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = transcript.match(pattern);
+      if (match) {
+        if (pattern === patterns[0]) {
+          // Full format: "adicionar produto arroz, marca Pileco, 78 unidades e vence em vinte e sete de junho"
+          return {
+            produto: match[1].trim(),
+            marca: match[2].trim(),
+            quantidade: match[3],
+            validade: parseVoiceDate(match[4])
+          };
+        } else if (pattern === patterns[1]) {
+          // Short format: "adicionar arroz, pileco, 78, 27 do 06"
+          const day = match[4];
+          const month = match[5];
+          const year = new Date().getFullYear();
+          return {
+            produto: match[1].trim(),
+            marca: match[2].trim(),
+            quantidade: match[3],
+            validade: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+          };
+        } else if (pattern === patterns[2]) {
+          // Alternative format: "adicionar arroz marca pileco 78 unidades vence 27 de junho"
+          const day = match[4];
+          const monthName = match[5];
+          const monthNumber = getMonthNumber(monthName);
+          const year = new Date().getFullYear();
+          return {
+            produto: match[1].trim(),
+            marca: match[2].trim(),
+            quantidade: match[3],
+            validade: `${year}-${monthNumber.padStart(2, '0')}-${day.padStart(2, '0')}`
+          };
+        }
+      }
+    }
+    return null;
+  };
+
+  const parseVoiceDate = (dateText: string): string => {
+    // Convert voice date like "vinte e sete de junho" to "2025-06-27"
+    const numbers = {
+      'um': '1', 'dois': '2', 'três': '3', 'quatro': '4', 'cinco': '5',
+      'seis': '6', 'sete': '7', 'oito': '8', 'nove': '9', 'dez': '10',
+      'onze': '11', 'doze': '12', 'treze': '13', 'quatorze': '14', 'quinze': '15',
+      'dezesseis': '16', 'dezessete': '17', 'dezoito': '18', 'dezenove': '19',
+      'vinte': '20', 'vinte e um': '21', 'vinte e dois': '22', 'vinte e três': '23',
+      'vinte e quatro': '24', 'vinte e cinco': '25', 'vinte e seis': '26',
+      'vinte e sete': '27', 'vinte e oito': '28', 'vinte e nove': '29',
+      'trinta': '30', 'trinta e um': '31'
+    };
+
+    const months = {
+      'janeiro': '01', 'fevereiro': '02', 'março': '03', 'abril': '04',
+      'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
+      'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
+    };
+
+    let day = '';
+    let month = '';
+    const year = new Date().getFullYear();
+
+    // Extract day
+    for (const [word, num] of Object.entries(numbers)) {
+      if (dateText.includes(word)) {
+        day = num;
+        break;
+      }
+    }
+
+    // Extract month
+    for (const [monthName, monthNum] of Object.entries(months)) {
+      if (dateText.includes(monthName)) {
+        month = monthNum;
+        break;
+      }
+    }
+
+    if (day && month) {
+      return `${year}-${month}-${day.padStart(2, '0')}`;
+    }
+
+    return '';
+  };
+
+  const getMonthNumber = (monthName: string): string => {
+    const months: { [key: string]: string } = {
+      'janeiro': '01', 'fevereiro': '02', 'março': '03', 'abril': '04',
+      'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
+      'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
+    };
+    return months[monthName.toLowerCase()] || '01';
+  };
+
+  // Voice Command Logic (only initialize when enabled)
   useEffect(() => {
-    if (!('webkitSpeechRecognition' in window)) {
-      console.warn("Seu navegador não suporta reconhecimento de voz. Por favor, utilize Google Chrome.");
+    if (!voiceCommandEnabled || !('webkitSpeechRecognition' in window)) {
+      if (!('webkitSpeechRecognition' in window)) {
+        console.warn("Seu navegador não suporta reconhecimento de voz. Por favor, utilize Google Chrome.");
+      }
       return;
     }
 
@@ -181,16 +290,20 @@ export default function SettingsPage() {
           recognitionInstance.stop(); // Stop and restart to clear buffer and ensure fresh listening
         }
       } else {
-        if (lowerCaseFinalTranscript.includes("adicionar produto")) {
-          alert("Comando: Adicionar produto (implementação necessária)");
-          voiceCommandActiveModeRef.current = false; // Reset mode after command
-          recognitionInstance.stop(); // Stop listening after command
+        // Parse advanced product addition commands
+        const productCommand = parseProductCommand(lowerCaseFinalTranscript);
+        if (productCommand) {
+          console.log("Comando de produto detectado:", productCommand);
+          // Here you would trigger the product addition with the parsed data
+          // This could dispatch an event or call a function to add the product
+          alert(`Produto detectado: ${productCommand.produto}, Marca: ${productCommand.marca}, Quantidade: ${productCommand.quantidade}, Validade: ${productCommand.validade}`);
+          voiceCommandActiveModeRef.current = false;
+          recognitionInstance.stop();
         } else if (lowerCaseFinalTranscript.includes("parar de ouvir") || lowerCaseFinalTranscript.includes("cancelar")) {
           alert("Comando de voz desativado.");
           voiceCommandActiveModeRef.current = false;
           recognitionInstance.stop();
         }
-        // Add more command parsing here
       }
     };
 
