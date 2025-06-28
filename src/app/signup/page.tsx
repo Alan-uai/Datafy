@@ -1,266 +1,269 @@
 
 "use client";
 
-import { useState, type FormEvent, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, type User as FirebaseUser } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
-import { useToast } from '@/hooks/use-toast';
-import { AppLogo } from '@/components/shared/AppLogo';
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-
-const getFirebaseErrorMessage = (errorCode: string): string => {
-  switch (errorCode) {
-    case 'auth/email-already-in-use':
-      return 'Este email já está em uso por outra conta.';
-    case 'auth/invalid-email':
-      return 'O formato do email fornecido é inválido.';
-    case 'auth/operation-not-allowed':
-      return 'Criação de contas com email e senha não está habilitada.';
-    case 'auth/weak-password':
-      return 'A senha fornecida é muito fraca. Por favor, escolha uma senha mais forte.';
-    case 'auth/network-request-failed':
-      return 'Falha na conexão com a rede. Verifique sua internet e tente novamente.';
-    default:
-      return 'Ocorreu um erro desconhecido ao tentar criar a conta.';
-  }
-};
-
-type PasswordStrength = {
-  score: 0 | 1 | 2 | 3 | 4; // 0: very weak, 1: weak, 2: medium, 3: strong, 4: very strong
-  text: string;
-  color: string;
-};
-
-const checkPasswordStrength = (password: string): PasswordStrength => {
-  let score = 0;
-  if (!password) return { score: 0, text: '', color: '' };
-
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (/[a-z]/.test(password)) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^a-zA-Z0-9]/.test(password)) score++;
-  
-  if (password.length < 6) score = Math.min(score, 1);
-
-  let text = '';
-  let color = '';
-
-  switch (score) {
-    case 0:
-    case 1:
-      text = 'Muito Fraca';
-      color = 'text-destructive';
-      break;
-    case 2:
-      text = 'Fraca';
-      color = 'text-orange-500';
-      break;
-    case 3:
-      text = 'Média';
-      color = 'text-yellow-500';
-      break;
-    case 4:
-      text = 'Forte';
-      color = 'text-green-500';
-      break;
-    default: 
-      text = 'Muito Forte';
-      color = 'text-green-700';
-      break;
-  }
-  if (password.length > 0 && password.length < 6) {
-    text = 'Curta';
-    color = 'text-destructive';
-    score = 0;
-  }
-
-  return { score: Math.min(score, 4) as PasswordStrength["score"], text, color };
-};
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { SignupForm } from "@/components/auth/SignupForm";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { AppLogo } from "@/components/shared/AppLogo";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, UserPlus, Star, Zap } from "lucide-react";
+import Link from "next/link";
 
 export default function SignupPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
-  const { setCurrentUser } = useAuth();
-  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({ score: 0, text: '', color: '' });
-  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const [currentForm, setCurrentForm] = useState<'selection' | 'email'>('selection');
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
-  useEffect(() => {
-    if (passwordInputRef.current === document.activeElement || password.length > 0) {
-      setPasswordStrength(checkPasswordStrength(password));
-    } else {
-      setPasswordStrength({ score: 0, text: '', color: '' });
-    }
-  }, [password]);
-
-
-  const handleSignup = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (password !== confirmPassword) {
-      const message = 'As senhas não coincidem.';
-      setError(message);
-      toast({ variant: 'destructive', title: 'Erro no Cadastro', description: message });
-      return;
-    }
-    if (passwordStrength.score < 2 && password.length > 0) { 
-      const message = 'A senha é muito fraca. Por favor, escolha uma senha mais forte.';
-      setError(message);
-      toast({ variant: 'destructive', title: 'Senha Fraca', description: message });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      setCurrentUser(userCredential.user as FirebaseUser); 
+  const playSuccessSound = () => {
+    if (soundEnabled) {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
       
-      toast({ title: 'Cadastro bem-sucedido!', description: 'Redirecionando para o painel...' });
-      router.push('/dashboard');
-    } catch (err: any) {
-      const friendlyMessage = getFirebaseErrorMessage(err.code);
-      setError(friendlyMessage);
-      toast({ variant: 'destructive', title: 'Erro no Cadastro', description: friendlyMessage });
-    } finally {
-      setIsLoading(false);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
     }
   };
 
+  const handleButtonClick = (action: () => void) => {
+    setSoundEnabled(true);
+    playSuccessSound();
+    action();
+  };
+
+  // Floating features
+  const features = [
+    { icon: Star, text: "Gestão Inteligente", delay: 0 },
+    { icon: Zap, text: "Sincronização Rápida", delay: 0.5 },
+    { icon: UserPlus, text: "Interface Amigável", delay: 1 },
+  ];
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div className="mb-8">
-        <AppLogo iconSize={40} textSize="text-4xl" />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-800 flex items-center justify-center p-4 overflow-hidden relative">
+      {/* Animated grid background */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }} />
       </div>
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-2xl font-headline">Criar Conta</CardTitle>
-          <CardDescription>Crie sua conta Datafy para começar a organizar.</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSignup}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  ref={passwordInputRef}
-                  placeholder="Crie uma senha (mín. 6 caracteres)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setPasswordStrength(checkPasswordStrength(password))}
-                  onBlur={() => { if(!password) setPasswordStrength({ score: 0, text: '', color: ''})}}
-                  required
-                  disabled={isLoading}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {passwordStrength.text && (
-                <div className="mt-1 flex items-center">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${
-                        passwordStrength.score === 0 ? 'bg-destructive' :
-                        passwordStrength.score === 1 ? 'bg-destructive' :
-                        passwordStrength.score === 2 ? 'bg-orange-500' :
-                        passwordStrength.score === 3 ? 'bg-yellow-500' :
-                        'bg-green-500' 
-                      }`}
-                      style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+
+      {/* Floating feature bubbles */}
+      {features.map((feature, index) => (
+        <motion.div
+          key={index}
+          className="absolute hidden lg:block"
+          style={{
+            left: `${15 + index * 25}%`,
+            top: `${20 + index * 15}%`,
+          }}
+          initial={{ opacity: 0, scale: 0, rotate: -180 }}
+          animate={{ 
+            opacity: 0.8, 
+            scale: 1, 
+            rotate: 0,
+            y: [0, -10, 0],
+          }}
+          transition={{
+            delay: feature.delay,
+            duration: 0.8,
+            y: {
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }
+          }}
+        >
+          <div className="bg-white/10 backdrop-blur-sm rounded-full p-4 border border-white/20">
+            <feature.icon className="w-6 h-6 text-emerald-300" />
+          </div>
+          <p className="text-emerald-200 text-sm mt-2 text-center font-medium">
+            {feature.text}
+          </p>
+        </motion.div>
+      ))}
+
+      <div className="w-full max-w-md z-10">
+        <motion.div
+          initial={{ opacity: 0, y: -50, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, ease: "backOut" }}
+          className="text-center mb-8"
+        >
+          <motion.div
+            animate={{
+              rotateY: [0, 10, 0, -10, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <AppLogo iconSize={64} textSize="text-4xl" className="text-white drop-shadow-2xl" />
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="text-emerald-200 mt-4 text-lg font-light"
+          >
+            Crie sua conta e comece a organizar
+          </motion.p>
+        </motion.div>
+
+        <AnimatePresence mode="wait">
+          {currentForm === 'selection' ? (
+            <motion.div
+              key="selection"
+              initial={{ opacity: 0, scale: 0.9, rotateX: -15 }}
+              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+              exit={{ opacity: 0, scale: 0.9, rotateX: 15 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl transform-gpu">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-white text-2xl flex items-center justify-center gap-2">
+                    <UserPlus className="w-6 h-6 text-emerald-400" />
+                    Criar Conta
+                  </CardTitle>
+                  <CardDescription className="text-emerald-200">
+                    Junte-se ao Datafy e organize melhor seus produtos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <motion.div
+                    whileHover={{ 
+                      scale: 1.02, 
+                      y: -3,
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <GoogleSignInButton 
+                      onSuccess={() => router.push('/dashboard')}
+                      onClick={() => handleButtonClick(() => {})}
+                      className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg"
                     />
+                  </motion.div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-white/20" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-transparent px-2 text-emerald-200">ou</span>
+                    </div>
                   </div>
-                  <span className={`ml-2 text-xs font-medium ${passwordStrength.color}`}>
-                    {passwordStrength.text}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirme sua senha"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={isLoading}
-                  aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Criando conta...
-                </>
-              ) : (
-                'Criar Conta'
-              )}
-            </Button>
-            <p className="text-sm text-center text-muted-foreground">
-              Já tem uma conta?{' '}
-              <Link href="/login" className="font-medium text-primary hover:underline">
-                Faça login
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+
+                  <motion.div
+                    whileHover={{ 
+                      scale: 1.02, 
+                      y: -3,
+                      boxShadow: "0 10px 30px rgba(16, 185, 129, 0.3)"
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Button
+                      onClick={() => handleButtonClick(() => setCurrentForm('email'))}
+                      className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-lg"
+                      size="lg"
+                    >
+                      <Star className="w-4 h-4 mr-2" />
+                      Criar com Email
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="text-center pt-4"
+                  >
+                    <p className="text-emerald-200 text-sm">
+                      Já tem uma conta?{" "}
+                      <Link 
+                        href="/login" 
+                        className="text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-4"
+                        onClick={() => setSoundEnabled(true)}
+                      >
+                        Fazer login
+                      </Link>
+                    </p>
+                  </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="email"
+              initial={{ opacity: 0, scale: 0.9, rotateX: 15 }}
+              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+              exit={{ opacity: 0, scale: 0.9, rotateX: -15 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
+                <CardHeader>
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleButtonClick(() => setCurrentForm('selection'))}
+                      className="text-emerald-200 hover:text-white hover:bg-white/10 p-0 h-auto mb-4"
+                    >
+                      ← Voltar
+                    </Button>
+                  </motion.div>
+                  <CardTitle className="text-white text-2xl flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-emerald-400" />
+                    Criar Conta
+                  </CardTitle>
+                  <CardDescription className="text-emerald-200">
+                    Preencha os dados para criar sua conta
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <SignupForm 
+                      onSuccess={() => {
+                        playSuccessSound();
+                        router.push('/dashboard');
+                      }}
+                      onButtonClick={() => handleButtonClick(() => {})}
+                    />
+                  </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
