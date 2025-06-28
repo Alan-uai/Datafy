@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppLogo } from "@/components/shared/AppLogo";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, UserPlus, Star, Zap } from "lucide-react";
@@ -15,6 +16,7 @@ import Link from "next/link";
 export default function SignupPage() {
   const router = useRouter();
   const [currentForm, setCurrentForm] = useState<'selection' | 'email'>('selection');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   const playSuccessSound = () => {
@@ -44,12 +46,24 @@ export default function SignupPage() {
     action();
   };
 
+  const handleAuthSuccess = () => {
+    setIsAuthenticating(true);
+    playSuccessSound();
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 3000);
+  };
+
   // Floating features
   const features = [
     { icon: Star, text: "Gestão Inteligente", delay: 0 },
     { icon: Zap, text: "Sincronização Rápida", delay: 0.5 },
     { icon: UserPlus, text: "Interface Amigável", delay: 1 },
   ];
+
+  if (isAuthenticating) {
+    return <LoadingSpinner fullPage text="CRIANDO CONTA" />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-800 flex items-center justify-center p-4 overflow-hidden relative">
@@ -158,7 +172,7 @@ export default function SignupPage() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <GoogleSignInButton 
-                      onSuccess={() => router.push('/dashboard')}
+                      onSuccess={handleAuthSuccess}
                       onClick={() => handleButtonClick(() => {})}
                       className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg"
                     />
@@ -251,10 +265,7 @@ export default function SignupPage() {
                     transition={{ delay: 0.3 }}
                   >
                     <SignupForm 
-                      onSuccess={() => {
-                        playSuccessSound();
-                        router.push('/dashboard');
-                      }}
+                      onSuccess={handleAuthSuccess}
                       onButtonClick={() => handleButtonClick(() => {})}
                     />
                   </motion.div>

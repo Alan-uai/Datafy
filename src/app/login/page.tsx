@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { EmailPasswordLoginForm } from "@/components/auth/EmailPasswordLoginForm";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppLogo } from "@/components/shared/AppLogo";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Lock, Shield } from "lucide-react";
@@ -15,6 +16,7 @@ import Link from "next/link";
 export default function LoginPage() {
   const router = useRouter();
   const [currentForm, setCurrentForm] = useState<'selection' | 'email'>('selection');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   // Initialize audio context on user interaction
@@ -48,6 +50,13 @@ export default function LoginPage() {
     action();
   };
 
+  const handleAuthSuccess = () => {
+    setIsAuthenticating(true);
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 3000);
+  };
+
   // Floating particles animation
   const particles = Array.from({ length: 30 }, (_, i) => ({
     id: i,
@@ -56,6 +65,10 @@ export default function LoginPage() {
     delay: Math.random() * 2,
     duration: 3 + Math.random() * 2,
   }));
+
+  if (isAuthenticating) {
+    return <LoadingSpinner fullPage text="AUTENTICANDO" />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-800 flex items-center justify-center p-4 overflow-hidden relative">
@@ -165,7 +178,7 @@ export default function LoginPage() {
                     whileTap={{ scale: 0.98 }}
                   >
                     <GoogleSignInButton 
-                      onSuccess={() => router.push('/dashboard')}
+                      onSuccess={handleAuthSuccess}
                       onClick={() => handleButtonClick(() => {})}
                       className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg"
                     />
@@ -253,7 +266,7 @@ export default function LoginPage() {
                     transition={{ delay: 0.3 }}
                   >
                     <EmailPasswordLoginForm 
-                      onSuccess={() => router.push('/dashboard')}
+                      onSuccess={handleAuthSuccess}
                       onButtonClick={() => handleButtonClick(() => {})}
                     />
                   </motion.div>

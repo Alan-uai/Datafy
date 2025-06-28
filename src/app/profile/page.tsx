@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { 
   User, 
   Mail, 
@@ -23,24 +25,89 @@ import {
   Shield,
   Sparkles,
   Trophy,
-  Target
+  Target,
+  MapPin,
+  Phone,
+  Globe,
+  Camera,
+  Heart,
+  Star,
+  Zap,
+  Lock,
+  Bell,
+  Palette,
+  Moon,
+  Sun,
+  Music,
+  Eye,
+  Smartphone
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
+interface UserProfile {
+  displayName: string;
+  bio: string;
+  location: string;
+  phone: string;
+  website: string;
+  birthDate: string;
+  notifications: {
+    email: boolean;
+    push: boolean;
+    marketing: boolean;
+  };
+  preferences: {
+    darkMode: boolean;
+    language: string;
+    timezone: string;
+    soundEnabled: boolean;
+  };
+  privacy: {
+    profileVisible: boolean;
+    showEmail: boolean;
+    showPhone: boolean;
+  };
+}
 
 export default function ProfilePage() {
   const { currentUser, logout } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [displayName, setDisplayName] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<'personal' | 'preferences' | 'privacy' | 'security'>('personal');
+  
+  const [profile, setProfile] = useState<UserProfile>({
+    displayName: currentUser?.displayName || '',
+    bio: '',
+    location: '',
+    phone: '',
+    website: '',
+    birthDate: '',
+    notifications: {
+      email: true,
+      push: true,
+      marketing: false,
+    },
+    preferences: {
+      darkMode: true,
+      language: 'pt-BR',
+      timezone: 'America/Sao_Paulo',
+      soundEnabled: true,
+    },
+    privacy: {
+      profileVisible: true,
+      showEmail: false,
+      showPhone: false,
+    }
+  });
 
   useEffect(() => {
     if (currentUser?.displayName) {
-      setDisplayName(currentUser.displayName);
+      setProfile(prev => ({ ...prev, displayName: currentUser.displayName || '' }));
     }
   }, [currentUser]);
 
-  const playInteractionSound = (type: 'click' | 'success' | 'error') => {
+  const playInteractionSound = (type: 'click' | 'success' | 'error' | 'notification') => {
     if (!soundEnabled) return;
     
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -50,13 +117,21 @@ export default function ProfilePage() {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    if (type === 'click') {
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    } else if (type === 'success') {
-      oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
-    } else {
-      oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+    switch(type) {
+      case 'click':
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        break;
+      case 'success':
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+        break;
+      case 'error':
+        oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+        break;
+      case 'notification':
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.05);
+        break;
     }
     
     gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
@@ -79,18 +154,45 @@ export default function ProfilePage() {
   const handleSave = () => {
     playInteractionSound('success');
     setIsEditing(false);
-    // Aqui você implementaria a lógica para salvar o nome
+    // Aqui você implementaria a lógica para salvar o perfil
+  };
+
+  const updateProfile = (field: keyof UserProfile, value: any) => {
+    setProfile(prev => ({ ...prev, [field]: value }));
+    playInteractionSound('click');
+  };
+
+  const updateNestedProfile = (section: 'notifications' | 'preferences' | 'privacy', field: string, value: any) => {
+    setProfile(prev => ({
+      ...prev,
+      [section]: { ...prev[section], [field]: value }
+    }));
+    playInteractionSound('notification');
   };
 
   const profileStats = [
     { label: 'Produtos Cadastrados', value: '156', icon: Target, color: 'text-blue-400' },
     { label: 'Listas Criadas', value: '12', icon: Trophy, color: 'text-green-400' },
     { label: 'Dias de Uso', value: '45', icon: Calendar, color: 'text-purple-400' },
+    { label: 'Score de Eficiência', value: '89%', icon: Star, color: 'text-yellow-400' },
+  ];
+
+  const achievements = [
+    { name: 'Primeiro Produto', description: 'Adicionou seu primeiro produto', icon: Star, color: 'bg-yellow-500' },
+    { name: 'Organizador', description: 'Criou 10 listas', icon: Trophy, color: 'bg-green-500' },
+    { name: 'Expert', description: '30 dias de uso', icon: Zap, color: 'bg-blue-500' },
+  ];
+
+  const tabs = [
+    { id: 'personal', label: 'Pessoal', icon: User },
+    { id: 'preferences', label: 'Preferências', icon: Settings },
+    { id: 'privacy', label: 'Privacidade', icon: Eye },
+    { id: 'security', label: 'Segurança', icon: Shield },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header with floating elements */}
         <motion.div
           initial={{ opacity: 0, y: -50 }}
@@ -137,24 +239,24 @@ export default function ProfilePage() {
             <h1 className="text-4xl font-bold text-white">Meu Perfil</h1>
           </div>
           <p className="text-violet-200 text-lg">
-            Gerencie suas informações pessoais
+            Gerencie suas informações pessoais e preferências
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Profile Card */}
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Profile Summary Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, rotateY: -20 }}
             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
             transition={{ duration: 0.8 }}
-            className="lg:col-span-2"
+            className="lg:col-span-1"
           >
             <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
               <CardHeader className="text-center pb-6">
                 <motion.div
                   whileHover={{ scale: 1.1, rotateZ: 5 }}
                   transition={{ type: "spring", stiffness: 300 }}
-                  className="mx-auto mb-4"
+                  className="mx-auto mb-4 relative"
                 >
                   <Avatar className="w-24 h-24 border-4 border-white/20 shadow-xl">
                     <AvatarImage src={currentUser?.photoURL || ''} />
@@ -162,144 +264,60 @@ export default function ProfilePage() {
                       {currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="absolute -bottom-2 -right-2 bg-violet-500 hover:bg-violet-600 rounded-full p-2 shadow-lg"
+                    onClick={() => playInteractionSound('click')}
+                  >
+                    <Camera className="w-4 h-4 text-white" />
+                  </motion.button>
                 </motion.div>
                 
-                <div className="space-y-2">
-                  <AnimatePresence mode="wait">
-                    {isEditing ? (
-                      <motion.div
-                        key="editing"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Input
-                          value={displayName}
-                          onChange={(e) => setDisplayName(e.target.value)}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                          placeholder="Seu nome"
-                        />
-                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              playInteractionSound('success');
-                              handleSave();
-                            }}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Save className="w-4 h-4" />
-                          </Button>
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              playInteractionSound('click');
-                              setIsEditing(false);
-                              setDisplayName(currentUser?.displayName || '');
-                            }}
-                            className="border-white/20 text-white hover:bg-white/10"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </motion.div>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="display"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="flex items-center justify-center gap-2"
-                      >
-                        <CardTitle className="text-white text-2xl">
-                          {currentUser?.displayName || 'Usuário'}
-                        </CardTitle>
-                        <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }}>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              playInteractionSound('click');
-                              setIsEditing(true);
-                            }}
-                            className="text-violet-300 hover:text-white hover:bg-white/10"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </Button>
-                        </motion.div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  
-                  <CardDescription className="text-violet-200 flex items-center justify-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    {currentUser?.email}
-                  </CardDescription>
-                  
-                  <div className="flex justify-center gap-2 pt-2">
-                    <Badge variant="secondary" className="bg-violet-500/20 text-violet-300">
-                      <Shield className="w-3 h-3 mr-1" />
-                      Verificado
-                    </Badge>
-                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      Premium
-                    </Badge>
-                  </div>
+                <CardTitle className="text-white text-xl">
+                  {profile.displayName || 'Usuário'}
+                </CardTitle>
+                <CardDescription className="text-violet-200 flex items-center justify-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  {currentUser?.email}
+                </CardDescription>
+                
+                <div className="flex justify-center gap-2 pt-2">
+                  <Badge variant="secondary" className="bg-violet-500/20 text-violet-300">
+                    <Shield className="w-3 h-3 mr-1" />
+                    Verificado
+                  </Badge>
+                  <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Premium
+                  </Badge>
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-6">
-                <Separator className="bg-white/20" />
-                
-                {/* Account Info */}
-                <div className="space-y-4">
-                  <h3 className="text-white font-semibold flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-violet-400" />
-                    Informações da Conta
-                  </h3>
-                  
-                  <div className="grid gap-4">
-                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Mail className="w-5 h-5 text-violet-400" />
-                        <div>
-                          <Label className="text-white">Email</Label>
-                          <p className="text-violet-200 text-sm">{currentUser?.email}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-5 h-5 text-violet-400" />
-                        <div>
-                          <Label className="text-white">Membro desde</Label>
-                          <p className="text-violet-200 text-sm">
-                            {currentUser?.metadata?.creationTime 
-                              ? new Date(currentUser.metadata.creationTime).toLocaleDateString('pt-BR')
-                              : 'Data não disponível'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <CardContent className="space-y-4">
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 gap-2">
+                  {profileStats.map((stat, index) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      whileHover={{ scale: 1.05 }}
+                      className="bg-white/5 rounded-lg p-3 text-center"
+                    >
+                      <stat.icon className={`w-6 h-6 ${stat.color} mx-auto mb-1`} />
+                      <p className="text-white font-bold text-sm">{stat.value}</p>
+                      <p className="text-violet-200 text-xs">{stat.label.split(' ')[0]}</p>
+                    </motion.div>
+                  ))}
                 </div>
 
                 <Separator className="bg-white/20" />
 
-                {/* Actions */}
-                <div className="flex gap-3">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex-1"
-                  >
+                {/* Quick Actions */}
+                <div className="space-y-2">
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
                       variant="outline"
                       className="w-full border-white/20 text-white hover:bg-white/10"
@@ -313,11 +331,7 @@ export default function ProfilePage() {
                     </Button>
                   </motion.div>
                   
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex-1"
-                  >
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
                       variant="destructive"
                       className="w-full bg-red-600 hover:bg-red-700"
@@ -330,67 +344,400 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Achievements */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mt-6"
+            >
+              <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-yellow-400" />
+                    Conquistas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {achievements.map((achievement, index) => (
+                    <motion.div
+                      key={achievement.name}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + index * 0.1 }}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      className="flex items-center gap-3 p-2 bg-white/5 rounded-lg cursor-pointer"
+                    >
+                      <div className={`w-8 h-8 ${achievement.color} rounded-full flex items-center justify-center`}>
+                        <achievement.icon className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium text-sm">{achievement.name}</p>
+                        <p className="text-violet-200 text-xs">{achievement.description}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
           </motion.div>
 
-          {/* Stats Sidebar */}
+          {/* Main Content */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="space-y-6"
+            className="lg:col-span-3"
           >
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+            <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-400" />
-                  Estatísticas
-                </CardTitle>
-                <CardDescription className="text-violet-200">
-                  Seu progresso no Datafy
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {profileStats.map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 + index * 0.1 }}
-                    whileHover={{ scale: 1.02, x: 5 }}
-                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg cursor-pointer"
-                  >
-                    <stat.icon className={`w-8 h-8 ${stat.color}`} />
-                    <div>
-                      <p className="text-white font-bold text-xl">{stat.value}</p>
-                      <p className="text-violet-200 text-sm">{stat.label}</p>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white text-2xl">Informações do Perfil</CardTitle>
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Button
+                      onClick={() => {
+                        playInteractionSound('click');
+                        setIsEditing(!isEditing);
+                      }}
+                      variant={isEditing ? "default" : "outline"}
+                      className={isEditing ? "bg-green-600 hover:bg-green-700" : "border-white/20 text-white hover:bg-white/10"}
+                    >
+                      {isEditing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
+                      {isEditing ? 'Salvar' : 'Editar'}
+                    </Button>
                   </motion.div>
-                ))}
+                </div>
+
+                {/* Tabs */}
+                <div className="flex space-x-1 bg-white/5 rounded-lg p-1 mt-4">
+                  {tabs.map((tab) => (
+                    <motion.button
+                      key={tab.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        playInteractionSound('click');
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-all ${
+                        activeTab === tab.id
+                          ? 'bg-violet-600 text-white shadow-lg'
+                          : 'text-violet-200 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <tab.icon className="w-4 h-4" />
+                      {tab.label}
+                    </motion.button>
+                  ))}
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                <AnimatePresence mode="wait">
+                  {activeTab === 'personal' && (
+                    <motion.div
+                      key="personal"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-6"
+                    >
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label className="text-white">Nome Completo</Label>
+                          <Input
+                            value={profile.displayName}
+                            onChange={(e) => updateProfile('displayName', e.target.value)}
+                            disabled={!isEditing}
+                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            placeholder="Seu nome completo"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-white">Data de Nascimento</Label>
+                          <Input
+                            type="date"
+                            value={profile.birthDate}
+                            onChange={(e) => updateProfile('birthDate', e.target.value)}
+                            disabled={!isEditing}
+                            className="bg-white/10 border-white/20 text-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-white">Localização</Label>
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-3 w-4 h-4 text-white/50" />
+                            <Input
+                              value={profile.location}
+                              onChange={(e) => updateProfile('location', e.target.value)}
+                              disabled={!isEditing}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-10"
+                              placeholder="Cidade, Estado"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-white">Telefone</Label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-3 w-4 h-4 text-white/50" />
+                            <Input
+                              value={profile.phone}
+                              onChange={(e) => updateProfile('phone', e.target.value)}
+                              disabled={!isEditing}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-10"
+                              placeholder="(11) 99999-9999"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-white">Website</Label>
+                          <div className="relative">
+                            <Globe className="absolute left-3 top-3 w-4 h-4 text-white/50" />
+                            <Input
+                              value={profile.website}
+                              onChange={(e) => updateProfile('website', e.target.value)}
+                              disabled={!isEditing}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-10"
+                              placeholder="https://seusite.com"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-white">Biografia</Label>
+                          <Textarea
+                            value={profile.bio}
+                            onChange={(e) => updateProfile('bio', e.target.value)}
+                            disabled={!isEditing}
+                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50 min-h-[100px]"
+                            placeholder="Conte um pouco sobre você..."
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'preferences' && (
+                    <motion.div
+                      key="preferences"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-6"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Moon className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <Label className="text-white">Modo Escuro</Label>
+                              <p className="text-violet-200 text-sm">Interface com tema escuro</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={profile.preferences.darkMode}
+                            onCheckedChange={(checked) => updateNestedProfile('preferences', 'darkMode', checked)}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Music className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <Label className="text-white">Sons da Interface</Label>
+                              <p className="text-violet-200 text-sm">Reproduzir sons de interação</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={profile.preferences.soundEnabled}
+                            onCheckedChange={(checked) => {
+                              updateNestedProfile('preferences', 'soundEnabled', checked);
+                              setSoundEnabled(checked);
+                            }}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-white">Idioma</Label>
+                          <select 
+                            value={profile.preferences.language}
+                            onChange={(e) => updateNestedProfile('preferences', 'language', e.target.value)}
+                            className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white"
+                          >
+                            <option value="pt-BR">Português (Brasil)</option>
+                            <option value="en-US">English (US)</option>
+                            <option value="es-ES">Español</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-white">Fuso Horário</Label>
+                          <select 
+                            value={profile.preferences.timezone}
+                            onChange={(e) => updateNestedProfile('preferences', 'timezone', e.target.value)}
+                            className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white"
+                          >
+                            <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
+                            <option value="America/New_York">Nova York (GMT-5)</option>
+                            <option value="Europe/London">Londres (GMT+0)</option>
+                          </select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'privacy' && (
+                    <motion.div
+                      key="privacy"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-6"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Eye className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <Label className="text-white">Perfil Público</Label>
+                              <p className="text-violet-200 text-sm">Permitir que outros vejam seu perfil</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={profile.privacy.profileVisible}
+                            onCheckedChange={(checked) => updateNestedProfile('privacy', 'profileVisible', checked)}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Mail className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <Label className="text-white">Mostrar Email</Label>
+                              <p className="text-violet-200 text-sm">Exibir email no perfil público</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={profile.privacy.showEmail}
+                            onCheckedChange={(checked) => updateNestedProfile('privacy', 'showEmail', checked)}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Smartphone className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <Label className="text-white">Mostrar Telefone</Label>
+                              <p className="text-violet-200 text-sm">Exibir telefone no perfil público</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={profile.privacy.showPhone}
+                            onCheckedChange={(checked) => updateNestedProfile('privacy', 'showPhone', checked)}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'security' && (
+                    <motion.div
+                      key="security"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-6"
+                    >
+                      <div className="space-y-4">
+                        <div className="p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Lock className="w-5 h-5 text-violet-400" />
+                            <Label className="text-white">Alterar Senha</Label>
+                          </div>
+                          <div className="space-y-3">
+                            <Input
+                              type="password"
+                              placeholder="Senha atual"
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            />
+                            <Input
+                              type="password"
+                              placeholder="Nova senha"
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            />
+                            <Input
+                              type="password"
+                              placeholder="Confirmar nova senha"
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            />
+                            <Button 
+                              className="bg-violet-600 hover:bg-violet-700"
+                              onClick={() => playInteractionSound('success')}
+                            >
+                              Alterar Senha
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Bell className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <Label className="text-white">Notificações por Email</Label>
+                              <p className="text-violet-200 text-sm">Receber notificações importantes</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={profile.notifications.email}
+                            onCheckedChange={(checked) => updateNestedProfile('notifications', 'email', checked)}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Smartphone className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <Label className="text-white">Notificações Push</Label>
+                              <p className="text-violet-200 text-sm">Receber notificações no dispositivo</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={profile.notifications.push}
+                            onCheckedChange={(checked) => updateNestedProfile('notifications', 'push', checked)}
+                          />
+                        </div>
+
+                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                          <div className="flex items-center gap-3 mb-3">
+                            <X className="w-5 h-5 text-red-400" />
+                            <Label className="text-red-300">Zona de Perigo</Label>
+                          </div>
+                          <p className="text-red-200 text-sm mb-3">
+                            Essas ações são irreversíveis. Tenha cuidado!
+                          </p>
+                          <Button 
+                            variant="destructive"
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => playInteractionSound('error')}
+                          >
+                            Excluir Conta
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </CardContent>
             </Card>
-
-            {/* Achievement Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6 }}
-              whileHover={{ scale: 1.05, rotate: 2 }}
-            >
-              <Card className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg border-yellow-500/30">
-                <CardContent className="p-4 text-center">
-                  <motion.div
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <Trophy className="w-12 h-12 text-yellow-400 mx-auto mb-2" />
-                  </motion.div>
-                  <h3 className="text-white font-bold">Organizador Expert</h3>
-                  <p className="text-yellow-200 text-sm">
-                    Parabéns! Você dominou o Datafy
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
           </motion.div>
         </div>
       </div>
