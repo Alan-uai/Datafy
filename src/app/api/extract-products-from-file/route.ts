@@ -1,12 +1,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addProduct } from '@/services/productService';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Dynamic imports for file parsing libraries
-const getPdfParse = () => import('pdf-parse').then(mod => mod.default);
 const getXlsx = () => import('xlsx');
 const getMammoth = () => import('mammoth');
 const getCsvParser = () => import('csv-parser').then(mod => mod.default);
+
+// Initialize GoogleGenerativeAI (ensure GEMINI_API_KEY is securely handled, e.g., via environment variables)
+const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || ""); // Use environment variable
 
 interface ExtractedProduct {
   produto: string;
@@ -47,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     try {
         if (file.type === 'application/pdf') {
-          console.log('Extracting from PDF...');
+          console.log('Extracting from PDF using Gemini API...');
           extractedProducts = await extractFromPDF(buffer);
         } else if (file.type.includes('spreadsheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
           console.log('Extracting from Excel...');
@@ -117,11 +120,39 @@ export async function POST(req: NextRequest) {
 }
 
 async function extractFromPDF(buffer: ArrayBuffer): Promise<ExtractedProduct[]> {
-  const pdfParse = await getPdfParse();
-  const data = await pdfParse(Buffer.from(buffer));
-  const text = data.text;
-  
-  return extractProductsFromText(text);
+  try {
+    const base64Data = Buffer.from(buffer).toString("base64");
+    const contents = [
+      { text: "Extract product information from this document. For each product, identify its name (produto), brand (marca), quantity (unidade), and expiration date (validade). If a quantity is not explicitly mentioned, assume '1'. If an expiration date is not found, leave it empty. Output the results as a JSON array of objects, like this: [{"produto": "Nome do Produto", "marca": "Marca", "unidade": "1", "validade": "YYYY-MM-DD"}]. Ensure dates are in YYYY-MM-DD format. If no products are found, return an empty array." },
+      {
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: base64Data
+        }
+      }
+    ];
+
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const result = await model.generateContent({ contents });
+    const responseText = result.response.text();
+
+    console.log("Gemini API Response (raw):", responseText);
+
+    // Attempt to parse the JSON response from Gemini
+    try {
+      const parsedProducts: ExtractedProduct[] = JSON.parse(responseText);
+      // Further validation/cleaning if necessary
+      return parsedProducts;
+    } catch (jsonParseError) {
+      console.error("Error parsing JSON from Gemini response:", jsonParseError);
+      // Fallback: if JSON parsing fails, try to extract from plain text if Gemini returns non-JSON
+      return extractProductsFromText(responseText);
+    }
+
+  } catch (error) {
+    console.error("Error calling Gemini API for PDF extraction:", error);
+    throw new Error("Failed to extract products from PDF using AI.");
+  }
 }
 
 async function extractFromExcel(buffer: ArrayBuffer): Promise<ExtractedProduct[]> {
@@ -159,7 +190,8 @@ async function extractFromWord(buffer: ArrayBuffer): Promise<ExtractedProduct[]>
 async function extractFromCSV(buffer: ArrayBuffer): Promise<ExtractedProduct[]> {
   const csvParser = await getCsvParser();
   const text = Buffer.from(buffer).toString('utf-8');
-  const lines = text.split('\n');
+  const lines = text.split('
+');
   const products: ExtractedProduct[] = [];
   
   // Skip header and process each line
@@ -183,7 +215,8 @@ async function extractFromCSV(buffer: ArrayBuffer): Promise<ExtractedProduct[]> 
 
 function extractProductsFromText(text: string): ExtractedProduct[] {
   const products: ExtractedProduct[] = [];
-  const lines = text.split('\n');
+  const lines = text.split('
+');
   
   // Common product keywords to help identify products
   const productKeywords = ['leite', 'pão', 'arroz', 'feijão', 'açúcar', 'sal', 'óleo', 'farinha', 'macarrão', 'biscoito', 'café', 'refrigerante', 'suco', 'água', 'carne', 'frango', 'peixe', 'queijo', 'presunto', 'margarina', 'manteiga', 'iogurte', 'verdura', 'fruta', 'tomate', 'cebola', 'alho', 'batata', 'cenoura'];
@@ -211,8 +244,8 @@ function extractProductsFromText(text: string): ExtractedProduct[] {
       // Extract product name (remove dates and common non-product words)
       let productName = cleanLine
         .replace(datePattern, '')
-        .replace(/\b(validade|venc|exp|data|prazo)\b/gi, '')
-        .replace(/\b\d+[\/\-]\d+[\/\-]\d+\b/g, '')
+        .replace(/(validade|venc|exp|data|prazo)/gi, '')
+        .replace(/\d+[\/\-]\d+[\/\-]\d+/g, '')
         .trim();
       
       if (productName && productName.length > 2) {

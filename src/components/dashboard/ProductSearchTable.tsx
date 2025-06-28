@@ -229,12 +229,6 @@ interface ProductSearchTableProps {
 export function ProductSearchTable({ listId, products, isLoadingProducts, onProductsChanged }: ProductSearchTableProps) {
   const { toast } = useToast();
   const { currentUser } = useAuth();
-  const [searchInputText, setSearchInputText] = useState('');
-  const [displayProducts, setDisplayProducts] = useState<Product[]>([]);
-
-
-  const [sortBy, setSortBy] = useState<SortableKey | 'none'>('id');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -264,7 +258,6 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
   const [isBatchEditExpiryDialogOpen, setIsBatchEditExpiryDialogOpen] = useState(false);
   const [batchNewExpiryDate, setBatchNewExpiryDate] = useState<string>('');
   const [newlyAddedProductId, setNewlyAddedProductId] = useState<string | null>(null);
-  const [selectedDateFilter, setSelectedDateFilter] = useState('all');
 
   // Shockwave state remains as it's for delete animation within the table
 
@@ -322,7 +315,6 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
       ...product,
       id: (index + 1).toString(), // Assign visual ID starting from 1
     }));
-    setDisplayProducts(productsWithVisualIds);
  console.log("useEffect setting displayProducts:", productsWithVisualIds);
   }, [products]); // Depend on the products prop
  // Note: Adding explodingProductOriginalIds to dependency array here could cause issues if products are filtered out too early by the effect. Let's keep it simple for now based on the original issue description. Adding `products` ensures the effect runs when the products list itself changes.
@@ -473,6 +465,7 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
         setExplodingProductOriginalIds(prev => [...prev, selectedProduct.originalId!]);
         await deleteProduct(currentUser.uid, selectedProduct.originalId);
         toast({ title: "Produto excluído", description: `${selectedProduct.produto} foi removido com sucesso.` });
+ setProducts(prevProducts => prevProducts.filter(p => p.originalId !== selectedProduct.originalId));
       } catch (error) {
         toast({ variant: "destructive", title: "Erro ao excluir", description: "Não foi possível excluir o produto." });
       } finally {
@@ -514,106 +507,93 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
   };
 
  const filteredProducts = useMemo(() => {
-    let productsToFilter = [...displayProducts];
-    console.log("useMemo filteredProducts: Starting with displayProducts", displayProducts);
+    let productsToFilter = [...products]; // Use the products prop directly
+    console.log("useMemo filteredProducts: Starting with products prop", products);
     const normalizedSearchTerm = normalizeString(searchInputText.trim());
 
+ // Apply search filter first if searchInputText is not empty after trim
+ if (searchInputText.trim() !== '') {
+ productsToFilter = productsToFilter.filter(product => {
+ return Object.values(product).some(value => normalizeString(String(value)).includes(normalizedSearchTerm));
+ });
+ }
+
+ // Apply date filter
+ if (selectedDateFilter !== 'all') {
+ productsToFilter = productsToFilter.filter(product => {
+ if (!product.validade) return selectedDateFilter === 'all';
+ const productDate = parseISO(product.validade);
+ if (!isValid(productDate)) {
+ return selectedDateFilter === 'all';
+            }
+ const productDateStartOfDay = startOfDay(productDate);
+ const todayDate = startOfDay(new Date());
+ let matchesDateFilter = true;
+ switch (selectedDateFilter) {
+ case 'today': matchesDateFilter = isToday(productDateStartOfDay); break;
+ case 'yesterday': matchesDateFilter = isYesterday(productDateStartOfDay); break;
+ case 'tomorrow': matchesDateFilter = isTomorrow(productDateStartOfDay); break;
+ case 'expired': matchesDateFilter = isPast(productDateStartOfDay) && !isToday(productDateStartOfDay); break;
+ case 'next7': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: todayDate, end: endOfDay(addDays(todayDate, 6)) }); break;
+ case 'last7': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(todayDate, 6)), end: endOfDay(todayDate) }); break;
+ case 'next14': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: todayDate, end: endOfDay(addDays(todayDate, 13)) }); break;
+ case 'last14': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(todayDate, 13)), end: endOfDay(todayDate) }); break;
+ case 'thisMonth': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfMonth(todayDate), end: endOfMonth(todayDate) }); break;
+ case 'nextMonth': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfMonth(addMonths(todayDate, 1)), end: endOfMonth(addMonths(todayDate, 1)) }); break;
+            }
+ return matchesDateFilter;
+ });
+ }
+
+ // Apply sorting
     if (sortBy && sortBy !== 'none') {
         productsToFilter.sort((a, b) => {
             const valA = a[sortBy];
             const valB = b[sortBy];
             let comparison = 0;
-             // Handle 'none' case implicitly by not sorting if sortBy is 'none'
+
             if (sortBy === 'id') {
-              const numA = parseInt(String(valA), 10);
-              const numB = parseInt(String(valB), 10);
-              if (!isNaN(numA) && !isNaN(numB)) {
-                comparison = numA - numB;
+ if (a.originalId === undefined || b.originalId === undefined) {
+ comparison = 0; // Cannot compare if originalId is missing
+ } else {
+ // Assuming originalId is the source for 'id' comparison
+ comparison = a.originalId.localeCompare(b.originalId);
+ }
+            } else if (sortBy === 'validade') {
+ const dateA = a.validade ? parseISO(a.validade) : null;
+ const dateB = b.validade ? parseISO(b.validade) : null;
+ const aIsValid = dateA && isValid(dateA);
+ const bIsValid = dateB && isValid(dateB);
+
+ if (aIsValid && bIsValid) {
+ comparison = dateA.getTime() - dateB.getTime();
+ } else if (aIsValid && !bIsValid) { comparison = -1; }
+ else if (!aIsValid && bIsValid) { comparison = 1;  }
+ else { comparison = 0; } // Keep original order if both invalid
+            } else if (sortBy === 'unidade') {
+ const numA = parseInt(String(valA), 10) || 0;
+ const numB = parseInt(String(valB), 10) || 0;
+ comparison = numA - numB;
+            } else if (sortBy === 'marca') {
+ let sortValA = String(valA);
+ let sortValB = String(valB);
+
+ if (normalizeString(sortValA) === '3 coracoes') sortValA = 'tres coracoes';
+ if (normalizeString(sortValB) === '3 coracoes') sortValB = 'tres coracoes';
+
+ comparison = normalizeString(sortValA).localeCompare(normalizeString(sortValB));
               } else {
                 comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
               }
-            } else if (sortBy === 'validade') {
-              const dateA = a.validade ? parseISO(a.validade) : null;
-              const dateB = b.validade ? parseISO(b.validade) : null;
-              const aIsValid = dateA && isValid(dateA);
-              const bIsValid = dateB && isValid(dateB);
-
-              if (aIsValid && bIsValid) {
-                comparison = dateA!.getTime() - dateB!.getTime();
-              } else if (aIsValid && !bIsValid) { comparison = -1; }
-              else if (!aIsValid && bIsValid) { comparison = 1;  }
-              else {
-                comparison = (a.originalId || '').localeCompare(b.originalId || '');
-              }
-            } else if (sortBy === 'unidade') {
-              const numA = parseInt(valA as string, 10);
-              const numB = parseInt(valB as string, 10);
-              const aIsNum = !isNaN(numA);
-              const bIsNum = !isNaN(numB);
-
-              if (aIsNum && bIsNum) {
-                comparison = numA - numB;
-              } else if (aIsNum && !bIsNum) { comparison = -1; }
-              else if (!aIsNum && bIsNum) { comparison = 1;  }
-              else {
-                comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
-              }
-            } else if (sortBy === 'marca') {
-                let sortValA = String(valA);
-                let sortValB = String(valB);
-
-                if (normalizeString(sortValA) === '3 coracoes') sortValA = 'tres coracoes';
-                if (normalizeString(sortValB) === '3 coracoes') sortValB = 'tres coracoes';
-
-                comparison = normalizeString(sortValA).localeCompare(normalizeString(sortValB));
-            }
-             else {
-              comparison = normalizeString(String(valA)).localeCompare(normalizeString(String(valB)));
-            }
             return sortDirection === 'asc' ? comparison : -comparison;
         });
     }
-
-
-    let displayableProducts = productsToFilter.filter(product => !explodingProductOriginalIds.includes(product.originalId!)).filter(product => {
-        if (explodingProductOriginalIds.includes(product.originalId!)) return true;
-
-        // Apply search filter if searchInputText is not empty after trim
-        if (searchInputText.trim() !== '') {
-            if (!Object.values(product).some(value => normalizeString(String(value)).includes(normalizedSearchTerm))) {
-                return false;
-           }
-        }
-        if (selectedDateFilter !== 'all') {
-            if (!product.validade) return selectedDateFilter === 'all';
-            const productDate = parseISO(product.validade);
-            if (!isValid(productDate)) {
-                 return selectedDateFilter === 'all';
-            }
-            const productDateStartOfDay = startOfDay(productDate);
-            const todayDate = startOfDay(new Date());
-            let matchesDateFilter = true;
-            switch (selectedDateFilter) {
-                case 'today': matchesDateFilter = isToday(productDateStartOfDay); break;
-                case 'yesterday': matchesDateFilter = isYesterday(productDateStartOfDay); break;
-                case 'tomorrow': matchesDateFilter = isTomorrow(productDateStartOfDay); break;
-                case 'expired': matchesDateFilter = isPast(productDateStartOfDay) && !isToday(productDateStartOfDay); break;
-                case 'next7': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: todayDate, end: endOfDay(addDays(todayDate, 6)) }); break;
-                case 'last7': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(todayDate, 6)), end: endOfDay(todayDate) }); break;
-                case 'next14': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: todayDate, end: endOfDay(addDays(todayDate, 13)) }); break;
-                case 'last14': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfDay(subDays(todayDate, 13)), end: endOfDay(todayDate) }); break;
-                case 'thisMonth': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfMonth(todayDate), end: endOfMonth(todayDate) }); break;
-                case 'nextMonth': matchesDateFilter = isWithinInterval(productDateStartOfDay, { start: startOfMonth(addMonths(todayDate, 1)), end: endOfMonth(addMonths(todayDate, 1)) }); break;
-            }
-            if (!matchesDateFilter) return false;
-        }
-        return true;
-    });
+ // Filter out exploding products last
+    const displayableProducts = productsToFilter.filter(product => !explodingProductOriginalIds.includes(product.originalId!));
 
     console.log("useMemo filteredProducts: Final displayableProducts", displayableProducts);
- return displayableProducts; // The filter for exploding products is already applied above
-  }, [searchInputText, displayProducts, selectedDateFilter, sortBy, sortDirection]);
-
+ return displayableProducts;
+  }, [searchInputText, products, selectedDateFilter, sortBy, sortDirection, explodingProductOriginalIds]);
 
   const handleToggleSelectProduct = (productOriginalId: string | undefined) => {
     if (!productOriginalId) return;
@@ -650,6 +630,7 @@ export function ProductSearchTable({ listId, products, isLoadingProducts, onProd
             setExplodingProductOriginalIds(prev => [...prev, ...nonExplodingSelectedIds]);
             await deleteMultipleProducts(currentUser.uid, nonExplodingSelectedIds);
             toast({ title: `${nonExplodingSelectedIds.length} produto(s) excluído(s) com sucesso.` });
+ setProducts(prevProducts => prevProducts.filter(p => !nonExplodingSelectedIds.includes(p.originalId!)));
             setSelectedProductIds([]);
         } catch (error) {
             toast({ variant: "destructive", title: "Erro ao excluir selecionados", description: "Não foi possível excluir os produtos." });
