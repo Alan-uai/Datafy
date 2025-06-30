@@ -36,7 +36,7 @@ export interface User {
 export interface CustomColumn {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'currency' | 'date' | 'checkbox' | 'select';
+  type: 'text' | 'number' | 'currency' | 'date' | 'barcode' | 'checkbox' | 'select';
   required?: boolean;
   options?: string[]; // Para select
   defaultValue?: any;

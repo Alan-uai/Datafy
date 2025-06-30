@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, addProductList, updateProductListName, deleteProductList, type ProductList, getProducts, addProduct, type Product } from '@/services/productService';
 import { suggestProductName } from '@/ai/flows/suggest-product-name-flow';
 import { useToast } from '@/hooks/use-toast';
-import { PackageSearch, Plus, Camera, Minus, CalendarDays, Loader2 } from 'lucide-react';
+import { PackageSearch, Plus, Camera, Minus, CalendarDays, Loader2, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -44,6 +44,8 @@ import ProductSkeleton from '@/components/dashboard/ProductSkeleton';
 import { AddMultipleProductsDialog } from '@/components/dashboard/AddMultipleProductsDialog';
 import { AddProductsFromImageDialog } from '@/components/dashboard/AddProductsFromImageDialog';
 import { AddProductsFromFileDialog } from '@/components/dashboard/AddProductsFromFileDialog';
+import { TableLayoutManager } from '@/components/dashboard/TableLayoutManager';
+import { getDefaultTableLayout } from '@/services/layoutService';
 
 import {
   isToday,
@@ -73,6 +75,10 @@ export default function DashboardPage() {
   const [productLists, setProductLists] = useState<ProductList[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
+  const [attentionHorizon, setAttentionHorizon] = useState<number>(7);
+  const [isMultipleProductsDialogOpen, setIsMultipleProductsDialogOpen] = useState(false);
+  const [isLayoutManagerOpen, setIsLayoutManagerOpen] = useState(false);
+  const [currentLayout, setCurrentLayout] = useState(null);
 
   // State for dialogs
   const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
@@ -133,6 +139,23 @@ export default function DashboardPage() {
       initialFetchDone.current = true;
     }
   }, [currentUser?.uid, addMessage]);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      fetchLists();
+      loadDefaultLayout();
+    }
+  }, [currentUser?.uid, fetchLists]);
+
+  const loadDefaultLayout = async () => {
+    if (!currentUser?.uid) return;
+    try {
+      const layout = await getDefaultTableLayout(currentUser.uid);
+      setCurrentLayout(layout);
+    } catch (error) {
+      console.error('Error loading default layout:', error);
+    }
+  };
 
   useEffect(() => {
     if (currentUser?.uid && !initialFetchDone.current) {
@@ -292,6 +315,16 @@ export default function DashboardPage() {
       ) : (
         <NoListSelectedMessage />
       )}
+<div>
+            <Button
+              onClick={() => setIsLayoutManagerOpen(true)}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Gerenciar Colunas
+            </Button>
+          </div>
 
       <AddProductFAB
         onAddSingleProduct={handleOpenAddSingleProductDialog}
@@ -326,6 +359,12 @@ export default function DashboardPage() {
         userId={currentUser?.uid}
       />
       <MessageDisplay messages={messages} onDismiss={dismissMessage} />
+      <TableLayoutManager
+        isOpen={isLayoutManagerOpen}
+        onClose={() => setIsLayoutManagerOpen(false)}
+        currentLayout={currentLayout}
+        onLayoutChange={setCurrentLayout}
+      />
     </div>
   );
 }

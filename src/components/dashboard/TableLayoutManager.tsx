@@ -64,6 +64,7 @@ export function TableLayoutManager({
     { value: 'number', label: 'Número' },
     { value: 'currency', label: 'Monetário' },
     { value: 'date', label: 'Data' },
+    { value: 'barcode', label: 'Código de Barras' },
     { value: 'checkbox', label: 'Checkbox' },
     { value: 'select', label: 'Seleção' }
   ];

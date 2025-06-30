@@ -1,5 +1,7 @@
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
+import { LucideIcon } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import {
   Plus,
   PlusCircle,
@@ -132,21 +134,31 @@ import {
   LucideIcon
 } from 'lucide-react';
 
-const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIcon' && key !== 'icons' && typeof LucideIcons[key as keyof typeof LucideIcons] === 'object');
+interface DynamicIconProps {
+  name: string;
+  className?: string;
+  size?: number;
+}
 
-const DynamicIcon = ({ name, ...props }: { name: string } & LucideIcons.LucideProps) => {
-  const IconComponent = LucideIcons[name as keyof typeof LucideIcons] as LucideIcons.LucideIcon;
-  if (!IconComponent || typeof IconComponent !== 'function') {
-    console.warn(`DynamicIcon: Icon "${name}" not found or is not a valid component. Using default.`);
-    return <LucideIcons.ListChecks {...props} />;
-  }
-
-  try {
-    return <IconComponent {...props} />;
-  } catch (e) {
-    console.error(`Error rendering DynamicIcon with name: ${name}`, e);
-    return <LucideIcons.ListChecks {...props} />;
-  }
+const iconMap: Record<string, keyof typeof Icons> = {
+  'Star': 'Star',
+  'Trophy': 'Trophy',
+  'Zap': 'Zap',
+  'Crown': 'Crown',
+  'Package': 'Package',
+  'Target': 'Target',
+  'Settings': 'Settings',
 };
 
-export { DynamicIcon, iconNames };
+export function DynamicIcon({ name, className, size = 16 }: DynamicIconProps) {
+  const iconName = iconMap[name] || name;
+  const IconComponent = (Icons as any)[iconName] as LucideIcon;
+
+  if (!IconComponent) {
+    return <Icons.HelpCircle className={className} size={size} />;
+  }
+
+  return <IconComponent className={className} size={size} />;
+}
+
+const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIcon' && key !== 'icons' && typeof LucideIcons[key as keyof typeof LucideIcons] === 'object');

@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { EmailPasswordLoginForm } from "@/components/auth/EmailPasswordLoginForm";
+import EmailPasswordLoginForm from "@/components/auth/EmailPasswordLoginForm";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppLogo } from "@/components/shared/AppLogo";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";

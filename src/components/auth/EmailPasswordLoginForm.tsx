@@ -14,7 +14,7 @@ interface EmailPasswordLoginFormProps {
   onButtonClick?: () => void;
 }
 
-export function EmailPasswordLoginForm({ onSuccess, onButtonClick }: EmailPasswordLoginFormProps) {
+export default function EmailPasswordLoginForm({ onSuccess, onButtonClick }: EmailPasswordLoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

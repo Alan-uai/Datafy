@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -20,7 +19,7 @@ export const getTableLayouts = async (userId: string): Promise<TableLayout[]> =>
     where('userId', '==', userId),
     orderBy('createdAt', 'desc')
   );
-  
+
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
@@ -34,10 +33,10 @@ export const getDefaultTableLayout = async (userId: string): Promise<TableLayout
     where('userId', '==', userId),
     where('isDefault', '==', true)
   );
-  
+
   const querySnapshot = await getDocs(q);
   if (querySnapshot.empty) return null;
-  
+
   const doc = querySnapshot.docs[0];
   return {
     id: doc.id,
@@ -102,12 +101,14 @@ export const setDefaultLayout = async (userId: string, layoutId: string): Promis
   await updateDoc(doc(db, 'tableLayouts', layoutId), { isDefault: true });
 };
 
-export const getDefaultColumns = (): CustomColumn[] => {
-  return [
-    { id: 'id', name: 'ID', type: 'number', order: 0, visible: true },
-    { id: 'produto', name: 'Produto', type: 'text', order: 1, visible: true, required: true },
-    { id: 'marca', name: 'Marca', type: 'text', order: 2, visible: true },
-    { id: 'unidade', name: 'Qtde', type: 'number', order: 3, visible: true },
-    { id: 'validade', name: 'Validade', type: 'date', order: 4, visible: true }
-  ];
-};
+export const getDefaultColumns = (): CustomColumn[] => [
+  { id: 'name', name: 'Produto', type: 'text', order: 0, visible: true },
+  { id: 'brand', name: 'Marca', type: 'text', order: 1, visible: true },
+  { id: 'quantity', name: 'Quantidade', type: 'number', order: 2, visible: true },
+  { id: 'unit', name: 'Unidade', type: 'text', order: 3, visible: true },
+  { id: 'expiryDate', name: 'Vencimento', type: 'date', order: 4, visible: true },
+  { id: 'barcode', name: 'Código de Barras', type: 'barcode', order: 5, visible: false },
+  { id: 'category', name: 'Categoria', type: 'text', order: 6, visible: false },
+  { id: 'location', name: 'Localização', type: 'text', order: 7, visible: false },
+  { id: 'price', name: 'Preço', type: 'currency', order: 8, visible: false },
+];
