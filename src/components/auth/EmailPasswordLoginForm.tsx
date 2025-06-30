@@ -119,7 +119,9 @@ export function EmailPasswordLoginForm({ onSuccess, onButtonClick }: EmailPasswo
         type="submit"
         className="w-full bg-violet-600 hover:bg-violet-700 text-white"
         disabled={isLoading}
-        onClick={onButtonClick}
+        onClick={(e) => {
+          onButtonClick?.();
+        }}
       >
         {isLoading ? (
           <>
