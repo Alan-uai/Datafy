@@ -2,38 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useVoiceCommand } from '@/contexts/VoiceCommandContext';
+import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Settings, 
-  Mic, 
-  MicOff, 
-  Volume2, 
-  VolumeX, 
-  TestTube,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Sparkles,
-  Shield,
-  Zap,
-  Moon,
-  Sun,
-  Globe,
-  Bell,
-  Mail,
-  Database,
-  BarChart3,
-  Save,
+  Bell, 
+  Shield, 
+  Palette, 
+  Globe, 
+  Download,
+  Upload,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+  Crown,
   Smartphone,
+  Mail,
+  Zap,
+  Database,
   Lock,
-  Eye
+  Eye,
+  Sliders
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
   const { 
@@ -46,7 +44,7 @@ export default function SettingsPage() {
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isTestingMic, setIsTestingMic] = useState(false);
-  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+  const [testResult, setTestResult<'success' | 'error' | null>(null);
 
   const playToggleSound = (enabled: boolean) => {
     if (soundEnabled) {
@@ -568,9 +566,9 @@ export default function SettingsPage() {
                     <Shield className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-300 font-medium">Ativação:</span>
                   </div>
-                  <p className="text-slate-400 text-sm ml-6">
+                  <div className="text-slate-400 text-sm ml-6">
                     Diga <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">"Datafy"</Badge> para ativar
-                  </p>
+                  </div>
                 </div>
 
                 <div className="space-y-3">

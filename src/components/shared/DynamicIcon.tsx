@@ -150,6 +150,20 @@ const iconMap: Record<string, keyof typeof Icons> = {
   'Settings': 'Settings',
 };
 
+// Export icon names for use in other components
+export const iconNames = [
+  'Package', 'ShoppingCart', 'Home', 'Heart', 'Star', 'User', 'Settings',
+  'Bell', 'Mail', 'Phone', 'Calendar', 'Clock', 'MapPin', 'Camera',
+  'Image', 'File', 'Folder', 'Download', 'Upload', 'Search', 'Filter',
+  'Plus', 'Minus', 'Edit', 'Trash', 'Save', 'Share', 'Copy', 'Cut',
+  'Bookmark', 'Tag', 'Flag', 'Award', 'Shield', 'Lock', 'Unlock',
+  'Eye', 'EyeOff', 'Visible', 'Hidden', 'Check', 'X', 'ChevronUp',
+  'ChevronDown', 'ChevronLeft', 'ChevronRight', 'ArrowUp', 'ArrowDown',
+  'ArrowLeft', 'ArrowRight', 'RefreshCw', 'RotateCcw', 'Maximize',
+  'Minimize', 'ZoomIn', 'ZoomOut', 'Volume', 'VolumeOff', 'Play',
+  'Pause', 'Stop', 'SkipBack', 'SkipForward', 'Repeat', 'Shuffle'
+];
+
 export function DynamicIcon({ name, className, size = 16 }: DynamicIconProps) {
   const iconName = iconMap[name] || name;
   const IconComponent = (Icons as any)[iconName] as LucideIcon;

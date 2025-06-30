@@ -45,7 +45,7 @@ import { AddMultipleProductsDialog } from '@/components/dashboard/AddMultiplePro
 import { AddProductsFromImageDialog } from '@/components/dashboard/AddProductsFromImageDialog';
 import { AddProductsFromFileDialog } from '@/components/dashboard/AddProductsFromFileDialog';
 import { TableLayoutManager } from '@/components/dashboard/TableLayoutManager';
-import { getDefaultTableLayout } from '@/services/layoutService';
+import { getDefaultTableLayout } from '@/services/tableLayoutService';
 
 import {
   isToday,

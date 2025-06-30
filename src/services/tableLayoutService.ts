@@ -112,3 +112,6 @@ export const getDefaultColumns = (): CustomColumn[] => [
   { id: 'location', name: 'Localização', type: 'text', order: 7, visible: false },
   { id: 'price', name: 'Preço', type: 'currency', order: 8, visible: false },
 ];
+
+// Alias for the function used in dashboard
+export { getDefaultTableLayout } from './tableLayoutService';
