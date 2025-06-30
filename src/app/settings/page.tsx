@@ -21,7 +21,18 @@ import {
   Loader2,
   Sparkles,
   Shield,
-  Zap
+  Zap,
+  Moon,
+  Sun,
+  Globe,
+  Bell,
+  Mail,
+  Database,
+  BarChart3,
+  Save,
+  Smartphone,
+  Lock,
+  Eye
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -79,6 +90,23 @@ export default function SettingsPage() {
       setTestResult('error');
       setIsTestingMic(false);
     }
+  };
+
+  const [preferences, setPreferences] = useState({
+    darkMode: true,
+    language: 'pt-BR',
+    timezone: 'America/Sao_Paulo',
+    autoSave: true,
+    emailNotifications: true,
+    pushNotifications: true,
+    marketingEmails: false,
+    dataSync: true,
+    analyticsEnabled: true
+  });
+
+  const updatePreference = (key: string, value: any) => {
+    setPreferences(prev => ({ ...prev, [key]: value }));
+    playToggleSound(value);
   };
 
   const settingsCards = [
@@ -268,11 +296,263 @@ export default function SettingsPage() {
           )}
         </AnimatePresence>
 
-        {/* Instructions */}
+        {/* General Preferences */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
+        >
+          <Card className="bg-white/5 backdrop-blur-lg border-white/10 mb-8">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-blue-400" />
+                Preferências Gerais
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Configure a aparência e comportamento do aplicativo
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Moon className="w-5 h-5 text-blue-400" />
+                    <div>
+                      <Label className="text-white">Modo Escuro</Label>
+                      <p className="text-slate-400 text-sm">Interface com tema escuro</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.darkMode}
+                    onCheckedChange={(checked) => updatePreference('darkMode', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Save className="w-5 h-5 text-green-400" />
+                    <div>
+                      <Label className="text-white">Salvamento Automático</Label>
+                      <p className="text-slate-400 text-sm">Salvar alterações automaticamente</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.autoSave}
+                    onCheckedChange={(checked) => updatePreference('autoSave', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Database className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <Label className="text-white">Sincronização de Dados</Label>
+                      <p className="text-slate-400 text-sm">Sincronizar entre dispositivos</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.dataSync}
+                    onCheckedChange={(checked) => updatePreference('dataSync', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="w-5 h-5 text-orange-400" />
+                    <div>
+                      <Label className="text-white">Analytics</Label>
+                      <p className="text-slate-400 text-sm">Permitir coleta de dados analíticos</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.analyticsEnabled}
+                    onCheckedChange={(checked) => updatePreference('analyticsEnabled', checked)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div className="space-y-2">
+                  <Label className="text-white flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    Idioma
+                  </Label>
+                  <select 
+                    value={preferences.language}
+                    onChange={(e) => updatePreference('language', e.target.value)}
+                    className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white"
+                  >
+                    <option value="pt-BR">Português (Brasil)</option>
+                    <option value="en-US">English (US)</option>
+                    <option value="es-ES">Español</option>
+                    <option value="fr-FR">Français</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white">Fuso Horário</Label>
+                  <select 
+                    value={preferences.timezone}
+                    onChange={(e) => updatePreference('timezone', e.target.value)}
+                    className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white"
+                  >
+                    <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
+                    <option value="America/New_York">Nova York (GMT-5)</option>
+                    <option value="Europe/London">Londres (GMT+0)</option>
+                    <option value="Asia/Tokyo">Tóquio (GMT+9)</option>
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Notifications */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="bg-white/5 backdrop-blur-lg border-white/10 mb-8">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Bell className="w-5 h-5 text-yellow-400" />
+                Notificações
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Configure como e quando receber notificações
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-blue-400" />
+                    <div>
+                      <Label className="text-white">Notificações por Email</Label>
+                      <p className="text-slate-400 text-sm">Receber emails importantes</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.emailNotifications}
+                    onCheckedChange={(checked) => updatePreference('emailNotifications', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Smartphone className="w-5 h-5 text-green-400" />
+                    <div>
+                      <Label className="text-white">Notificações Push</Label>
+                      <p className="text-slate-400 text-sm">Receber notificações no dispositivo</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.pushNotifications}
+                    onCheckedChange={(checked) => updatePreference('pushNotifications', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg md:col-span-2">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <Label className="text-white">Emails de Marketing</Label>
+                      <p className="text-slate-400 text-sm">Receber novidades e promoções</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.marketingEmails}
+                    onCheckedChange={(checked) => updatePreference('marketingEmails', checked)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Security Section */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="bg-white/5 backdrop-blur-lg border-white/10 mb-8">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Shield className="w-5 h-5 text-red-400" />
+                Segurança e Privacidade
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Gerencie suas configurações de segurança
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-white/5 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <Lock className="w-5 h-5 text-red-400" />
+                  <Label className="text-white">Alterar Senha</Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input
+                    type="password"
+                    placeholder="Senha atual"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Nova senha"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Confirmar nova senha"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                  />
+                </div>
+                <Button 
+                  className="bg-red-600 hover:bg-red-700 mt-3"
+                  onClick={() => playToggleSound(true)}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Alterar Senha
+                </Button>
+              </div>
+
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <XCircle className="w-5 h-5 text-red-400" />
+                  <Label className="text-red-300">Zona de Perigo</Label>
+                </div>
+                <p className="text-red-200 text-sm mb-3">
+                  Essas ações são irreversíveis. Tenha cuidado!
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button 
+                    variant="destructive"
+                    className="bg-red-600 hover:bg-red-700"
+                    onClick={() => playToggleSound(false)}
+                  >
+                    Limpar Todos os Dados
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    className="bg-red-700 hover:bg-red-800"
+                    onClick={() => playToggleSound(false)}
+                  >
+                    Excluir Conta
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Instructions */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
         >
           <Card className="bg-white/5 backdrop-blur-lg border-white/10">
             <CardHeader>

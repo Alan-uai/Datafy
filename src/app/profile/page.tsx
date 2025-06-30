@@ -74,7 +74,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState<'personal' | 'preferences' | 'privacy' | 'security'>('personal');
+  const [activeTab, setActiveTab] = useState<'personal' | 'modules' | 'privacy'>('personal');
   
   const [profile, setProfile] = useState<UserProfile>({
     displayName: currentUser?.displayName || '',
@@ -185,9 +185,8 @@ export default function ProfilePage() {
 
   const tabs = [
     { id: 'personal', label: 'Pessoal', icon: User },
-    { id: 'preferences', label: 'Preferências', icon: Settings },
+    { id: 'modules', label: 'Módulos', icon: Settings },
     { id: 'privacy', label: 'Privacidade', icon: Eye },
-    { id: 'security', label: 'Segurança', icon: Shield },
   ];
 
   return (
@@ -243,13 +242,13 @@ export default function ProfilePage() {
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Profile Summary Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, rotateY: -20 }}
             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
             transition={{ duration: 0.8 }}
-            className="lg:col-span-1"
+            className="xl:col-span-1"
           >
             <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
               <CardHeader className="text-center pb-6">
@@ -388,7 +387,7 @@ export default function ProfilePage() {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="lg:col-span-3"
+            className="xl:col-span-3"
           >
             <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
               <CardHeader>
@@ -410,7 +409,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex space-x-1 bg-white/5 rounded-lg p-1 mt-4">
+                <div className="flex flex-wrap gap-1 bg-white/5 rounded-lg p-1 mt-4">
                   {tabs.map((tab) => (
                     <motion.button
                       key={tab.id}
@@ -420,14 +419,14 @@ export default function ProfilePage() {
                         setActiveTab(tab.id as any);
                         playInteractionSound('click');
                       }}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-all ${
+                      className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-all ${
                         activeTab === tab.id
                           ? 'bg-violet-600 text-white shadow-lg'
                           : 'text-violet-200 hover:text-white hover:bg-white/10'
                       }`}
                     >
                       <tab.icon className="w-4 h-4" />
-                      {tab.label}
+                      <span className="hidden sm:inline">{tab.label}</span>
                     </motion.button>
                   ))}
                 </div>
@@ -444,7 +443,7 @@ export default function ProfilePage() {
                       transition={{ duration: 0.3 }}
                       className="space-y-6"
                     >
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label className="text-white">Nome Completo</Label>
                           <Input
@@ -523,71 +522,63 @@ export default function ProfilePage() {
                     </motion.div>
                   )}
 
-                  {activeTab === 'preferences' && (
+                  {activeTab === 'modules' && (
                     <motion.div
-                      key="preferences"
+                      key="modules"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3 }}
                       className="space-y-6"
                     >
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <Moon className="w-5 h-5 text-violet-400" />
-                            <div>
-                              <Label className="text-white">Modo Escuro</Label>
-                              <p className="text-violet-200 text-sm">Interface com tema escuro</p>
-                            </div>
-                          </div>
-                          <Switch
-                            checked={profile.preferences.darkMode}
-                            onCheckedChange={(checked) => updateNestedProfile('preferences', 'darkMode', checked)}
-                          />
-                        </div>
+                      <div className="text-center mb-6">
+                        <h3 className="text-xl font-semibold text-white mb-2">Módulos de Ferramentas</h3>
+                        <p className="text-violet-200">Personalize as colunas da sua tabela de produtos</p>
+                      </div>
 
-                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <Music className="w-5 h-5 text-violet-400" />
-                            <div>
-                              <Label className="text-white">Sons da Interface</Label>
-                              <p className="text-violet-200 text-sm">Reproduzir sons de interação</p>
-                            </div>
-                          </div>
-                          <Switch
-                            checked={profile.preferences.soundEnabled}
-                            onCheckedChange={(checked) => {
-                              updateNestedProfile('preferences', 'soundEnabled', checked);
-                              setSoundEnabled(checked);
+                      <div className="bg-white/5 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-white font-medium">Gerenciar Colunas</h4>
+                          <Button
+                            onClick={() => {
+                              playInteractionSound('click');
+                              router.push('/dashboard');
                             }}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-white">Idioma</Label>
-                          <select 
-                            value={profile.preferences.language}
-                            onChange={(e) => updateNestedProfile('preferences', 'language', e.target.value)}
-                            className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white"
+                            className="bg-violet-600 hover:bg-violet-700"
                           >
-                            <option value="pt-BR">Português (Brasil)</option>
-                            <option value="en-US">English (US)</option>
-                            <option value="es-ES">Español</option>
-                          </select>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Configurar Tabela
+                          </Button>
                         </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-white">Fuso Horário</Label>
-                          <select 
-                            value={profile.preferences.timezone}
-                            onChange={(e) => updateNestedProfile('preferences', 'timezone', e.target.value)}
-                            className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white"
-                          >
-                            <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
-                            <option value="America/New_York">Nova York (GMT-5)</option>
-                            <option value="Europe/London">Londres (GMT+0)</option>
-                          </select>
+                        
+                        <div className="space-y-3">
+                          <p className="text-violet-200 text-sm">
+                            Você pode personalizar as colunas da tabela de produtos diretamente no dashboard. 
+                            Clique no botão "Configurar Tabela" para acessar o gerenciador de layouts.
+                          </p>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <div className="bg-white/5 rounded-lg p-4">
+                              <h5 className="text-white font-medium mb-2">Tipos de Coluna Disponíveis</h5>
+                              <ul className="text-violet-200 text-sm space-y-1">
+                                <li>• Texto simples</li>
+                                <li>• Números e valores monetários</li>
+                                <li>• Datas</li>
+                                <li>• Checkbox (marcação)</li>
+                                <li>• Unidades de medida</li>
+                              </ul>
+                            </div>
+                            
+                            <div className="bg-white/5 rounded-lg p-4">
+                              <h5 className="text-white font-medium mb-2">Recursos</h5>
+                              <ul className="text-violet-200 text-sm space-y-1">
+                                <li>• Salvar layouts personalizados</li>
+                                <li>• Alternar entre configurações</li>
+                                <li>• Restaurar layout padrão</li>
+                                <li>• Reordenar colunas</li>
+                              </ul>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -648,93 +639,7 @@ export default function ProfilePage() {
                     </motion.div>
                   )}
 
-                  {activeTab === 'security' && (
-                    <motion.div
-                      key="security"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-6"
-                    >
-                      <div className="space-y-4">
-                        <div className="p-4 bg-white/5 rounded-lg">
-                          <div className="flex items-center gap-3 mb-3">
-                            <Lock className="w-5 h-5 text-violet-400" />
-                            <Label className="text-white">Alterar Senha</Label>
-                          </div>
-                          <div className="space-y-3">
-                            <Input
-                              type="password"
-                              placeholder="Senha atual"
-                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                            />
-                            <Input
-                              type="password"
-                              placeholder="Nova senha"
-                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                            />
-                            <Input
-                              type="password"
-                              placeholder="Confirmar nova senha"
-                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                            />
-                            <Button 
-                              className="bg-violet-600 hover:bg-violet-700"
-                              onClick={() => playInteractionSound('success')}
-                            >
-                              Alterar Senha
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <Bell className="w-5 h-5 text-violet-400" />
-                            <div>
-                              <Label className="text-white">Notificações por Email</Label>
-                              <p className="text-violet-200 text-sm">Receber notificações importantes</p>
-                            </div>
-                          </div>
-                          <Switch
-                            checked={profile.notifications.email}
-                            onCheckedChange={(checked) => updateNestedProfile('notifications', 'email', checked)}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <Smartphone className="w-5 h-5 text-violet-400" />
-                            <div>
-                              <Label className="text-white">Notificações Push</Label>
-                              <p className="text-violet-200 text-sm">Receber notificações no dispositivo</p>
-                            </div>
-                          </div>
-                          <Switch
-                            checked={profile.notifications.push}
-                            onCheckedChange={(checked) => updateNestedProfile('notifications', 'push', checked)}
-                          />
-                        </div>
-
-                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                          <div className="flex items-center gap-3 mb-3">
-                            <X className="w-5 h-5 text-red-400" />
-                            <Label className="text-red-300">Zona de Perigo</Label>
-                          </div>
-                          <p className="text-red-200 text-sm mb-3">
-                            Essas ações são irreversíveis. Tenha cuidado!
-                          </p>
-                          <Button 
-                            variant="destructive"
-                            className="bg-red-600 hover:bg-red-700"
-                            onClick={() => playInteractionSound('error')}
-                          >
-                            Excluir Conta
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                  
                 </AnimatePresence>
               </CardContent>
             </Card>
