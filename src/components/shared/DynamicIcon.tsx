@@ -169,5 +169,3 @@ export function DynamicIcon({ name, className, size = 16 }: DynamicIconProps) {
 
   return <IconComponent className={className} size={size} />;
 }
-
-const iconNames = Object.keys(LucideIcons).filter(key => key !== 'createLucideIcon' && key !== 'icons' && typeof LucideIcons[key as keyof typeof LucideIcons] === 'object');
