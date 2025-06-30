@@ -32,19 +32,30 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useVoiceCommand } from '@/contexts/VoiceCommandContext';
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { 
-    isVoiceEnabled, 
-    setIsVoiceEnabled, 
     isListening,
-    testMicrophone,
-    lastRecognizedText 
+    startListening,
+    stopListening,
+    transcript,
+    confidence
   } = useVoiceCommand();
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isTestingMic, setIsTestingMic] = useState(false);
-  const [testResult, setTestResult<'success' | 'error' | null>(null);
+  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [language, setLanguage] = useState('pt-BR');
+  const [notifications, setNotifications] = useState({
+    email: true,
+    push: true,
+    expiry: true,
+  });
 
   const playToggleSound = (enabled: boolean) => {
     if (soundEnabled) {

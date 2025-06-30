@@ -150,19 +150,14 @@ const iconMap: Record<string, keyof typeof Icons> = {
   'Settings': 'Settings',
 };
 
-// Export icon names for use in other components
-export const iconNames = [
-  'Package', 'ShoppingCart', 'Home', 'Heart', 'Star', 'User', 'Settings',
-  'Bell', 'Mail', 'Phone', 'Calendar', 'Clock', 'MapPin', 'Camera',
-  'Image', 'File', 'Folder', 'Download', 'Upload', 'Search', 'Filter',
-  'Plus', 'Minus', 'Edit', 'Trash', 'Save', 'Share', 'Copy', 'Cut',
-  'Bookmark', 'Tag', 'Flag', 'Award', 'Shield', 'Lock', 'Unlock',
-  'Eye', 'EyeOff', 'Visible', 'Hidden', 'Check', 'X', 'ChevronUp',
-  'ChevronDown', 'ChevronLeft', 'ChevronRight', 'ArrowUp', 'ArrowDown',
-  'ArrowLeft', 'ArrowRight', 'RefreshCw', 'RotateCcw', 'Maximize',
-  'Minimize', 'ZoomIn', 'ZoomOut', 'Volume', 'VolumeOff', 'Play',
-  'Pause', 'Stop', 'SkipBack', 'SkipForward', 'Repeat', 'Shuffle'
-];
+// Export all available icon names from lucide-react
+export const iconNames = Object.keys(Icons).filter(
+  key => 
+    key !== 'createLucideIcon' && 
+    key !== 'icons' && 
+    typeof Icons[key as keyof typeof Icons] === 'object' &&
+    key[0] === key[0].toUpperCase() // Ensure it's a PascalCase component name
+);
 
 export function DynamicIcon({ name, className, size = 16 }: DynamicIconProps) {
   const iconName = iconMap[name] || name;

@@ -103,7 +103,6 @@ export const ProductListTabs: React.FC<ProductListTabsProps> = ({
               </span>
               <div className="flex items-center gap-0 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-focus-within:opacity-100 group-focus-within:w-auto transition-all duration-150 ease-in-out ml-1">
                  <Button
-                    asChild // Add asChild here
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
@@ -114,7 +113,6 @@ export const ProductListTabs: React.FC<ProductListTabsProps> = ({
                  </Button>
                  {productLists.length > 1 && (
                   <Button
-                     asChild // Add asChild here
                      variant="ghost"
                      size="icon"
                      className="h-6 w-6 text-destructive hover:text-destructive"
