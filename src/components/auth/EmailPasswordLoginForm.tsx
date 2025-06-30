@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -19,7 +18,7 @@ export default function EmailPasswordLoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         variant: 'destructive',
@@ -39,7 +38,7 @@ export default function EmailPasswordLoginForm() {
       });
     } catch (error: any) {
       let errorMessage = 'Erro ao fazer login. Tente novamente.';
-      
+
       if (error.code === 'auth/user-not-found') {
         errorMessage = 'Usuário não encontrado.';
       } else if (error.code === 'auth/wrong-password') {

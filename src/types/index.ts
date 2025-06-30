@@ -31,6 +31,33 @@ export interface ProductList {
 export interface User {
   id: string;
   email: string;
+
+
+export interface CustomColumn {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'currency' | 'date' | 'checkbox' | 'select';
+  required?: boolean;
+  options?: string[]; // Para select
+  defaultValue?: any;
+  order: number;
+  visible: boolean;
+}
+
+export interface TableLayout {
+  id: string;
+  name: string;
+  userId: string;
+  isDefault: boolean;
+  columns: CustomColumn[];
+  createdAt: any;
+  updatedAt: any;
+}
+
+export interface ExtendedProduct extends Product {
+  customFields?: { [key: string]: any };
+}
+
   displayName?: string;
   photoURL?: string;
 }
