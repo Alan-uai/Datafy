@@ -9,7 +9,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
-export default function EmailPasswordLoginForm() {
+interface EmailPasswordLoginFormProps {
+  onSuccess?: () => void;
+  onButtonClick?: () => void;
+}
+
+export function EmailPasswordLoginForm({ onSuccess, onButtonClick }: EmailPasswordLoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +41,7 @@ export default function EmailPasswordLoginForm() {
         title: 'Sucesso',
         description: 'Login realizado com sucesso!',
       });
+      onSuccess?.();
     } catch (error: any) {
       let errorMessage = 'Erro ao fazer login. Tente novamente.';
 
@@ -113,6 +119,7 @@ export default function EmailPasswordLoginForm() {
         type="submit"
         className="w-full bg-violet-600 hover:bg-violet-700 text-white"
         disabled={isLoading}
+        onClick={onButtonClick}
       >
         {isLoading ? (
           <>
