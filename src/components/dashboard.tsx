@@ -4,10 +4,12 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -20,21 +22,29 @@ import { Badge } from "@/components/ui/badge";
 import { AddProductDialog } from "./add-product-dialog";
 import { products as initialProducts, categories as initialCategories } from "@/lib/data";
 import type { Product, Category } from "@/lib/types";
-import { format, differenceInDays, isPast } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Plus, CalendarClock, Package, CircleDollarSign, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { Plus, Settings, Trash2, Edit, List, Search, Filter, ShieldAlert, Info, RefreshCcw, Grid3x3, ArrowUp } from "lucide-react";
 
 export function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories] = useState<Category[]>(initialCategories);
-  const [filter, setFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const [isClient, setIsClient] = useState(false)
   
   useEffect(() => {
     setIsClient(true)
-    setProducts(initialProducts);
+    // Simulating one product for the table as in the image
+    const sampleProduct: Product = {
+        id: '101',
+        name: 'Arroz',
+        brand: 'Pileco',
+        quantity: 78,
+        expiryDate: new Date('2025-07-27T00:00:00'),
+        price: 24.90,
+        category: 'pesado', // This category is not in the initial list, but is in the image
+    };
+    setProducts([sampleProduct]);
   }, [])
 
   const handleAddProduct = (newProduct: Omit<Product, "id">) => {
@@ -44,35 +54,6 @@ export function Dashboard() {
     ]);
   };
   
-  const filteredProducts = useMemo(() => {
-    if (filter === "all") return products;
-    return products.filter((p) => p.category === filter);
-  }, [products, filter]);
-
-  const summary = useMemo(() => {
-    const expiringSoon = products.filter(p => {
-        const daysLeft = differenceInDays(p.expiryDate, new Date());
-        return !isPast(p.expiryDate) && daysLeft <= 7;
-    }).length;
-    const totalStock = products.reduce((acc, p) => acc + p.quantity, 0);
-    const totalValue = products.reduce((acc, p) => acc + p.price * p.quantity, 0);
-    return { expiringSoon, totalStock, totalValue };
-  }, [products]);
-
-  const getExpiryBadge = (date: Date) => {
-    const daysLeft = differenceInDays(date, new Date());
-    if (isPast(date)) {
-        return <Badge variant="destructive" className="flex items-center gap-1.5 whitespace-nowrap"><AlertCircle className="h-3 w-3" /> Vencido</Badge>;
-    }
-    if (daysLeft <= 3) {
-        return <Badge variant="destructive" className="flex items-center gap-1.5 whitespace-nowrap"><AlertCircle className="h-3 w-3" /> {daysLeft}d restantes</Badge>;
-    }
-    if (daysLeft <= 7) {
-        return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 flex items-center gap-1.5 whitespace-nowrap"><Clock className="h-3 w-3" /> {daysLeft}d restantes</Badge>;
-    }
-    return <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30 flex items-center gap-1.5 whitespace-nowrap"><CheckCircle className="h-3 w-3" /> {daysLeft}d restantes</Badge>;
-  }
-
   if (!isClient) {
       return (
         <div className="flex items-center justify-center h-full">
@@ -82,110 +63,116 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <header className="flex-shrink-0 flex items-center justify-between p-4 md:p-6 border-b">
-        <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Resumo do seu inventário.</p>
-        </div>
-        <AddProductDialog categories={categories} onAddProduct={handleAddProduct} open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <Button onClick={() => setIsDialogOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Item
-          </Button>
-        </AddProductDialog>
-      </header>
+    <div className="flex flex-col h-full bg-background relative">
+        <div className="p-4 md:p-6 space-y-6">
+            <header className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Grid3x3 className="h-7 w-7"/>
+                    <h1 className="text-2xl font-bold">Dashboard Personalizado</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline"><Settings className="mr-2 h-4 w-4" />Colunas</Button>
+                    <Button variant="outline"><Settings className="mr-2 h-4 w-4" />Widgets</Button>
+                </div>
+            </header>
 
-      <main className="flex-1 p-4 md:p-6 overflow-auto">
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Itens a Vencer</CardTitle>
-              <CalendarClock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.expiringSoon}</div>
-              <p className="text-xs text-muted-foreground">Vencem nos próximos 7 dias</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Estoque Total</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.totalStock}</div>
-              <p className="text-xs text-muted-foreground">Unidades de todos os produtos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Valor do Estoque</CardTitle>
-              <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {summary.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </div>
-              <p className="text-xs text-muted-foreground">Valor monetário total dos itens</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-            <CardHeader>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                        <CardTitle>Produtos</CardTitle>
-                        <p className="text-muted-foreground text-sm mt-1">Gerencie seus produtos aqui.</p>
+            <Card className="border-primary/20">
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                        <ShieldAlert className="h-6 w-6 text-primary"/>
+                        <div>
+                            <CardTitle className="text-lg">Radar de Validade</CardTitle>
+                            <CardDescription>Análise de itens críticos próximos da validade e com estoque considerável.</CardDescription>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>Todos</Button>
-                        {categories.map(cat => {
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <p className="text-sm text-muted-foreground">VENCENDO (7 DIAS)</p>
+                            <p className="text-3xl font-bold">0</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">VENCIDOS</p>
+                            <p className="text-3xl font-bold">0</p>
+                        </div>
+                    </div>
+                     <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                        <Info className="h-5 w-5 shrink-0"/>
+                        <p>Nenhum item crítico encontrado no horizonte de 7 dias entre os 1 produtos analisados. Bom trabalho!</p>
+                    </div>
+                    <Button variant="outline" className="w-full">
+                        <RefreshCcw className="mr-2 h-4 w-4" />
+                        Analisar Novamente
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                         {categories.slice(0, 2).map((cat, index) => {
                             const Icon = cat.icon;
                             return (
-                                <Button key={cat.id} variant={filter === cat.id ? 'default' : 'outline'} size="sm" onClick={() => setFilter(cat.id)} className="gap-2">
+                                <Button key={cat.id} variant={index === 0 ? "secondary" : "ghost"} className={`gap-2 ${index === 0 ? 'bg-primary/20 text-primary' : ''}`}>
                                     <Icon className="h-4 w-4"/>
                                     {cat.name}
+                                    <Edit className="h-3 w-3" />
+                                    <Trash2 className="h-3 w-3" />
                                 </Button>
                             )
                         })}
                     </div>
+                    <Button variant="outline"><Plus className="mr-2 h-4 w-4"/>Lista</Button>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="overflow-x-auto">
-                    <Table>
+                 <div className="flex items-center gap-2">
+                    <div className="relative w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                        <Input placeholder="Buscar produtos..." className="pl-10"/>
+                    </div>
+                    <Button variant="outline"><Filter className="mr-2 h-4 w-4"/>Filtro</Button>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto">
+                <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>Produto</TableHead>
-                        <TableHead>Marca</TableHead>
-                        <TableHead className="text-center">Qtd.</TableHead>
-                        <TableHead>Preço</TableHead>
-                        <TableHead>Validade</TableHead>
+                            <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>
+                            <TableHead>Marca</TableHead>
+                            <TableHead>Qtde</TableHead>
+                            <TableHead>Validade</TableHead>
+                            <TableHead>Preço (R$)</TableHead>
+                            <TableHead>Categoria</TableHead>
+                            <TableHead>Status</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredProducts.map((product) => (
+                        {products.map((product) => (
                         <TableRow key={product.id}>
                             <TableCell className="font-medium">{product.name}</TableCell>
-                            <TableCell className="text-muted-foreground">{product.brand}</TableCell>
-                            <TableCell className="text-center">{product.quantity}</TableCell>
-                            <TableCell>{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
-                            <TableCell>{getExpiryBadge(product.expiryDate)}</TableCell>
+                            <TableCell>{product.brand}</TableCell>
+                            <TableCell>{product.quantity}</TableCell>
+                            <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>
+                            <TableCell>{product.category}</TableCell>
+                            <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
-                    </Table>
+                </Table>
+            </div>
+            {products.length === 0 && (
+                <div className="text-center p-8 text-muted-foreground">
+                    Nenhum produto encontrado.
                 </div>
-                {filteredProducts.length === 0 && (
-                    <div className="text-center p-8 text-muted-foreground">
-                        Nenhum produto encontrado para esta categoria.
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-      </main>
+            )}
+        </div>
+        <AddProductDialog categories={categories} onAddProduct={handleAddProduct} open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Button onClick={() => setIsDialogOpen(true)} className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90">
+                <Plus className="h-8 w-8" />
+            </Button>
+        </AddProductDialog>
     </div>
   );
 }

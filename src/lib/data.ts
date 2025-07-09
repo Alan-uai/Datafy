@@ -1,10 +1,11 @@
 import type { Product, Category } from './types';
-import { Beer, Refrigerator, Snowflake } from 'lucide-react';
+import { Beer, Refrigerator, Snowflake, Weight } from 'lucide-react';
 
 export const categories: Category[] = [
   { id: 'bebidas', name: 'Bebidas', icon: Beer },
   { id: 'geladeira', name: 'Geladeira', icon: Refrigerator },
   { id: 'congelados', name: 'Congelados', icon: Snowflake },
+  { id: 'pesado', name: 'Pesado', icon: Weight },
 ];
 
 export const products: Product[] = [
@@ -61,5 +62,14 @@ export const products: Product[] = [
     expiryDate: new Date(new Date().setDate(new Date().getDate() + 150)),
     price: 3.50,
     category: 'bebidas',
+  },
+  {
+    id: '101',
+    name: 'Arroz',
+    brand: 'Pileco',
+    quantity: 78,
+    expiryDate: new Date('2025-07-27T00:00:00'),
+    price: 24.90,
+    category: 'pesado',
   },
 ];

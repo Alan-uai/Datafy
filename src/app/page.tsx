@@ -1,66 +1,37 @@
 import { Dashboard } from "@/components/dashboard";
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarInset,
-} from "@/components/ui/sidebar";
-import { Database, LayoutDashboard, Settings, LogOut } from 'lucide-react';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Home as HomeIcon, Settings, BarChart, Sun, Database, Grid3x3 } from 'lucide-react';
 
 export default function Home() {
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-primary bg-primary/10 hover:bg-primary/20">
-              <Database className="h-6 w-6" />
-            </Button>
-            <h1 className="text-xl font-semibold">Datafy</h1>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton isActive>
-                <LayoutDashboard />
-                Dashboard
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton>
-                <Settings />
-                Configurações
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-            <div className="flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50">
-                <Avatar className="h-10 w-10 border">
-                    <AvatarImage src="https://placehold.co/100x100.png" alt="User" data-ai-hint="user avatar" />
-                    <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col overflow-hidden">
-                    <span className="font-semibold truncate">Usuário</span>
-                    <span className="text-sm text-muted-foreground truncate">usuario@email.com</span>
-                </div>
-                <Button variant="ghost" size="icon" className="ml-auto shrink-0">
-                    <LogOut className="h-5 w-5"/>
-                </Button>
-            </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <Grid3x3 className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold">Datafy</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon">
+            <Sun className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <HomeIcon className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <BarChart className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <Settings className="h-5 w-5" />
+          </Button>
+          <Avatar className="h-9 w-9 border-2 border-primary">
+            <AvatarFallback className="bg-primary text-primary-foreground">A</AvatarFallback>
+          </Avatar>
+        </div>
+      </header>
+      <main className="flex-1">
         <Dashboard />
-      </SidebarInset>
-    </SidebarProvider>
+      </main>
+    </div>
   );
 }
