@@ -176,7 +176,7 @@ export function Dashboard() {
     setIsLoading(true);
     try {
         const profile = await getUserProfile(currentUser.uid);
-        setUserProfile(profile ?? userProfile);
+        setUserProfile(profile);
 
         const lists = await getProductLists(currentUser.uid);
         setProductLists(lists);
@@ -196,7 +196,7 @@ export function Dashboard() {
     } finally {
         setIsLoading(false);
     }
-  }, [currentUser, toast, setUserProfile, userProfile]);
+  }, [currentUser, toast, setUserProfile]);
 
   useEffect(() => {
     loadInitialData();
@@ -611,5 +611,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
