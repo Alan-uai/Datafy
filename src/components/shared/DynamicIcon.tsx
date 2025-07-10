@@ -1,0 +1,58 @@
+
+"use client";
+
+import * as Icons from 'lucide-react';
+
+// A mapping from string names to Lucide icon components
+const iconMap: { [key: string]: React.ComponentType<any> } = {
+  User: Icons.User,
+  Mail: Icons.Mail,
+  Calendar: Icons.Calendar,
+  Edit3: Icons.Edit3,
+  Save: Icons.Save,
+  X: Icons.X,
+  LogOut: Icons.LogOut,
+  Settings: Icons.Settings,
+  Shield: Icons.Shield,
+  Sparkles: Icons.Sparkles,
+  Trophy: Icons.Trophy,
+  Target: Icons.Target,
+  MapPin: Icons.MapPin,
+  Phone: Icons.Phone,
+  Globe: Icons.Globe,
+  Camera: Icons.Camera,
+  Heart: Icons.Heart,
+  Star: Icons.Star,
+  Zap: Icons.Zap,
+  Lock: Icons.Lock,
+  Bell: Icons.Bell,
+  Palette: Icons.Palette,
+  Moon: Icons.Moon,
+  Sun: Icons.Sun,
+  Music: Icons.Music,
+  Eye: Icons.Eye,
+  Smartphone: Icons.Smartphone,
+  Crown: Icons.Crown,
+  Package: Icons.Package,
+  BarChart3: Icons.BarChart3,
+  ShoppingCart: Icons.ShoppingCart,
+  List: Icons.List,
+  CalendarCheck: Icons.CalendarCheck,
+  ChartLine: Icons.BarChart, // Using BarChart for ChartLine as it's more standard in Lucide
+  // Add other icons as needed
+};
+
+interface DynamicIconProps extends Icons.LucideProps {
+  name: string;
+}
+
+export const DynamicIcon = ({ name, ...props }: DynamicIconProps) => {
+  const IconComponent = iconMap[name];
+
+  if (!IconComponent) {
+    // Fallback icon
+    return <Icons.HelpCircle {...props} />;
+  }
+
+  return <IconComponent {...props} />;
+};

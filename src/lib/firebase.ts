@@ -1,8 +1,8 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
+import { getAuth, signOut } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBWLYmeq9qrjaMfAKSBpP46b_CLXMAOWtc",
   authDomain: "datafy-ed69d.firebaseapp.com",
@@ -13,9 +13,10 @@ const firebaseConfig = {
   measurementId: "G-PF7V3GF5Q5"
 };
 
-// Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
 
-export { app, analytics };
+export { app, auth, db, analytics, signOut };
