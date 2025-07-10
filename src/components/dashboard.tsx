@@ -17,7 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Search, Filter, ArrowUp, X, Loader2, ListPlus } from "lucide-react";
+import { Plus, Search, Filter, ArrowUp, X, Loader2, ListPlus, Settings } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,26 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { AppLogo } from "@/components/shared/AppLogo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const columnNames = {
+    'produto': 'Produto',
+    'marca': 'Marca',
+    'qtde': 'Qtde',
+    'validade': 'Validade',
+    'preco': 'Preço (R$)',
+    'categoria': 'Categoria',
+    'status': 'Status',
+};
 
 type ColumnVisibility = Record<string, boolean>;
 
@@ -52,15 +72,6 @@ const initialColumns: ColumnVisibility = {
     'status': true,
 };
 
-export const columnNames: Record<keyof typeof initialColumns, string> = {
-    'produto': 'Produto',
-    'marca': 'Marca',
-    'qtde': 'Qtde',
-    'validade': 'Validade',
-    'preco': 'Preço (R$)',
-    'categoria': 'Categoria',
-    'status': 'Status',
-};
 
 const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetType, isEditing: boolean, onRemove: (id: AllWidgetType) => void, children: React.ReactNode }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -92,18 +103,21 @@ const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetTy
 export function Dashboard() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
+  const { userProfile, setUserProfile, savePreferences } = useUserProfile();
+  
+  // Initialize products state with an empty array
   const [products, setProducts] = useState<Product[]>([]);
   const [productLists, setProductLists] = useState<ProductList[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [categories] = useState<Category[]>(initialCategories);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
   const newListNameRef = useRef<HTMLInputElement>(null);
 
   const productsForAI = useMemo(() => {
+    if (!products) return [];
     return products.map(p => ({
       ...p,
       validade: p.expiryDate.toISOString(),
@@ -123,7 +137,7 @@ export function Dashboard() {
     setIsLoading(true);
     try {
         const profile = await getUserProfile(currentUser.uid);
-        setUserProfile(profile);
+        setUserProfile(profile ?? userProfile);
 
         const lists = await getProductLists(currentUser.uid);
         setProductLists(lists);
@@ -143,7 +157,7 @@ export function Dashboard() {
     } finally {
         setIsLoading(false);
     }
-  }, [currentUser, toast]);
+  }, [currentUser, toast, setUserProfile]);
 
   useEffect(() => {
     loadInitialData();
@@ -165,10 +179,8 @@ export function Dashboard() {
     try {
         const fetchedProducts = await getProductsByList(currentUser.uid, listId);
         setProducts(fetchedProducts);
-        if (currentUser && userProfile) {
-            await updateUserProfile(currentUser.uid, {
-                preferences: { ...userProfile.preferences, lastActiveListId: listId }
-            });
+        if (userProfile) {
+            savePreferences({ lastActiveListId: listId });
         }
     } catch (error) {
         console.error(`Failed to fetch products for list ${listId}`, error);
@@ -213,11 +225,7 @@ export function Dashboard() {
   };
 
   const updateWidgets = (newActiveWidgets: AllWidgetType[]) => {
-      if (!userProfile) return;
-      setUserProfile({
-          ...userProfile,
-          preferences: { ...(userProfile?.preferences ?? {}), activeWidgets: newActiveWidgets }
-      });
+      savePreferences({ activeWidgets: newActiveWidgets });
   }
 
   const addWidget = (widgetId: AllWidgetType) => updateWidgets([...activeWidgets, widgetId]);
@@ -231,6 +239,18 @@ export function Dashboard() {
       updateWidgets(arrayMove(activeWidgets, oldIndex, newIndex));
     }
   };
+
+  const handleColumnVisibilityChange = (key: string, value: boolean) => {
+    if (!userProfile) return;
+    const newVisibility = { ...userProfile.preferences.columnVisibility, [key]: value };
+    savePreferences({ columnVisibility: newVisibility });
+  };
+  
+  const handleWidgetEditing = () => {
+      if (!userProfile) return;
+      const isEditing = !userProfile.preferences.isEditingWidgets;
+      savePreferences({ isEditingWidgets: isEditing });
+  };
   
   if (isLoading || !userProfile) {
       return (
@@ -241,11 +261,49 @@ export function Dashboard() {
   }
 
   const widgetDataProps = { products, categories };
-  const { isEditingWidgets, activeDashboardWidgets, availableDashboardWidgets } = userProfile.preferences;
+  const { isEditingWidgets } = userProfile.preferences;
 
   return (
     <div className="flex flex-col h-full bg-background relative">
         <div className="p-4 md:p-6 space-y-6">
+            <header className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold">Dashboard</h1>
+                </div>
+
+                 <div className="flex items-center gap-2">
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Settings className="h-4 w-4 mr-0 sm:mr-2" />
+                            <span className="hidden sm:inline">Colunas</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Alternar Colunas</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {Object.entries(columnNames).map(([key, name]) => (
+                             <DropdownMenuCheckboxItem
+                               key={key}
+                               className="capitalize"
+                               checked={userProfile.preferences.columnVisibility[key] ?? true}
+                               onCheckedChange={(value) => handleColumnVisibilityChange(key, !!value)}
+                               onSelect={(e) => e.preventDefault()}
+                             >
+                               {name}
+                             </DropdownMenuCheckboxItem>
+                           ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
+                          <Settings className="h-4 w-4 mr-0 sm:mr-2" />
+                          <span className="hidden sm:inline">{isEditingWidgets ? "Finalizar" : "Widgets"}</span>
+                      </Button>
+                </div>
+            </header>
+
+
             {isEditingWidgets && (
                 <Card className="p-4 bg-muted/50">
                     <h3 className="mb-4 text-lg font-semibold">Adicionar Widgets</h3>
@@ -337,26 +395,26 @@ export function Dashboard() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            {userProfile.preferences.columnVisibility.produto && <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>}
-                                            {userProfile.preferences.columnVisibility.marca && <TableHead>Marca</TableHead>}
-                                            {userProfile.preferences.columnVisibility.qtde && <TableHead>Qtde</TableHead>}
-                                            {userProfile.preferences.columnVisibility.validade && <TableHead>Validade</TableHead>}
-                                            {userProfile.preferences.columnVisibility.preco && <TableHead>Preço (R$)</TableHead>}
-                                            {userProfile.preferences.columnVisibility.categoria && <TableHead>Categoria</TableHead>}
-                                            {userProfile.preferences.columnVisibility.status && <TableHead>Status</TableHead>}
+                                            {(userProfile.preferences.columnVisibility.produto ?? true) && <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>}
+                                            {(userProfile.preferences.columnVisibility.marca ?? true) && <TableHead>Marca</TableHead>}
+                                            {(userProfile.preferences.columnVisibility.qtde ?? true) && <TableHead>Qtde</TableHead>}
+                                            {(userProfile.preferences.columnVisibility.validade ?? true) && <TableHead>Validade</TableHead>}
+                                            {(userProfile.preferences.columnVisibility.preco ?? true) && <TableHead>Preço (R$)</TableHead>}
+                                            {(userProfile.preferences.columnVisibility.categoria ?? true) && <TableHead>Categoria</TableHead>}
+                                            {(userProfile.preferences.columnVisibility.status ?? true) && <TableHead>Status</TableHead>}
                                             <TableHead className="w-[100px] text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {products.map((product) => (
+                                        {products?.map((product) => (
                                         <TableRow key={product.id}>
-                                            {userProfile.preferences.columnVisibility.produto && <TableCell className="font-medium">{product.name}</TableCell>}
-                                            {userProfile.preferences.columnVisibility.marca && <TableCell>{product.brand}</TableCell>}
-                                            {userProfile.preferences.columnVisibility.qtde && <TableCell>{product.quantity}</TableCell>}
-                                            {userProfile.preferences.columnVisibility.validade && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
-                                            {userProfile.preferences.columnVisibility.preco && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                                            {userProfile.preferences.columnVisibility.categoria && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
-                                            {userProfile.preferences.columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
+                                            {(userProfile.preferences.columnVisibility.produto ?? true) && <TableCell className="font-medium">{product.name}</TableCell>}
+                                            {(userProfile.preferences.columnVisibility.marca ?? true) && <TableCell>{product.brand}</TableCell>}
+                                            {(userProfile.preferences.columnVisibility.qtde ?? true) && <TableCell>{product.quantity}</TableCell>}
+                                            {(userProfile.preferences.columnVisibility.validade ?? true) && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
+                                            {(userProfile.preferences.columnVisibility.preco ?? true) && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
+                                            {(userProfile.preferences.columnVisibility.categoria ?? true) && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
+                                            {(userProfile.preferences.columnVisibility.status ?? true) && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
                                             <TableCell className="text-right">
                                               {/* Action buttons here */}
                                             </TableCell>
@@ -364,7 +422,7 @@ export function Dashboard() {
                                         ))}
                                     </TableBody>
                                 </Table>
-                                {products.length === 0 && !isLoading && (
+                                {products?.length === 0 && !isLoading && (
                                     <div className="text-center p-8 text-muted-foreground">
                                         Nenhum produto encontrado nesta lista.
                                     </div>
