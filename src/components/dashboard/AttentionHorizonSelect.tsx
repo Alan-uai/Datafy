@@ -24,7 +24,7 @@ const AttentionHorizonSelect: React.FC<AttentionHorizonSelectProps> = ({
         onValueChange={(value) => onHorizonChange(parseInt(value, 10))}
         disabled={isLoading}
       >
-        <SelectTrigger className="w-auto border-none focus:ring-0 focus-visible:ring-offset-0 text-xl sm:text-2xl font-bold h-auto p-0 bg-transparent">
+        <SelectTrigger className="w-auto border-none focus:ring-0 focus:ring-offset-0 text-xl sm:text-2xl font-bold h-auto p-0 bg-transparent">
           <SelectValue placeholder="Selecione..." />
         </SelectTrigger>
         <SelectContent>
