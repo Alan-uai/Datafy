@@ -11,6 +11,18 @@ export interface Achievement {
   unlockedAt: Date | null;
 }
 
+export interface UserPreferences {
+    theme: 'dark' | 'light' | 'system';
+    soundEnabled: boolean;
+    language: 'pt-BR' | 'en-US';
+    columnVisibility: Record<string, boolean>;
+    activeWidgets: AllWidgetType[];
+    lastActiveListId?: string;
+    isEditingWidgets: boolean;
+    activeDashboardWidgets: AllWidgetType[];
+    availableDashboardWidgets: AllWidgetType[];
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string | null;
@@ -35,14 +47,7 @@ export interface UserProfile {
     push: boolean;
     expiryWarnings: boolean;
   };
-  preferences: {
-    theme: 'dark' | 'light' | 'system';
-    soundEnabled: boolean;
-    language: 'pt-BR' | 'en-US';
-    columnVisibility?: Record<string, boolean>;
-    activeWidgets?: AllWidgetType[];
-    lastActiveListId?: string;
-  };
+  preferences: UserPreferences;
   privacy: {
     showEmail: boolean;
     showActivity: boolean;
@@ -69,7 +74,10 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
       'categoria': true,
       'status': true,
     },
-    activeWidgets: ['expiryAttention', 'statsCards', 'lowStockItems']
+    activeWidgets: ['expiryAttention', 'statsCards', 'lowStockItems'],
+    isEditingWidgets: false,
+    activeDashboardWidgets: ['expiryAttention', 'statsCards', 'lowStockItems'],
+    availableDashboardWidgets: ['categoryDistribution', 'stockValueByCategory', 'priceRangeDistribution']
   },
   privacy: { showEmail: false, showActivity: true },
 };
@@ -152,6 +160,22 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
   await updateDoc(userRef, updates);
 };
 
+export const updateUserPreferences = async (uid: string, preferences: Partial<UserPreferences>): Promise<void> => {
+  const userRef = doc(db, 'users', uid);
+  const existingProfile = await getUserProfile(uid);
+  
+  const updatedPreferences = {
+    ...existingProfile?.preferences,
+    ...preferences,
+  };
+
+  await updateDoc(userRef, {
+    preferences: updatedPreferences,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+
 export const checkPremiumStatus = async (uid: string): Promise<boolean> => {
     const profile = await getUserProfile(uid);
     if (!profile?.isPremium) return false;
@@ -163,5 +187,3 @@ export const checkPremiumStatus = async (uid: string): Promise<boolean> => {
 
     return true;
 }
-
-    

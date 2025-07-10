@@ -17,15 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Settings, Search, Filter, ArrowUp, X, Loader2, ListPlus } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Plus, Search, Filter, ArrowUp, X, Loader2, ListPlus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +39,6 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AppLogo } from "@/components/shared/AppLogo";
 
 type ColumnVisibility = Record<string, boolean>;
 
@@ -61,7 +52,7 @@ const initialColumns: ColumnVisibility = {
     'status': true,
 };
 
-const columnNames: Record<keyof typeof initialColumns, string> = {
+export const columnNames: Record<keyof typeof initialColumns, string> = {
     'produto': 'Produto',
     'marca': 'Marca',
     'qtde': 'Qtde',
@@ -108,8 +99,6 @@ export function Dashboard() {
   const [categories] = useState<Category[]>(initialCategories);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(initialColumns);
-  const [isEditingWidgets, setIsEditingWidgets] = useState(false);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
   const newListNameRef = useRef<HTMLInputElement>(null);
@@ -135,10 +124,6 @@ export function Dashboard() {
     try {
         const profile = await getUserProfile(currentUser.uid);
         setUserProfile(profile);
-        if (profile?.preferences?.columnVisibility) {
-            const mergedVisibility = { ...initialColumns, ...profile.preferences.columnVisibility };
-            setColumnVisibility(mergedVisibility);
-        }
 
         const lists = await getProductLists(currentUser.uid);
         setProductLists(lists);
@@ -194,19 +179,6 @@ export function Dashboard() {
   };
 
 
-  const handleColumnVisibilityChange = (key: string, value: boolean) => {
-    const newVisibility = { ...columnVisibility, [key]: value };
-    setColumnVisibility(newVisibility);
-    if (currentUser && userProfile) {
-        updateUserProfile(currentUser.uid, {
-            preferences: {
-                ...userProfile.preferences,
-                columnVisibility: newVisibility,
-            },
-        });
-    }
-  };
-
   const handleAddProduct = async (productData: Omit<Product, "id" | "listId">) => {
     if (!currentUser || !activeListId) return;
     try {
@@ -240,15 +212,6 @@ export function Dashboard() {
     }
   };
 
-  const handleWidgetEditing = () => {
-      if (isEditingWidgets && currentUser && userProfile) {
-          updateUserProfile(currentUser.uid, {
-              preferences: { ...userProfile.preferences, activeWidgets }
-          });
-      }
-      setIsEditingWidgets(!isEditingWidgets);
-  };
-
   const updateWidgets = (newActiveWidgets: AllWidgetType[]) => {
       if (!userProfile) return;
       setUserProfile({
@@ -278,48 +241,11 @@ export function Dashboard() {
   }
 
   const widgetDataProps = { products, categories };
+  const { isEditingWidgets, activeDashboardWidgets, availableDashboardWidgets } = userProfile.preferences;
 
   return (
     <div className="flex flex-col h-full bg-background relative">
         <div className="p-4 md:p-6 space-y-6">
-            <header className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <AppLogo />
-                    <h1 className="text-2xl font-bold">Dashboard</h1>
-                </div>
-                <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline">
-                          <Settings className="mr-2 h-4 w-4" />
-                          Colunas
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Alternar Colunas</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {Object.keys(initialColumns).map((key) => {
-                           return (
-                             <DropdownMenuCheckboxItem
-                               key={key}
-                               className="capitalize"
-                               checked={columnVisibility[key]}
-                               onCheckedChange={(value) => handleColumnVisibilityChange(key, !!value)}
-                               onSelect={(e) => e.preventDefault()}
-                             >
-                               {columnNames[key as keyof typeof columnNames]}
-                             </DropdownMenuCheckboxItem>
-                           )
-                         })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Button variant="outline" onClick={handleWidgetEditing}>
-                        <Settings className="mr-2 h-4 w-4" />
-                        {isEditingWidgets ? "Finalizar" : "Widgets"}
-                    </Button>
-                </div>
-            </header>
-
             {isEditingWidgets && (
                 <Card className="p-4 bg-muted/50">
                     <h3 className="mb-4 text-lg font-semibold">Adicionar Widgets</h3>
@@ -411,26 +337,26 @@ export function Dashboard() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            {columnVisibility.produto && <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>}
-                                            {columnVisibility.marca && <TableHead>Marca</TableHead>}
-                                            {columnVisibility.qtde && <TableHead>Qtde</TableHead>}
-                                            {columnVisibility.validade && <TableHead>Validade</TableHead>}
-                                            {columnVisibility.preco && <TableHead>Preço (R$)</TableHead>}
-                                            {columnVisibility.categoria && <TableHead>Categoria</TableHead>}
-                                            {columnVisibility.status && <TableHead>Status</TableHead>}
+                                            {userProfile.preferences.columnVisibility.produto && <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>}
+                                            {userProfile.preferences.columnVisibility.marca && <TableHead>Marca</TableHead>}
+                                            {userProfile.preferences.columnVisibility.qtde && <TableHead>Qtde</TableHead>}
+                                            {userProfile.preferences.columnVisibility.validade && <TableHead>Validade</TableHead>}
+                                            {userProfile.preferences.columnVisibility.preco && <TableHead>Preço (R$)</TableHead>}
+                                            {userProfile.preferences.columnVisibility.categoria && <TableHead>Categoria</TableHead>}
+                                            {userProfile.preferences.columnVisibility.status && <TableHead>Status</TableHead>}
                                             <TableHead className="w-[100px] text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {products.map((product) => (
                                         <TableRow key={product.id}>
-                                            {columnVisibility.produto && <TableCell className="font-medium">{product.name}</TableCell>}
-                                            {columnVisibility.marca && <TableCell>{product.brand}</TableCell>}
-                                            {columnVisibility.qtde && <TableCell>{product.quantity}</TableCell>}
-                                            {columnVisibility.validade && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
-                                            {columnVisibility.preco && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                                            {columnVisibility.categoria && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
-                                            {columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
+                                            {userProfile.preferences.columnVisibility.produto && <TableCell className="font-medium">{product.name}</TableCell>}
+                                            {userProfile.preferences.columnVisibility.marca && <TableCell>{product.brand}</TableCell>}
+                                            {userProfile.preferences.columnVisibility.qtde && <TableCell>{product.quantity}</TableCell>}
+                                            {userProfile.preferences.columnVisibility.validade && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
+                                            {userProfile.preferences.columnVisibility.preco && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
+                                            {userProfile.preferences.columnVisibility.categoria && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
+                                            {userProfile.preferences.columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
                                             <TableCell className="text-right">
                                               {/* Action buttons here */}
                                             </TableCell>
