@@ -54,6 +54,7 @@ import {
 import { DynamicIcon } from "@/components/shared/DynamicIcon";
 import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
 import { debounce } from 'lodash';
+import { AppLogo } from "@/components/shared/AppLogo";
 
 const columnNames = {
     'produto': 'Produto',
@@ -68,8 +69,6 @@ const columnNames = {
 type ColumnVisibility = Record<string, boolean>;
 type SortDirection = 'asc' | 'desc';
 type SortKey = keyof Product | '';
-
-const availableListIcons = ["Beer", "Refrigerator", "Snowflake", "Weight", "ShoppingCart", "Apple", "Carrot", "Milk", "Package", "List", "Home", "Gift", "Box", "Utensils", "Heart", "Star", "Zap", "Camera", "Music", "Palette", "Smartphone", "Crown"];
 
 const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetType, isEditing: boolean, onRemove: (id: AllWidgetType) => void, children: React.ReactNode }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -107,19 +106,19 @@ export function Dashboard() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [productLists, setProductLists] = useState<ProductList[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [categories] = useState<Category[]>(initialCategories);
-  const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
-  const [isManageListDialogOpen, setIsManageListDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState<boolean>(false);
+  const [isManageListDialogOpen, setIsManageListDialogOpen] = useState<boolean>(false);
   const [editingList, setEditingList] = useState<ProductList | null>(null);
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [sortKey, setSortKey] = useState<SortKey>('');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const [newListIcon, setNewListIcon] = useState<string>("List");
-  const [isSuggestingIcon, setIsSuggestingIcon] = useState(false);
+  const [isSuggestingIcon, setIsSuggestingIcon] = useState<boolean>(false);
   const newListNameRef = useRef<HTMLInputElement>(null);
 
   const debouncedIconSuggestion = useCallback(
@@ -198,7 +197,7 @@ export function Dashboard() {
     } finally {
         setIsLoading(false);
     }
-  }, [currentUser, toast, setUserProfile]);
+  }, [currentUser, toast, setUserProfile, userProfile]);
 
   useEffect(() => {
     loadInitialData();
@@ -318,7 +317,7 @@ export function Dashboard() {
     setTimeout(() => {
         if (newListNameRef.current) {
             newListNameRef.current.value = list?.name || '';
-            if (!list) { // Only suggest icon for new lists
+            if (!list) {
                debouncedIconSuggestion(newListNameRef.current.value);
             }
         }
@@ -388,20 +387,20 @@ export function Dashboard() {
 
   const renderSortIcon = (key: SortKey) => {
     if (sortKey !== key) return null;
-    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4 ml-2" /> : <ArrowDown className="h-4 w-4 ml-2" />;
   };
 
   return (
     <div className="flex flex-col h-full bg-background relative">
-        <div className="p-4 md:p-6 space-y-6">
-            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="p-4 md:p-6">
+            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                  <h1 className="text-2xl font-bold">Dashboard</h1>
                  <div className="flex items-center gap-2 self-end sm:self-auto">
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
-                            <Settings className="h-4 w-4" />
-                            <span className="ml-2">Colunas</span>
+                            <Settings className="h-4 w-4 mr-2" />
+                            Colunas
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -422,140 +421,15 @@ export function Dashboard() {
                       </DropdownMenu>
 
                       <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
-                          <Settings className="h-4 w-4" />
-                          <span className="ml-2">{isEditingWidgets ? "Finalizar" : "Widgets"}</span>
+                          <Settings className="h-4 w-4 mr-2" />
+                          {isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}
                       </Button>
                 </div>
             </header>
-
-            <Card>
-                <CardContent className="p-4">
-                    <Tabs value={activeListId || ""} onValueChange={handleListChange} className="w-full">
-                         <TabsList className="flex items-center gap-2 flex-wrap pb-4 border-b">
-                            {productLists.map(list => (
-                                <TabsTrigger 
-                                    key={list.id} 
-                                    value={list.id} 
-                                    className="h-auto p-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground group/tab"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <DynamicIcon name={list.icon || 'List'} />
-                                        <span>{list.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 ml-2 opacity-100 sm:opacity-0 group-hover/tab:opacity-100 transition-opacity">
-                                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openManageListDialog(list); }}>
-                                            <Edit className="h-4 w-4" />
-                                       </Button>
-                                       <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                           <Button size="icon" variant="ghost" className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive" onClick={e => e.stopPropagation()}>
-                                                <Trash2 className="h-4 w-4" />
-                                           </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Esta ação não pode ser desfeita. Isso excluirá permanentemente a lista "{list.name}" e todos os produtos contidos nela.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteList(list.id)}>Excluir</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                </TabsTrigger>
-                            ))}
-                             <Button variant="outline" onClick={() => openManageListDialog(null)}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Lista
-                            </Button>
-                        </TabsList>
-                    </Tabs>
-                     {productLists.length === 0 && !isLoading && (
-                        <div className="text-center p-16">
-                            <h3 className="text-lg font-medium">Crie sua primeira lista</h3>
-                            <p className="text-muted-foreground">Comece a organizar seus produtos criando uma lista.</p>
-                            <Button className="mt-4" onClick={() => openManageListDialog(null)}>Criar Lista</Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {activeListId && (
-            <Card>
-                <CardContent className="p-4">
-                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                        <div className="relative w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                            <Input placeholder="Buscar produtos..." className="pl-10" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                        </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full sm:w-auto">
-                                  <Filter className="mr-2 h-4 w-4"/>
-                                  Filtro
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56">
-                                <DropdownMenuLabel>Filtrar por validade</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
-                                <DropdownMenuRadioItem value="all">Todos</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="today">Vence Hoje</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="expired">Vencidos</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="next7">Próximos 7 dias</DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-
-                     <div className="overflow-x-auto mt-4">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="border-b-0">
-                                    {columnVisibility.produto && <TableHead><Button variant="ghost" onClick={() => handleSort('name')}>Produto {renderSortIcon('name')}</Button></TableHead>}
-                                    {columnVisibility.marca && <TableHead><Button variant="ghost" onClick={() => handleSort('brand')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
-                                    {columnVisibility.qtde && <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
-                                    {columnVisibility.validade && <TableHead><Button variant="ghost" onClick={() => handleSort('expiryDate')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
-                                    {columnVisibility.preco && <TableHead><Button variant="ghost" onClick={() => handleSort('price')}>Preço {renderSortIcon('price')}</Button></TableHead>}
-                                    {columnVisibility.categoria && <TableHead><Button variant="ghost" onClick={() => handleSort('category')}>Categoria {renderSortIcon('category')}</Button></TableHead>}
-                                    {columnVisibility.status && <TableHead>Status</TableHead>}
-                                    <TableHead className="w-[100px] text-right">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredProducts.map((product) => (
-                                <TableRow key={product.id}>
-                                    {columnVisibility.produto && <TableCell className="font-medium">{product.name}</TableCell>}
-                                    {columnVisibility.marca && <TableCell>{product.brand}</TableCell>}
-                                    {columnVisibility.qtde && <TableCell>{product.quantity}</TableCell>}
-                                    {columnVisibility.validade && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
-                                    {columnVisibility.preco && <TableCell>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                                    {columnVisibility.categoria && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
-                                    {columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
-                                    <TableCell className="text-right">
-                                      {/* Action buttons here */}
-                                    </TableCell>
-                                </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        {filteredProducts.length === 0 && !isLoading && (
-                            <div className="text-center p-8 text-muted-foreground">
-                                Nenhum produto encontrado.
-                            </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-            )}
-
+            
             <DndContext sensors={[]} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
                         {activeWidgets.map(widgetId => {
                             const widgetInfo = WIDGET_MAP[widgetId];
                             if (!widgetInfo) return null;
@@ -573,9 +447,131 @@ export function Dashboard() {
                     </div>
                 </SortableContext>
             </DndContext>
-            
-
         </div>
+        
+        <div className="flex-1 flex flex-col">
+            <div className="px-4 md:px-6 py-4 border-t">
+                 <Tabs value={activeListId || ""} onValueChange={handleListChange} className="w-full">
+                     <TabsList className="grid-cols-none p-0 bg-transparent h-auto">
+                        {productLists.map(list => (
+                            <TabsTrigger 
+                                key={list.id} 
+                                value={list.id} 
+                                className="h-auto p-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground group/tab relative"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <DynamicIcon name={list.icon || 'List'} />
+                                    <span>{list.name}</span>
+                                </div>
+                                <div className="absolute right-0 top-0 bottom-0 flex items-center gap-1 p-2 opacity-100 sm:opacity-0 group-hover/tab:opacity-100 transition-opacity bg-background sm:bg-transparent">
+                                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openManageListDialog(list); }}>
+                                        <Edit className="h-4 w-4" />
+                                   </Button>
+                                   <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                       <Button size="icon" variant="ghost" className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive" onClick={e => e.stopPropagation()}>
+                                            <Trash2 className="h-4 w-4" />
+                                       </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Esta ação não pode ser desfeita. Isso excluirá permanentemente a lista "{list.name}" e todos os produtos contidos nela.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteList(list.id)}>Excluir</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                            </TabsTrigger>
+                        ))}
+                         <Button variant="ghost" onClick={() => openManageListDialog(null)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Lista
+                        </Button>
+                    </TabsList>
+                </Tabs>
+                 {productLists.length === 0 && !isLoading && (
+                    <div className="text-center py-10">
+                        <h3 className="text-lg font-medium">Crie sua primeira lista</h3>
+                        <p className="text-muted-foreground">Comece a organizar seus produtos criando uma lista.</p>
+                        <Button className="mt-4" onClick={() => openManageListDialog(null)}>Criar Lista</Button>
+                    </div>
+                )}
+            </div>
+            
+            {activeListId && (
+            <div className="flex-1 flex flex-col">
+                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 md:px-6">
+                    <div className="relative w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                        <Input placeholder="Buscar produtos..." className="pl-10" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full sm:w-auto">
+                              <Filter className="mr-2 h-4 w-4"/>
+                              Filtro
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 max-h-60 overflow-y-auto">
+                            <DropdownMenuLabel>Filtrar por validade</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
+                            <DropdownMenuRadioItem value="all">Todos</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="today">Vence Hoje</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="expired">Vencidos</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="next7">Próximos 7 dias</DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                 <div className="flex-1 overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="border-b hover:bg-transparent">
+                                <TableHead><Button variant="ghost" onClick={() => handleSort('name')}>Produto {renderSortIcon('name')}</Button></TableHead>
+                                <TableHead><Button variant="ghost" onClick={() => handleSort('brand')}>Marca {renderSortIcon('brand')}</Button></TableHead>
+                                <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>
+                                <TableHead><Button variant="ghost" onClick={() => handleSort('expiryDate')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>
+                                <TableHead><Button variant="ghost" onClick={() => handleSort('price')}>Preço {renderSortIcon('price')}</Button></TableHead>
+                                <TableHead><Button variant="ghost" onClick={() => handleSort('category')}>Categoria {renderSortIcon('category')}</Button></TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="w-[100px] text-right">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredProducts.map((product) => (
+                            <TableRow key={product.id}>
+                                <TableCell className="font-medium">{product.name}</TableCell>
+                                <TableCell>{product.brand}</TableCell>
+                                <TableCell>{product.quantity}</TableCell>
+                                <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>
+                                <TableCell>{product.price.toFixed(2).replace('.', ',')}</TableCell>
+                                <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>
+                                <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>
+                                <TableCell className="text-right">
+                                  {/* Action buttons here */}
+                                </TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    {filteredProducts.length === 0 && !isLoading && (
+                        <div className="text-center p-8 text-muted-foreground flex-1 flex items-center justify-center">
+                            Nenhum produto encontrado.
+                        </div>
+                    )}
+                </div>
+            </div>
+            )}
+        </div>
+
 
         <AddProductDialog categories={categories} onAddProduct={handleAddProduct} open={isAddProductDialogOpen} onOpenChange={setIsAddProductDialogOpen}>
             <Button onClick={() => setIsAddProductDialogOpen(true)} className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90">

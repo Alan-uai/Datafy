@@ -40,6 +40,13 @@ export const WIDGET_MAP = {
     Icon: ShieldAlert,
     component: ExpiryAttentionReportCard,
   },
+  lowStockItems: {
+    id: "lowStockItems",
+    title: "Itens com Baixo Estoque",
+    description: "Produtos que precisam de reposição.",
+    Icon: Package,
+    component: LowStockItemsWidget,
+  },
   categoryDistribution: {
     id: "categoryDistribution",
     title: "Distribuição por Categoria",
@@ -54,13 +61,6 @@ export const WIDGET_MAP = {
     Icon: BarChart,
     component: StockValueByCategoryWidget,
   },
-  lowStockItems: {
-    id: "lowStockItems",
-    title: "Itens com Baixo Estoque",
-    description: "Produtos que precisam de reposição.",
-    Icon: Package,
-    component: LowStockItemsWidget,
-  },
   priceRangeDistribution: {
     id: "priceRangeDistribution",
     title: "Distribuição de Preços",
@@ -71,3 +71,5 @@ export const WIDGET_MAP = {
 } as const;
 
 export type AllWidgetType = keyof typeof WIDGET_MAP;
+
+    
