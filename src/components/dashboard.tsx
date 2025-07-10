@@ -18,7 +18,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, ListPlus, Settings, Edit, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, Settings, Edit, Trash2, RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,7 +54,6 @@ import {
 import { DynamicIcon } from "@/components/shared/DynamicIcon";
 import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
 import { debounce } from 'lodash';
-import { AppLogo } from "@/components/shared/AppLogo";
 
 const columnNames = {
     'produto': 'Produto',
@@ -536,12 +535,12 @@ export function Dashboard() {
                         <TableHeader>
                             <TableRow className="border-b hover:bg-transparent">
                                 <TableHead><Button variant="ghost" onClick={() => handleSort('name')}>Produto {renderSortIcon('name')}</Button></TableHead>
-                                <TableHead><Button variant="ghost" onClick={() => handleSort('brand')}>Marca {renderSortIcon('brand')}</Button></TableHead>
-                                <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>
-                                <TableHead><Button variant="ghost" onClick={() => handleSort('expiryDate')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>
-                                <TableHead><Button variant="ghost" onClick={() => handleSort('price')}>Preço {renderSortIcon('price')}</Button></TableHead>
-                                <TableHead><Button variant="ghost" onClick={() => handleSort('category')}>Categoria {renderSortIcon('category')}</Button></TableHead>
-                                <TableHead>Status</TableHead>
+                                {columnVisibility['marca'] && <TableHead><Button variant="ghost" onClick={() => handleSort('brand')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
+                                {columnVisibility['qtde'] && <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
+                                {columnVisibility['validade'] && <TableHead><Button variant="ghost" onClick={() => handleSort('expiryDate')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
+                                {columnVisibility['preco'] && <TableHead><Button variant="ghost" onClick={() => handleSort('price')}>Preço {renderSortIcon('price')}</Button></TableHead>}
+                                {columnVisibility['categoria'] && <TableHead><Button variant="ghost" onClick={() => handleSort('category')}>Categoria {renderSortIcon('category')}</Button></TableHead>}
+                                {columnVisibility['status'] && <TableHead>Status</TableHead>}
                                 <TableHead className="w-[100px] text-right">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -549,12 +548,12 @@ export function Dashboard() {
                             {filteredProducts.map((product) => (
                             <TableRow key={product.id}>
                                 <TableCell className="font-medium">{product.name}</TableCell>
-                                <TableCell>{product.brand}</TableCell>
-                                <TableCell>{product.quantity}</TableCell>
-                                <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>
-                                <TableCell>{product.price.toFixed(2).replace('.', ',')}</TableCell>
-                                <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>
-                                <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>
+                                {columnVisibility['marca'] && <TableCell>{product.brand}</TableCell>}
+                                {columnVisibility['qtde'] && <TableCell>{product.quantity}</TableCell>}
+                                {columnVisibility['validade'] && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
+                                {columnVisibility['preco'] && <TableCell>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
+                                {columnVisibility['categoria'] && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
+                                {columnVisibility['status'] && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
                                 <TableCell className="text-right">
                                   {/* Action buttons here */}
                                 </TableCell>
