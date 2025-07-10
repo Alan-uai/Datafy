@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { products as initialProducts, categories as initialCategories } from "@/lib/data";
 import type { Product, Category } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Settings, Trash2, Edit, Search, Filter, ArrowUp, Grid3x3 } from "lucide-react";
+import { Plus, Settings, Trash2, Edit, Search, Filter, ArrowUp, Grid3x3, X } from "lucide-react";
 import { ExpiryAttentionReportCard } from './dashboard/ExpiryAttentionReportCard';
 import {
   DropdownMenu,
@@ -30,8 +30,13 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserProfile, updateUserProfile } from "@/services/userService";
 import type { UserProfile } from "@/services/userService";
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Card } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 
-// A simplified visibility state type, similar to what Tanstack Table uses
 type ColumnVisibility = Record<string, boolean>;
 
 const initialColumns: ColumnVisibility = {
@@ -54,6 +59,33 @@ const columnNames: Record<keyof typeof initialColumns, string> = {
     'status': 'Status',
 };
 
+const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetType, isEditing: boolean, onRemove: (id: AllWidgetType) => void, children: React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="relative">
+            {isEditing && (
+                <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6 z-10 rounded-full"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove(id);
+                    }}
+                >
+                    <X className="h-4 w-4" />
+                </Button>
+            )}
+            {children}
+        </div>
+    );
+};
+
 export function Dashboard() {
   const { currentUser } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -63,34 +95,30 @@ export function Dashboard() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(initialColumns);
+  const [isEditingWidgets, setIsEditingWidgets] = useState(false);
+
+  const activeWidgets = useMemo(() => userProfile?.preferences?.activeWidgets || [], [userProfile]);
+  const availableWidgets = useMemo(() => {
+    const allWidgetKeys = Object.keys(WIDGET_MAP) as AllWidgetType[];
+    return allWidgetKeys.filter(key => !activeWidgets.includes(key));
+  }, [activeWidgets]);
+
+  const loadProfile = useCallback(async () => {
+    if (currentUser) {
+        const profile = await getUserProfile(currentUser.uid);
+        setUserProfile(profile);
+        if (profile?.preferences?.columnVisibility) {
+            const mergedVisibility = { ...initialColumns, ...profile.preferences.columnVisibility };
+            setColumnVisibility(mergedVisibility);
+        }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     setIsClient(true);
-    // Simulating one product for the table as in the image
-    const sampleProduct: Product = {
-        id: '101',
-        name: 'Arroz',
-        brand: 'Pileco',
-        quantity: 78,
-        expiryDate: new Date('2025-07-27T00:00:00'),
-        price: 24.90,
-        category: 'pesado', // This category is not in the initial list, but is in the image
-    };
-    setProducts([sampleProduct]);
-
-    async function loadProfile() {
-        if (currentUser) {
-            const profile = await getUserProfile(currentUser.uid);
-            setUserProfile(profile);
-            if (profile?.preferences?.columnVisibility) {
-                // Ensure all columns have a default value if not present in saved config
-                const mergedVisibility = { ...initialColumns, ...profile.preferences.columnVisibility };
-                setColumnVisibility(mergedVisibility);
-            }
-        }
-    }
+    setProducts(initialProducts);
     loadProfile();
-  }, [currentUser]);
+  }, [currentUser, loadProfile]);
 
   const productsForAI = useMemo(() => {
     if (!isClient) return [];
@@ -120,14 +148,71 @@ export function Dashboard() {
       { ...newProduct, id: new Date().getTime().toString() },
     ]);
   };
+
+  const handleWidgetEditing = () => {
+      if (isEditingWidgets) {
+          // Save changes
+          if (currentUser && userProfile) {
+              updateUserProfile(currentUser.uid, {
+                  preferences: {
+                      ...userProfile.preferences,
+                      activeWidgets: activeWidgets
+                  }
+              });
+          }
+      }
+      setIsEditingWidgets(!isEditingWidgets);
+  };
+
+  const addWidget = (widgetId: AllWidgetType) => {
+    if (!userProfile) return;
+    const newActiveWidgets = [...activeWidgets, widgetId];
+    setUserProfile({
+        ...userProfile,
+        preferences: {
+            ...userProfile.preferences,
+            activeWidgets: newActiveWidgets,
+        }
+    });
+  };
+
+  const removeWidget = (widgetId: AllWidgetType) => {
+    if (!userProfile) return;
+    const newActiveWidgets = activeWidgets.filter(id => id !== widgetId);
+    setUserProfile({
+        ...userProfile,
+        preferences: {
+            ...userProfile.preferences,
+            activeWidgets: newActiveWidgets,
+        }
+    });
+  };
   
-  if (!isClient) {
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id && userProfile) {
+      const oldIndex = activeWidgets.indexOf(active.id as AllWidgetType);
+      const newIndex = activeWidgets.indexOf(over!.id as AllWidgetType);
+      const newOrder = arrayMove(activeWidgets, oldIndex, newIndex);
+      setUserProfile({
+        ...userProfile,
+        preferences: {
+            ...userProfile.preferences,
+            activeWidgets: newOrder,
+        }
+    });
+    }
+  };
+  
+  if (!isClient || !userProfile) {
       return (
         <div className="flex items-center justify-center h-screen">
             <p>Carregando...</p>
         </div>
       );
   }
+
+  const widgetDataProps = { products, categories };
 
   return (
     <div className="flex flex-col h-full bg-background relative">
@@ -165,10 +250,58 @@ export function Dashboard() {
                          })}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <Button variant="outline"><Settings className="mr-2 h-4 w-4" />Widgets</Button>
+                    <Button variant="outline" onClick={handleWidgetEditing}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        {isEditingWidgets ? "Finalizar" : "Widgets"}
+                    </Button>
                 </div>
             </header>
 
+            {isEditingWidgets && (
+                <Card className="p-4">
+                    <h3 className="mb-4 text-lg font-semibold">Adicionar Widgets</h3>
+                    <Carousel opts={{ align: "start", dragFree: true }}>
+                        <CarouselContent>
+                            {availableWidgets.map(widgetId => {
+                                const widget = WIDGET_MAP[widgetId];
+                                return (
+                                    <CarouselItem key={widgetId} className="basis-1/3 md:basis-1/4 lg:basis-1/5">
+                                        <Button
+                                            variant="outline"
+                                            className="h-24 w-full flex flex-col items-center justify-center gap-2 p-2"
+                                            onClick={() => addWidget(widgetId)}
+                                        >
+                                            <widget.Icon className="h-6 w-6" />
+                                            <span className="text-xs text-center">{widget.title}</span>
+                                        </Button>
+                                    </CarouselItem>
+                                );
+                            })}
+                        </CarouselContent>
+                    </Carousel>
+                </Card>
+            )}
+
+            <DndContext
+                sensors={[]}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-6">
+                        {activeWidgets.map(widgetId => {
+                            const WidgetComponent = WIDGET_MAP[widgetId]?.component;
+                            if (!WidgetComponent) return null;
+                            return (
+                                <SortableWidget key={widgetId} id={widgetId} isEditing={isEditingWidgets} onRemove={removeWidget}>
+                                    <WidgetComponent {...widgetDataProps} />
+                                </SortableWidget>
+                            );
+                        })}
+                    </div>
+                </SortableContext>
+            </DndContext>
+            
             <ExpiryAttentionReportCard listProducts={productsForAI} />
 
             <div className="flex flex-col gap-4">
@@ -218,7 +351,7 @@ export function Dashboard() {
                             {columnVisibility.qtde && <TableCell>{product.quantity}</TableCell>}
                             {columnVisibility.validade && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
                             {columnVisibility.preco && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                            {columnVisibility.categoria && <TableCell>{product.category}</TableCell>}
+                            {columnVisibility.categoria && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
                             {columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
                         </TableRow>
                         ))}

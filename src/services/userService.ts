@@ -1,6 +1,6 @@
-
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import type { AllWidgetType } from '@/components/dashboard/widgets/widget-map';
 
 export interface Achievement {
   id: string;
@@ -40,6 +40,7 @@ export interface UserProfile {
     soundEnabled: boolean;
     language: 'pt-BR' | 'en-US';
     columnVisibility?: Record<string, boolean>;
+    activeWidgets?: AllWidgetType[];
   };
   privacy: {
     showEmail: boolean;
@@ -66,7 +67,8 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
       'preco': true,
       'categoria': true,
       'status': true,
-    }
+    },
+    activeWidgets: ['statsCards', 'lowStockItems']
   },
   privacy: { showEmail: false, showActivity: true },
 };
