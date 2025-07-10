@@ -22,7 +22,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullPage = true,
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <AppLogo icon={Grid3x3} iconSize={40} textSize="text-3xl" />
+        <AppLogo iconSize={40} textSize="text-3xl" />
       </motion.div>
       <div className="relative mt-4 w-64 h-8 overflow-hidden">
         <motion.div
@@ -42,3 +42,5 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullPage = true,
     </div>
   );
 };
+
+    

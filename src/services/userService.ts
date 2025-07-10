@@ -41,6 +41,7 @@ export interface UserProfile {
     language: 'pt-BR' | 'en-US';
     columnVisibility?: Record<string, boolean>;
     activeWidgets?: AllWidgetType[];
+    lastActiveListId?: string;
   };
   privacy: {
     showEmail: boolean;
@@ -162,3 +163,5 @@ export const checkPremiumStatus = async (uid: string): Promise<boolean> => {
 
     return true;
 }
+
+    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Settings, Trash2, Edit, Search, Filter, ArrowUp, Grid3x3, X, Loader2 } from "lucide-react";
+import { Plus, Settings, Search, Filter, ArrowUp, Grid3x3, X, Loader2, ListPlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -26,22 +26,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserProfile, updateUserProfile, type UserProfile } from "@/services/userService";
-import { getProductLists, getProductsByList, addProductList, addProduct, updateProduct as updateProductService, deleteProduct as deleteProductService } from "@/services/productService";
+import { getProductLists, getProductsByList, addProductList, addProduct } from "@/services/productService";
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ColumnVisibility = Record<string, boolean>;
 
@@ -78,7 +83,7 @@ const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetTy
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 z-10 rounded-full bg-background/50 text-destructive-foreground opacity-0 group-hover/widget:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 h-6 w-6 z-10 rounded-full bg-transparent hover:bg-destructive/20 text-destructive-foreground opacity-0 group-hover/widget:opacity-100 transition-opacity"
                     onClick={(e) => {
                         e.stopPropagation();
                         onRemove(id);
@@ -104,6 +109,9 @@ export function Dashboard() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(initialColumns);
   const [isEditingWidgets, setIsEditingWidgets] = useState(false);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
+  const newListNameRef = useRef<HTMLInputElement>(null);
 
   const productsForAI = useMemo(() => {
     return products.map(p => ({
@@ -135,11 +143,12 @@ export function Dashboard() {
         setProductLists(lists);
         
         if (lists.length > 0) {
-            setActiveListId(lists[0].id);
-            const fetchedProducts = await getProductsByList(currentUser.uid, lists[0].id);
+            const lastListId = profile?.preferences?.lastActiveListId;
+            const listToLoad = lists.find(l => l.id === lastListId) || lists[0];
+            setActiveListId(listToLoad.id);
+            const fetchedProducts = await getProductsByList(currentUser.uid, listToLoad.id);
             setProducts(fetchedProducts);
         } else {
-            // Handle case with no lists
             setProducts([]);
         }
     } catch (error) {
@@ -153,14 +162,28 @@ export function Dashboard() {
   useEffect(() => {
     loadInitialData();
   }, [loadInitialData]);
+  
+  useEffect(() => {
+    if (!carouselApi || !activeListId) return;
+    const activeListIndex = productLists.findIndex(l => l.id === activeListId);
+    if (activeListIndex !== -1 && activeListIndex !== carouselApi.selectedScrollSnap()) {
+      carouselApi.scrollTo(activeListIndex);
+    }
+  }, [activeListId, productLists, carouselApi]);
+
 
   const handleListChange = async (listId: string) => {
-    if (!currentUser) return;
+    if (!currentUser || listId === activeListId) return;
     setActiveListId(listId);
     setIsLoading(true);
     try {
         const fetchedProducts = await getProductsByList(currentUser.uid, listId);
         setProducts(fetchedProducts);
+        if (currentUser && userProfile) {
+            updateUserProfile(currentUser.uid, {
+                preferences: { ...userProfile.preferences, lastActiveListId: listId }
+            });
+        }
     } catch (error) {
         console.error(`Failed to fetch products for list ${listId}`, error);
         toast({ variant: "destructive", title: "Erro ao carregar lista" });
@@ -195,6 +218,26 @@ export function Dashboard() {
        toast({ variant: "destructive", title: "Erro ao adicionar produto" });
     }
   };
+  
+  const handleCreateList = async () => {
+    const newName = newListNameRef.current?.value;
+    if (!currentUser || !newName || !newName.trim()) {
+        toast({ variant: "destructive", title: "Nome inválido", description: "Por favor, insira um nome para a lista." });
+        return;
+    }
+    try {
+        const newListId = await addProductList(currentUser.uid, newName.trim());
+        const newList: ProductList = { id: newListId, name: newName.trim(), userId: currentUser.uid, createdAt: new Date() };
+        setProductLists(prev => [...prev, newList]);
+        setActiveListId(newListId);
+        setProducts([]);
+        setIsAddListDialogOpen(false);
+        toast({ title: "Lista criada!", description: `A lista "${newName.trim()}" foi criada com sucesso.` });
+    } catch (error) {
+        console.error("Failed to create list", error);
+        toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar a nova lista." });
+    }
+  }
 
   const handleWidgetEditing = () => {
       if (isEditingWidgets && currentUser && userProfile) {
@@ -218,9 +261,9 @@ export function Dashboard() {
   
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       const oldIndex = activeWidgets.indexOf(active.id as AllWidgetType);
-      const newIndex = activeWidgets.indexOf(over!.id as AllWidgetType);
+      const newIndex = activeWidgets.indexOf(over.id as AllWidgetType);
       updateWidgets(arrayMove(activeWidgets, oldIndex, newIndex));
     }
   };
@@ -331,12 +374,23 @@ export function Dashboard() {
             <Card>
                 <CardContent className="p-4">
                     <Tabs value={activeListId || ""} onValueChange={handleListChange}>
-                        <TabsList>
-                           {productLists.map(list => (
-                             <TabsTrigger key={list.id} value={list.id}>{list.name}</TabsTrigger>
-                           ))}
-                            <TabsTrigger value="add_new">+</TabsTrigger>
-                        </TabsList>
+                        <Carousel setApi={setCarouselApi} className="w-full">
+                          <CarouselContent>
+                            {productLists.map(list => (
+                              <CarouselItem key={list.id} className="basis-auto pr-2">
+                                <TabsTrigger value={list.id}>{list.name}</TabsTrigger>
+                              </CarouselItem>
+                            ))}
+                            <CarouselItem className="basis-auto pr-2">
+                               <Button variant="ghost" onClick={() => setIsAddListDialogOpen(true)}>
+                                  <ListPlus className="h-4 w-4 mr-2" />
+                                  Nova Lista
+                               </Button>
+                            </CarouselItem>
+                          </CarouselContent>
+                           <CarouselPrevious className="hidden sm:flex"/>
+                           <CarouselNext className="hidden sm:flex"/>
+                        </Carousel>
                         
                         {productLists.map(list => (
                            <TabsContent key={list.id} value={list.id} className="mt-4">
@@ -359,6 +413,7 @@ export function Dashboard() {
                                             {columnVisibility.preco && <TableHead>Preço (R$)</TableHead>}
                                             {columnVisibility.categoria && <TableHead>Categoria</TableHead>}
                                             {columnVisibility.status && <TableHead>Status</TableHead>}
+                                            <TableHead className="w-[100px] text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -371,6 +426,9 @@ export function Dashboard() {
                                             {columnVisibility.preco && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
                                             {columnVisibility.categoria && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
                                             {columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
+                                            <TableCell className="text-right">
+                                              {/* Action buttons here */}
+                                            </TableCell>
                                         </TableRow>
                                         ))}
                                     </TableBody>
@@ -388,7 +446,7 @@ export function Dashboard() {
                         <div className="text-center p-16">
                             <h3 className="text-lg font-medium">Crie sua primeira lista</h3>
                             <p className="text-muted-foreground">Comece a organizar seus produtos criando uma lista.</p>
-                            <Button className="mt-4">Criar Lista</Button>
+                            <Button className="mt-4" onClick={() => setIsAddListDialogOpen(true)}>Criar Lista</Button>
                         </div>
                     )}
                 </CardContent>
@@ -400,6 +458,26 @@ export function Dashboard() {
                 <Plus className="h-8 w-8" />
             </Button>
         </AddProductDialog>
+
+        <AlertDialog open={isAddListDialogOpen} onOpenChange={setIsAddListDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Criar Nova Lista</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Digite o nome para sua nova lista de produtos.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-4">
+                    <Input ref={newListNameRef} placeholder="Ex: Compras da Semana" />
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCreateList}>Criar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
+
+    
