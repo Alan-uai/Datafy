@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -16,23 +17,60 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { products as initialProducts, categories as initialCategories } from "@/lib/data";
 import type { Product, Category } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Settings, Trash2, Edit, Search, Filter, ArrowUp, Grid3x3 } from "lucide-react";
+import { Plus, Settings, Trash2, Edit, Search, Filter, ArrowUp, Grid3x3, Columns3 } from "lucide-react";
 import { ExpiryAttentionReportCard } from './dashboard/ExpiryAttentionReportCard';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import type { Table as TanstackTable } from "@tanstack/react-table" // We will use the types but not the full library for now
+
+
+// A simplified visibility state type, similar to what Tanstack Table uses
+type ColumnVisibility = Record<string, boolean>;
+
 
 export function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories] = useState<Category[]>(initialCategories);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  const initialColumns: ColumnVisibility = {
+    'produto': true,
+    'marca': true,
+    'qtde': true,
+    'validade': true,
+    'preco': true,
+    'categoria': true,
+    'status': true,
+  }
 
-  // Convert Date objects to string for AI analysis
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(initialColumns);
+
+  const columnNames: Record<keyof typeof initialColumns, string> = {
+    'produto': 'Produto',
+    'marca': 'Marca',
+    'qtde': 'Qtde',
+    'validade': 'Validade',
+    'preco': 'Preço (R$)',
+    'categoria': 'Categoria',
+    'status': 'Status',
+  };
+
+
   const productsForAI = useMemo(() => {
+    if (!isClient) return [];
     return products.map(p => ({
       ...p,
       validade: p.expiryDate.toISOString(),
       produto: p.name,
     }));
-  }, [products]);
+  }, [products, isClient]);
   
   useEffect(() => {
     setIsClient(true)
@@ -58,7 +96,7 @@ export function Dashboard() {
   
   if (!isClient) {
       return (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-screen">
             <p>Carregando...</p>
         </div>
       );
@@ -73,7 +111,32 @@ export function Dashboard() {
                     <h1 className="text-2xl font-bold">Dashboard Personalizado</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline"><Settings className="mr-2 h-4 w-4" />Colunas</Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline">
+                          <Columns3 className="mr-2 h-4 w-4" />
+                          Colunas
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Alternar Colunas</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {Object.keys(initialColumns).map((key) => {
+                           return (
+                             <DropdownMenuCheckboxItem
+                               key={key}
+                               className="capitalize"
+                               checked={columnVisibility[key]}
+                               onCheckedChange={(value) =>
+                                 setColumnVisibility(prev => ({...prev, [key]: !!value}))
+                               }
+                             >
+                               {columnNames[key]}
+                             </DropdownMenuCheckboxItem>
+                           )
+                         })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button variant="outline"><Settings className="mr-2 h-4 w-4" />Widgets</Button>
                 </div>
             </header>
@@ -110,25 +173,25 @@ export function Dashboard() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>
-                            <TableHead>Marca</TableHead>
-                            <TableHead>Qtde</TableHead>
-                            <TableHead>Validade</TableHead>
-                            <TableHead>Preço (R$)</TableHead>
-                            <TableHead>Categoria</TableHead>
-                            <TableHead>Status</TableHead>
+                            {columnVisibility.produto && <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>}
+                            {columnVisibility.marca && <TableHead>Marca</TableHead>}
+                            {columnVisibility.qtde && <TableHead>Qtde</TableHead>}
+                            {columnVisibility.validade && <TableHead>Validade</TableHead>}
+                            {columnVisibility.preco && <TableHead>Preço (R$)</TableHead>}
+                            {columnVisibility.categoria && <TableHead>Categoria</TableHead>}
+                            {columnVisibility.status && <TableHead>Status</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {products.map((product) => (
                         <TableRow key={product.id}>
-                            <TableCell className="font-medium">{product.name}</TableCell>
-                            <TableCell>{product.brand}</TableCell>
-                            <TableCell>{product.quantity}</TableCell>
-                            <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>
-                            <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>
-                            <TableCell>{product.category}</TableCell>
-                            <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>
+                            {columnVisibility.produto && <TableCell className="font-medium">{product.name}</TableCell>}
+                            {columnVisibility.marca && <TableCell>{product.brand}</TableCell>}
+                            {columnVisibility.qtde && <TableCell>{product.quantity}</TableCell>}
+                            {columnVisibility.validade && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
+                            {columnVisibility.preco && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
+                            {columnVisibility.categoria && <TableCell>{product.category}</TableCell>}
+                            {columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
                         </TableRow>
                         ))}
                     </TableBody>
@@ -148,3 +211,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
