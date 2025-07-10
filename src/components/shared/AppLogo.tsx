@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 
 interface AppLogoProps {
   iconSize?: number;
@@ -22,10 +22,8 @@ export function AppLogo({
       whileHover={{ scale: 1.05 }}
       transition={{ type: 'spring', stiffness: 400, damping: 10 }}
     >
-      <ShieldAlert style={{ width: iconSize, height: iconSize }} className="text-primary" />
+      <LayoutDashboard style={{ width: iconSize, height: iconSize }} className="text-primary" />
       <h1 className={textSize}>Datafy</h1>
     </motion.div>
   );
 }
-
-    

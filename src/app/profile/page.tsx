@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -37,7 +37,8 @@ import {
   BarChart,
   ShoppingCart,
   List,
-  CalendarCheck
+  CalendarCheck,
+  X
 } from 'lucide-react';
 import { getUserProfile, updateUserProfile, type UserProfile as UserProfileType, createUserProfile } from '@/services/userService';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';

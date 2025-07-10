@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartStyle } from '@/components/ui/chart';
 import { PieChart, Pie, Cell } from 'recharts';
 import type { WidgetProps } from './widget-map';
+import { WIDGET_MAP } from './widget-map';
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -19,6 +20,9 @@ export const CategoryDistributionWidget: React.FC<WidgetProps> = ({ products, ca
     }));
   }, [products, categories]);
 
+  const widgetInfo = WIDGET_MAP.categoryDistribution;
+  const Icon = widgetInfo.Icon;
+
   const chartConfig = useMemo(() => {
     const config: any = {};
     chartData.forEach((data, index) => {
@@ -34,7 +38,10 @@ export const CategoryDistributionWidget: React.FC<WidgetProps> = ({ products, ca
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Distribuição por Categoria</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <Icon className="h-5 w-5 text-primary" />
+                    {widgetInfo.title}
+                </CardTitle>
                 <CardDescription>Nenhum produto para exibir no gráfico.</CardDescription>
             </CardHeader>
             <CardContent className="flex h-60 items-center justify-center">
@@ -47,8 +54,11 @@ export const CategoryDistributionWidget: React.FC<WidgetProps> = ({ products, ca
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Distribuição por Categoria</CardTitle>
-        <CardDescription>Quantidade de produtos por categoria.</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+            <Icon className="h-5 w-5 text-primary" />
+            {widgetInfo.title}
+        </CardTitle>
+        <CardDescription>{widgetInfo.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex items-center justify-center pb-0">
         <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">

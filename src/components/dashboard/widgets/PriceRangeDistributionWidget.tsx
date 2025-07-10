@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import type { WidgetProps } from './widget-map';
+import { WIDGET_MAP } from './widget-map';
 
 const chartConfig = {
   count: {
@@ -31,11 +32,17 @@ export const PriceRangeDistributionWidget: React.FC<WidgetProps> = ({ products }
     return data;
   }, [products]);
 
+  const widgetInfo = WIDGET_MAP.priceRangeDistribution;
+  const Icon = widgetInfo.Icon;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Distribuição por Faixa de Preço</CardTitle>
-        <CardDescription>Quantos produtos se encaixam em cada faixa de preço.</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+            <Icon className="h-5 w-5 text-primary" />
+            {widgetInfo.title}
+        </CardTitle>
+        <CardDescription>{widgetInfo.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>

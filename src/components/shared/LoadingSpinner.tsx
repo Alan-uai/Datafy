@@ -2,8 +2,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { AppLogo } from "./AppLogo";
-import { Grid3x3 } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 
 interface LoadingSpinnerProps {
   fullPage?: boolean;
@@ -22,7 +21,10 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullPage = true,
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <AppLogo iconSize={40} textSize="text-3xl" />
+        <div className="flex items-center gap-2 font-bold">
+            <LayoutDashboard style={{ width: 40, height: 40 }} className="text-primary" />
+            <h1 className="text-3xl">Datafy</h1>
+        </div>
       </motion.div>
       <div className="relative mt-4 w-64 h-8 overflow-hidden">
         <motion.div
@@ -42,5 +44,3 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullPage = true,
     </div>
   );
 };
-
-    

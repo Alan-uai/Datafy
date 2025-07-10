@@ -84,7 +84,7 @@ const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetTy
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 h-6 w-6 z-10 rounded-full bg-transparent hover:bg-destructive/20 text-destructive-foreground opacity-0 group-hover/widget:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 h-6 w-6 z-10 rounded-full bg-transparent hover:bg-destructive/20 text-destructive opacity-0 group-hover/widget:opacity-100 transition-opacity"
                     onClick={(e) => {
                         e.stopPropagation();
                         onRemove(id);
@@ -484,5 +484,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    

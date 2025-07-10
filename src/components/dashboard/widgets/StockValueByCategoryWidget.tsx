@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import type { WidgetProps } from './widget-map';
+import { WIDGET_MAP } from './widget-map';
 
 const chartConfig = {
   value: {
@@ -25,11 +26,17 @@ export const StockValueByCategoryWidget: React.FC<WidgetProps> = ({ products, ca
     }));
   }, [products, categories]);
 
+  const widgetInfo = WIDGET_MAP.stockValueByCategory;
+  const Icon = widgetInfo.Icon;
+
   if (chartData.length === 0) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Valor do Estoque por Categoria</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <Icon className="h-5 w-5 text-primary" />
+                    {widgetInfo.title}
+                </CardTitle>
                 <CardDescription>Nenhum dado para exibir.</CardDescription>
             </CardHeader>
             <CardContent className="flex h-60 items-center justify-center">
@@ -42,8 +49,11 @@ export const StockValueByCategoryWidget: React.FC<WidgetProps> = ({ products, ca
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Valor do Estoque por Categoria</CardTitle>
-        <CardDescription>Comparativo do valor total de estoque entre as categorias.</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+            <Icon className="h-5 w-5 text-primary" />
+            {widgetInfo.title}
+        </CardTitle>
+        <CardDescription>{widgetInfo.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
