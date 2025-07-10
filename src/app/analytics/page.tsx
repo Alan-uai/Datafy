@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, getProductsByList, getProductsByUser } from '@/services/productService';
 import type { Product, ProductList, Category } from '@/lib/types';
-import { initialCategories } from '@/lib/data';
+import { categories as initialCategories } from '@/lib/data';
 import { Header } from '@/components/shared/Header';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
