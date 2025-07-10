@@ -272,8 +272,8 @@ export function Dashboard() {
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
-                            <Settings className="h-4 w-4 mr-0 sm:mr-2" />
-                            <span className="hidden sm:inline">Colunas</span>
+                            <Settings className="h-4 w-4 mr-2" />
+                            <span>Colunas</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -294,8 +294,8 @@ export function Dashboard() {
                       </DropdownMenu>
 
                       <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
-                          <Settings className="h-4 w-4 mr-0 sm:mr-2" />
-                          <span className="hidden sm:inline">{isEditingWidgets ? "Finalizar" : "Widgets"}</span>
+                          <Settings className="h-4 w-4 mr-2" />
+                          <span>{isEditingWidgets ? "Finalizar" : "Widgets"}</span>
                       </Button>
                 </div>
             </header>
