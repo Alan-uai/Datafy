@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -331,13 +332,6 @@ export default function ProfilePage() {
       }
 
       await updateUserProfile(currentUser.uid, userProfile);
-
-      // Save preferences to localStorage
-      localStorage.setItem('datafy-user-preferences', JSON.stringify({
-        notifications: userProfile.notifications,
-        preferences: userProfile.preferences,
-        privacy: userProfile.privacy
-      }));
 
       setIsEditing(false);
       playInteractionSound('success');

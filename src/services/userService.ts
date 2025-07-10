@@ -39,6 +39,7 @@ export interface UserProfile {
     theme: 'dark' | 'light' | 'system';
     soundEnabled: boolean;
     language: 'pt-BR' | 'en-US';
+    columnVisibility?: Record<string, boolean>;
   };
   privacy: {
     showEmail: boolean;
@@ -53,7 +54,20 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
   stats: { productsCount: 0, listsCount: 0, daysActive: 0, efficiencyScore: 0 },
   achievements: [],
   notifications: { email: true, push: true, expiryWarnings: true },
-  preferences: { theme: 'dark', soundEnabled: true, language: 'pt-BR' },
+  preferences: { 
+    theme: 'dark', 
+    soundEnabled: true, 
+    language: 'pt-BR',
+    columnVisibility: {
+      'produto': true,
+      'marca': true,
+      'qtde': true,
+      'validade': true,
+      'preco': true,
+      'categoria': true,
+      'status': true,
+    }
+  },
   privacy: { showEmail: false, showActivity: true },
 };
 
@@ -71,6 +85,10 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       ...data,
+      preferences: {
+        ...defaultProfile.preferences,
+        ...data.preferences,
+      }
     };
     await setDoc(userRef, newUserProfile);
   }
@@ -98,10 +116,18 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
 export const updateUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<void> => {
   const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  
+  // Custom merge for nested preference object
+  const updates: any = { ...data, updatedAt: serverTimestamp() };
+  if (data.preferences) {
+      const existingProfile = await getUserProfile(uid);
+      updates.preferences = {
+          ...existingProfile?.preferences,
+          ...data.preferences
+      };
+  }
+
+  await updateDoc(userRef, updates);
 };
 
 export const checkPremiumStatus = async (uid: string): Promise<boolean> => {

@@ -17,7 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { products as initialProducts, categories as initialCategories } from "@/lib/data";
 import type { Product, Category } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Settings, Trash2, Edit, Search, Filter, ArrowUp, Grid3x3, Columns3 } from "lucide-react";
+import { Plus, Settings, Trash2, Edit, Search, Filter, ArrowUp, Grid3x3 } from "lucide-react";
 import { ExpiryAttentionReportCard } from './dashboard/ExpiryAttentionReportCard';
 import {
   DropdownMenu,
@@ -27,20 +27,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { Table as TanstackTable } from "@tanstack/react-table" // We will use the types but not the full library for now
-
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserProfile, updateUserProfile } from "@/services/userService";
+import type { UserProfile } from "@/services/userService";
 
 // A simplified visibility state type, similar to what Tanstack Table uses
 type ColumnVisibility = Record<string, boolean>;
 
-
-export function Dashboard() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories] = useState<Category[]>(initialCategories);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-  
-  const initialColumns: ColumnVisibility = {
+const initialColumns: ColumnVisibility = {
     'produto': true,
     'marca': true,
     'qtde': true,
@@ -48,17 +42,9 @@ export function Dashboard() {
     'preco': true,
     'categoria': true,
     'status': true,
-  }
+};
 
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(() => {
-    if (typeof window !== 'undefined') {
-      const savedVisibility = localStorage.getItem('columnVisibility');
-      return savedVisibility ? JSON.parse(savedVisibility) : initialColumns;
-    }
-    return initialColumns;
-  });
-
-  const columnNames: Record<keyof typeof initialColumns, string> = {
+const columnNames: Record<keyof typeof initialColumns, string> = {
     'produto': 'Produto',
     'marca': 'Marca',
     'qtde': 'Qtde',
@@ -66,20 +52,20 @@ export function Dashboard() {
     'preco': 'Preço (R$)',
     'categoria': 'Categoria',
     'status': 'Status',
-  };
+};
 
-
-  const productsForAI = useMemo(() => {
-    if (!isClient) return [];
-    return products.map(p => ({
-      ...p,
-      validade: p.expiryDate.toISOString(),
-      produto: p.name,
-    }));
-  }, [products, isClient]);
+export function Dashboard() {
+  const { currentUser } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories] = useState<Category[]>(initialCategories);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(initialColumns);
+
   useEffect(() => {
-    setIsClient(true)
+    setIsClient(true);
     // Simulating one product for the table as in the image
     const sampleProduct: Product = {
         id: '101',
@@ -92,17 +78,41 @@ export function Dashboard() {
     };
     setProducts([sampleProduct]);
 
-    const savedVisibility = localStorage.getItem('columnVisibility');
-    if (savedVisibility) {
-        setColumnVisibility(JSON.parse(savedVisibility));
+    async function loadProfile() {
+        if (currentUser) {
+            const profile = await getUserProfile(currentUser.uid);
+            setUserProfile(profile);
+            if (profile?.preferences?.columnVisibility) {
+                // Ensure all columns have a default value if not present in saved config
+                const mergedVisibility = { ...initialColumns, ...profile.preferences.columnVisibility };
+                setColumnVisibility(mergedVisibility);
+            }
+        }
     }
-  }, []);
+    loadProfile();
+  }, [currentUser]);
 
-  useEffect(() => {
-    if(isClient) {
-        localStorage.setItem('columnVisibility', JSON.stringify(columnVisibility));
+  const productsForAI = useMemo(() => {
+    if (!isClient) return [];
+    return products.map(p => ({
+      ...p,
+      validade: p.expiryDate.toISOString(),
+      produto: p.name,
+    }));
+  }, [products, isClient]);
+
+  const handleColumnVisibilityChange = (key: string, value: boolean) => {
+    const newVisibility = { ...columnVisibility, [key]: value };
+    setColumnVisibility(newVisibility);
+    if (currentUser) {
+        updateUserProfile(currentUser.uid, {
+            preferences: {
+                ...(userProfile?.preferences ?? {}),
+                columnVisibility: newVisibility,
+            },
+        });
     }
-  }, [columnVisibility, isClient]);
+  };
 
   const handleAddProduct = (newProduct: Omit<Product, "id">) => {
     setProducts((prev) => [
@@ -131,7 +141,7 @@ export function Dashboard() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline">
-                          <Columns3 className="mr-2 h-4 w-4" />
+                          <Settings className="mr-2 h-4 w-4" />
                           Colunas
                         </Button>
                       </DropdownMenuTrigger>
@@ -145,7 +155,7 @@ export function Dashboard() {
                                className="capitalize"
                                checked={columnVisibility[key]}
                                onCheckedChange={(value) =>
-                                 setColumnVisibility(prev => ({...prev, [key]: !!value}))
+                                 handleColumnVisibilityChange(key, !!value)
                                }
                                onSelect={(e) => e.preventDefault()}
                              >
