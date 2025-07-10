@@ -1,50 +1,68 @@
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Package, PieChart, LineChart, BarChart, CircleDollarSign } from 'lucide-react';
+import { LayoutDashboard, Package, PieChart, BarChart, CircleDollarSign, ShieldAlert } from 'lucide-react';
 import type { Product, Category } from '@/lib/types';
 import { StatsCardsWidget } from './StatsCardsWidget';
 import { CategoryDistributionWidget } from './CategoryDistributionWidget';
 import { StockValueByCategoryWidget } from './StockValueByCategoryWidget';
 import { LowStockItemsWidget } from './LowStockItemsWidget';
 import { PriceRangeDistributionWidget } from './PriceRangeDistributionWidget';
+import { ExpiryAttentionReportCard } from '@/components/dashboard/ExpiryAttentionReportCard';
 
 export type WidgetProps = {
   products: Product[];
   categories: Category[];
 };
 
+export type ExpiryWidgetProps = {
+  listProducts: Product[];
+}
+
 export type WidgetConfig = {
+  id: AllWidgetType;
   title: string;
   description: string;
   Icon: LucideIcon;
-  component: React.FC<WidgetProps>;
+  component: React.FC<WidgetProps> | React.FC<ExpiryWidgetProps>;
 };
 
 export const WIDGET_MAP = {
   statsCards: {
+    id: "statsCards",
     title: "Estatísticas Rápidas",
     description: "Visão geral do seu inventário.",
     Icon: LayoutDashboard,
     component: StatsCardsWidget,
   },
+  expiryAttention: {
+    id: "expiryAttention",
+    title: "Radar de Validade",
+    description: "Análise de itens críticos próximos da validade.",
+    Icon: ShieldAlert,
+    component: ExpiryAttentionReportCard,
+  },
   categoryDistribution: {
+    id: "categoryDistribution",
     title: "Distribuição por Categoria",
     description: "Gráfico de pizza das categorias de produtos.",
     Icon: PieChart,
     component: CategoryDistributionWidget,
   },
   stockValueByCategory: {
+    id: "stockValueByCategory",
     title: "Valor por Categoria",
     description: "Valor total do estoque para cada categoria.",
     Icon: BarChart,
     component: StockValueByCategoryWidget,
   },
   lowStockItems: {
+    id: "lowStockItems",
     title: "Itens com Baixo Estoque",
     description: "Produtos que precisam de reposição.",
     Icon: Package,
     component: LowStockItemsWidget,
   },
   priceRangeDistribution: {
+    id: "priceRangeDistribution",
     title: "Distribuição de Preços",
     description: "Como os produtos se distribuem por faixa de preço.",
     Icon: CircleDollarSign,

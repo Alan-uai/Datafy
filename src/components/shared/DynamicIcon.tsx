@@ -38,7 +38,7 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   ShoppingCart: Icons.ShoppingCart,
   List: Icons.List,
   CalendarCheck: Icons.CalendarCheck,
-  ChartLine: Icons.BarChart, // Using BarChart for ChartLine as it's more standard in Lucide
+  BarChart: Icons.BarChart,
   // Add other icons as needed
 };
 

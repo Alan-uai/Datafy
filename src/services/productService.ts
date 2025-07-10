@@ -1,15 +1,18 @@
-
-import { collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, documentId } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Product, ProductList } from '@/lib/types';
-import { products as initialProducts } from '@/lib/data'; // for seeding
 
 // ====== ProductList Functions ======
 
 export const getProductLists = async (userId: string): Promise<ProductList[]> => {
-  const listsQuery = query(collection(db, 'productLists'), where('userId', '==', userId));
-  const querySnapshot = await getDocs(listsQuery);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductList));
+  try {
+    const listsQuery = query(collection(db, 'productLists'), where('userId', '==', userId));
+    const querySnapshot = await getDocs(listsQuery);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductList));
+  } catch (error) {
+    console.error("Error fetching product lists:", error);
+    return [];
+  }
 };
 
 export const addProductList = async (userId: string, name: string): Promise<string> => {
@@ -28,33 +31,37 @@ const parseProductDoc = (doc: any): Product => {
     return {
         id: doc.id,
         ...data,
-        // Firebase timestamps need to be converted to JS Date objects
-        expiryDate: data.expiryDate?.toDate ? data.expiryDate.toDate() : new Date(data.expiryDate),
+        expiryDate: data.expiryDate?.toDate ? data.expiryDate.toDate() : new Date(data.expiryDate || new Date()),
     } as Product;
 }
 
 export const getProductsByList = async (userId: string, listId: string): Promise<Product[]> => {
-  // If listId is default, use local data
-  if (listId === 'default') {
-    return initialProducts.map(p => ({ ...p, listId: 'default' }));
+  try {
+    const productsQuery = query(
+      collection(db, 'products'),
+      where('userId', '==', userId),
+      where('listId', '==', listId)
+    );
+    const querySnapshot = await getDocs(productsQuery);
+    return querySnapshot.docs.map(parseProductDoc);
+  } catch (error) {
+    console.error(`Error fetching products for list ${listId}:`, error);
+    return [];
   }
-  const productsQuery = query(
-    collection(db, 'products'),
-    where('userId', '==', userId),
-    where('listId', '==', listId)
-  );
-  const querySnapshot = await getDocs(productsQuery);
-  return querySnapshot.docs.map(parseProductDoc);
 };
 
 export const getProductsByUser = async (userId: string): Promise<Product[]> => {
-  // This could be heavy, use with caution. Consider pagination for real apps.
-  const productsQuery = query(
-    collection(db, 'products'),
-    where('userId', '==', userId)
-  );
-  const querySnapshot = await getDocs(productsQuery);
-  return querySnapshot.docs.map(parseProductDoc);
+  try {
+    const productsQuery = query(
+      collection(db, 'products'),
+      where('userId', '==', userId)
+    );
+    const querySnapshot = await getDocs(productsQuery);
+    return querySnapshot.docs.map(parseProductDoc);
+  } catch (error) {
+     console.error(`Error fetching products for user ${userId}:`, error);
+     return [];
+  }
 }
 
 
