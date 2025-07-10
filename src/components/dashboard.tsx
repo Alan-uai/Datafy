@@ -130,6 +130,7 @@ export function Dashboard() {
                                onCheckedChange={(value) =>
                                  setColumnVisibility(prev => ({...prev, [key]: !!value}))
                                }
+                               onSelect={(e) => e.preventDefault()}
                              >
                                {columnNames[key]}
                              </DropdownMenuCheckboxItem>
@@ -211,5 +212,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
