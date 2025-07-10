@@ -17,7 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Search, Filter, ArrowUp, X, Loader2, ListPlus, Settings, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, ListPlus, Settings, Edit, Trash2, RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ import { getProductLists, getProductsByList, addProductList, addProduct, updateP
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,41 +46,28 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { DynamicIcon } from "@/components/shared/DynamicIcon";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
+import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
+import { debounce } from 'lodash';
 
 const columnNames = {
     'produto': 'Produto',
     'marca': 'Marca',
     'qtde': 'Qtde',
     'validade': 'Validade',
-    'preco': 'Preço (R$)',
+    'preco': 'Preço',
     'categoria': 'Categoria',
     'status': 'Status',
 };
 
 type ColumnVisibility = Record<string, boolean>;
+type SortDirection = 'asc' | 'desc';
+type SortKey = keyof Product | '';
 
-const initialColumns: ColumnVisibility = {
-    'produto': true,
-    'marca': true,
-    'qtde': true,
-    'validade': true,
-    'preco': true,
-    'categoria': true,
-    'status': true,
-};
-
-const availableListIcons = ["Beer", "Refrigerator", "Snowflake", "Weight", "ShoppingCart", "Apple", "Carrot", "Milk", "Package"];
-
+const availableListIcons = ["Beer", "Refrigerator", "Snowflake", "Weight", "ShoppingCart", "Apple", "Carrot", "Milk", "Package", "List", "Home", "Gift", "Box", "Utensils", "Heart", "Star", "Zap", "Camera", "Music", "Palette", "Smartphone", "Crown"];
 
 const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetType, isEditing: boolean, onRemove: (id: AllWidgetType) => void, children: React.ReactNode }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -115,6 +102,7 @@ export function Dashboard() {
   const { userProfile, setUserProfile, savePreferences } = useUserProfile();
   
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [productLists, setProductLists] = useState<ProductList[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,9 +110,50 @@ export function Dashboard() {
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
   const [isManageListDialogOpen, setIsManageListDialogOpen] = useState(false);
   const [editingList, setEditingList] = useState<ProductList | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [sortKey, setSortKey] = useState<SortKey>('');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
+  const [newListIcon, setNewListIcon] = useState<string>("List");
+  const [isSuggestingIcon, setIsSuggestingIcon] = useState(false);
   const newListNameRef = useRef<HTMLInputElement>(null);
-  const [newListIcon, setNewListIcon] = useState<string>(availableListIcons[0]);
+
+  const debouncedIconSuggestion = useCallback(
+    debounce(async (name: string) => {
+      if (name.length < 3) return;
+      setIsSuggestingIcon(true);
+      try {
+        const { iconName } = await suggestListIcon({ listName: name });
+        setNewListIcon(iconName || 'List');
+      } catch (error) {
+        console.error("Icon suggestion failed:", error);
+        setNewListIcon('List'); // fallback
+      } finally {
+        setIsSuggestingIcon(false);
+      }
+    }, 800),
+    []
+  );
+
+  const handleNewListNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    debouncedIconSuggestion(event.target.value);
+  };
+  
+  const handleRegenerateIcon = async () => {
+    const listName = newListNameRef.current?.value;
+    if (!listName) return;
+    setIsSuggestingIcon(true);
+    try {
+        const { iconName } = await suggestListIcon({ listName });
+        setNewListIcon(iconName || 'List');
+    } catch (error) {
+        console.error("Icon suggestion failed:", error);
+    } finally {
+        setIsSuggestingIcon(false);
+    }
+  };
 
   const productsForAI = useMemo(() => {
     if (!products) return [];
@@ -173,6 +202,53 @@ export function Dashboard() {
     loadInitialData();
   }, [loadInitialData]);
   
+  useEffect(() => {
+    let tempProducts = [...products];
+    // Filtering
+    if (searchQuery) {
+        tempProducts = tempProducts.filter(p => 
+            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.brand.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (activeFilter === 'today') {
+        tempProducts = tempProducts.filter(p => new Date(p.expiryDate).setHours(0,0,0,0) === today.getTime());
+    } else if (activeFilter === 'expired') {
+        tempProducts = tempProducts.filter(p => new Date(p.expiryDate) < today);
+    } else if (activeFilter === 'next7') {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+        tempProducts = tempProducts.filter(p => new Date(p.expiryDate) > today && new Date(p.expiryDate) <= nextWeek);
+    }
+
+    // Sorting
+    if (sortKey) {
+        tempProducts.sort((a, b) => {
+            const valA = a[sortKey as keyof Product];
+            const valB = b[sortKey as keyof Product];
+
+            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    setFilteredProducts(tempProducts);
+  }, [products, searchQuery, activeFilter, sortKey, sortDirection]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+        setSortKey(key);
+        setSortDirection('asc');
+    }
+  };
+  
   const handleListChange = async (listId: string) => {
     if (!currentUser || listId === activeListId) return;
     setActiveListId(listId);
@@ -212,12 +288,12 @@ export function Dashboard() {
     }
 
     try {
-        if (editingList) { // Update existing list
+        if (editingList) {
             const updatedData = { name: listName.trim(), icon: newListIcon };
             await updateProductList(editingList.id, updatedData);
             setProductLists(prev => prev.map(l => l.id === editingList.id ? { ...l, ...updatedData } : l));
             toast({ title: "Lista atualizada!", description: `A lista "${listName.trim()}" foi atualizada.` });
-        } else { // Create new list
+        } else { 
             const newListId = await addProductList(currentUser.uid, listName.trim(), newListIcon);
             const newList: ProductList = { id: newListId, name: listName.trim(), icon: newListIcon, userId: currentUser.uid, createdAt: new Date() };
             setProductLists(prev => [...prev, newList]);
@@ -235,12 +311,14 @@ export function Dashboard() {
 
   const openManageListDialog = (list: ProductList | null) => {
     setEditingList(list);
-    setNewListIcon(list?.icon || availableListIcons[0]);
+    setNewListIcon(list?.icon || 'List');
     setIsManageListDialogOpen(true);
-    // Use timeout to focus after dialog is rendered
     setTimeout(() => {
         if (newListNameRef.current) {
             newListNameRef.current.value = list?.name || '';
+            if (!list) { // Only suggest icon for new lists
+               debouncedIconSuggestion(newListNameRef.current.value);
+            }
         }
     }, 100);
   };
@@ -304,19 +382,24 @@ export function Dashboard() {
   }
 
   const widgetDataProps = { products, categories };
-  const { isEditingWidgets } = userProfile.preferences;
+  const { isEditingWidgets, columnVisibility } = userProfile.preferences;
+
+  const renderSortIcon = (key: SortKey) => {
+    if (sortKey !== key) return null;
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
 
   return (
     <div className="flex flex-col h-full bg-background relative">
         <div className="p-4 md:p-6 space-y-6">
-            <header className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Dashboard</h1>
-                 <div className="flex items-center gap-2">
+            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                 <h1 className="text-2xl font-bold">Dashboard</h1>
+                 <div className="flex items-center gap-2 self-end sm:self-auto">
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
-                            <Settings className="h-4 w-4 mr-2" />
-                            <span>Colunas</span>
+                            <Settings className="h-4 w-4" />
+                            <span className="ml-2">Colunas</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -326,7 +409,7 @@ export function Dashboard() {
                              <DropdownMenuCheckboxItem
                                key={key}
                                className="capitalize"
-                               checked={userProfile.preferences.columnVisibility[key] ?? true}
+                               checked={columnVisibility[key] ?? true}
                                onCheckedChange={(value) => handleColumnVisibilityChange(key, !!value)}
                                onSelect={(e) => e.preventDefault()}
                              >
@@ -337,18 +420,17 @@ export function Dashboard() {
                       </DropdownMenu>
 
                       <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          <span>{isEditingWidgets ? "Finalizar" : "Widgets"}</span>
+                          <Settings className="h-4 w-4" />
+                          <span className="ml-2">{isEditingWidgets ? "Finalizar" : "Widgets"}</span>
                       </Button>
                 </div>
             </header>
-            
+
             <Card>
                 <CardContent className="p-4">
                     <Tabs value={activeListId || ""} onValueChange={handleListChange} className="w-full">
-                         <div className="flex items-center gap-2 flex-wrap">
-                            <TabsList className="p-0 bg-transparent h-auto">
-                                {productLists.map(list => (
+                         <div className="flex items-center gap-2 flex-wrap pb-4 border-b">
+                            {productLists.map(list => (
                                 <TabsTrigger 
                                     key={list.id} 
                                     value={list.id} 
@@ -358,72 +440,37 @@ export function Dashboard() {
                                         <DynamicIcon name={list.icon || 'List'} />
                                         <span>{list.name}</span>
                                     </div>
-                                    <div className="flex items-center gap-1 ml-2 opacity-0 group-hover/tab:opacity-100 transition-opacity">
+                                    <div className="flex items-center gap-1 ml-2 opacity-100 sm:opacity-0 group-hover/tab:opacity-100 transition-opacity">
                                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openManageListDialog(list); }}>
                                             <Edit className="h-4 w-4" />
                                        </Button>
-                                       <Button size="icon" variant="ghost" className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteList(list.id); }}>
-                                            <Trash2 className="h-4 w-4" />
-                                       </Button>
+                                       <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                           <Button size="icon" variant="ghost" className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive" onClick={e => e.stopPropagation()}>
+                                                <Trash2 className="h-4 w-4" />
+                                           </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Esta ação não pode ser desfeita. Isso excluirá permanentemente a lista "{list.name}" e todos os produtos contidos nela.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteList(list.id)}>Excluir</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                 </TabsTrigger>
-                                ))}
-                            </TabsList>
+                            ))}
                              <Button variant="outline" onClick={() => openManageListDialog(null)}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Lista
                             </Button>
                         </div>
-                        
-                        {productLists.map(list => (
-                           <TabsContent key={list.id} value={list.id} className="mt-4">
-                             <div className="flex items-center gap-2">
-                                <div className="relative w-full">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                    <Input placeholder="Buscar produtos..." className="pl-10"/>
-                                </div>
-                                <Button variant="outline"><Filter className="mr-2 h-4 w-4"/>Filtro</Button>
-                            </div>
-
-                             <div className="overflow-x-auto mt-4">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            {(userProfile.preferences.columnVisibility.produto ?? true) && <TableHead><div className="flex items-center gap-1">Produto <ArrowUp className="h-4 w-4"/></div></TableHead>}
-                                            {(userProfile.preferences.columnVisibility.marca ?? true) && <TableHead>Marca</TableHead>}
-                                            {(userProfile.preferences.columnVisibility.qtde ?? true) && <TableHead>Qtde</TableHead>}
-                                            {(userProfile.preferences.columnVisibility.validade ?? true) && <TableHead>Validade</TableHead>}
-                                            {(userProfile.preferences.columnVisibility.preco ?? true) && <TableHead><div>Preço<div className="font-normal text-muted-foreground">(R$)</div></div></TableHead>}
-                                            {(userProfile.preferences.columnVisibility.categoria ?? true) && <TableHead>Categoria</TableHead>}
-                                            {(userProfile.preferences.columnVisibility.status ?? true) && <TableHead>Status</TableHead>}
-                                            <TableHead className="w-[100px] text-right">Ações</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {products?.map((product) => (
-                                        <TableRow key={product.id}>
-                                            {(userProfile.preferences.columnVisibility.produto ?? true) && <TableCell className="font-medium">{product.name}</TableCell>}
-                                            {(userProfile.preferences.columnVisibility.marca ?? true) && <TableCell>{product.brand}</TableCell>}
-                                            {(userProfile.preferences.columnVisibility.qtde ?? true) && <TableCell>{product.quantity}</TableCell>}
-                                            {(userProfile.preferences.columnVisibility.validade ?? true) && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
-                                            {(userProfile.preferences.columnVisibility.preco ?? true) && <TableCell>R$ {product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                                            {(userProfile.preferences.columnVisibility.categoria ?? true) && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
-                                            {(userProfile.preferences.columnVisibility.status ?? true) && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
-                                            <TableCell className="text-right">
-                                              {/* Action buttons here */}
-                                            </TableCell>
-                                        </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                                {products?.length === 0 && !isLoading && (
-                                    <div className="text-center p-8 text-muted-foreground">
-                                        Nenhum produto encontrado nesta lista.
-                                    </div>
-                                )}
-                            </div>
-                           </TabsContent>
-                        ))}
                     </Tabs>
                      {productLists.length === 0 && !isLoading && (
                         <div className="text-center p-16">
@@ -434,6 +481,75 @@ export function Dashboard() {
                     )}
                 </CardContent>
             </Card>
+
+            {activeListId && (
+            <Card>
+                <CardContent className="p-4">
+                     <div className="flex flex-col sm:flex-row items-center gap-2">
+                        <div className="relative w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                            <Input placeholder="Buscar produtos..." className="pl-10" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full sm:w-auto">
+                                  <Filter className="mr-2 h-4 w-4"/>
+                                  Filtro
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>Filtrar por validade</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
+                                <DropdownMenuRadioItem value="all">Todos</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="today">Vence Hoje</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="expired">Vencidos</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="next7">Próximos 7 dias</DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                     <div className="overflow-x-auto mt-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="border-b-0">
+                                    {columnVisibility.produto && <TableHead><Button variant="ghost" onClick={() => handleSort('name')}>Produto {renderSortIcon('name')}</Button></TableHead>}
+                                    {columnVisibility.marca && <TableHead><Button variant="ghost" onClick={() => handleSort('brand')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
+                                    {columnVisibility.qtde && <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
+                                    {columnVisibility.validade && <TableHead><Button variant="ghost" onClick={() => handleSort('expiryDate')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
+                                    {columnVisibility.preco && <TableHead><Button variant="ghost" onClick={() => handleSort('price')}>Preço {renderSortIcon('price')}</Button></TableHead>}
+                                    {columnVisibility.categoria && <TableHead><Button variant="ghost" onClick={() => handleSort('category')}>Categoria {renderSortIcon('category')}</Button></TableHead>}
+                                    {columnVisibility.status && <TableHead>Status</TableHead>}
+                                    <TableHead className="w-[100px] text-right">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredProducts.map((product) => (
+                                <TableRow key={product.id}>
+                                    {columnVisibility.produto && <TableCell className="font-medium">{product.name}</TableCell>}
+                                    {columnVisibility.marca && <TableCell>{product.brand}</TableCell>}
+                                    {columnVisibility.qtde && <TableCell>{product.quantity}</TableCell>}
+                                    {columnVisibility.validade && <TableCell>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
+                                    {columnVisibility.preco && <TableCell>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
+                                    {columnVisibility.categoria && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
+                                    {columnVisibility.status && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
+                                    <TableCell className="text-right">
+                                      {/* Action buttons here */}
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        {filteredProducts.length === 0 && !isLoading && (
+                            <div className="text-center p-8 text-muted-foreground">
+                                Nenhum produto encontrado.
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+            )}
 
             <DndContext sensors={[]} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
@@ -470,28 +586,22 @@ export function Dashboard() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>{editingList ? 'Editar Lista' : 'Criar Nova Lista'}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        {editingList ? 'Altere o nome e o ícone da sua lista.' : 'Escolha um nome e um ícone para sua nova lista.'}
+                        {editingList ? 'Altere o nome e o ícone da sua lista.' : 'Digite o nome da sua lista e a IA sugerirá um ícone.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4 space-y-4">
-                    <Input ref={newListNameRef} placeholder="Ex: Compras da Semana" />
+                    <Input ref={newListNameRef} placeholder="Ex: Compras da Semana" onChange={handleNewListNameChange} defaultValue={editingList?.name || ''}/>
                     <div>
-                        <label className="text-sm font-medium mb-2 block">Ícone</label>
-                        <Select value={newListIcon} onValueChange={setNewListIcon}>
-                             <SelectTrigger>
-                                <SelectValue placeholder="Selecione um ícone" />
-                             </SelectTrigger>
-                             <SelectContent>
-                                {availableListIcons.map(iconName => (
-                                    <SelectItem key={iconName} value={iconName}>
-                                       <div className="flex items-center gap-2">
-                                         <DynamicIcon name={iconName} />
-                                         <span>{iconName}</span>
-                                       </div>
-                                    </SelectItem>
-                                ))}
-                             </SelectContent>
-                        </Select>
+                        <Label className="text-sm font-medium mb-2 block">Ícone Sugerido</Label>
+                        <div className="flex items-center gap-2">
+                           <div className="flex items-center gap-2 p-2 border rounded-md w-full">
+                             {isSuggestingIcon ? <Loader2 className="h-5 w-5 animate-spin" /> : <DynamicIcon name={newListIcon} className="h-5 w-5"/>}
+                             <span className="flex-1">{newListIcon}</span>
+                           </div>
+                           <Button variant="outline" size="icon" onClick={handleRegenerateIcon} disabled={isSuggestingIcon}>
+                             <RefreshCw className={`h-4 w-4 ${isSuggestingIcon ? 'animate-spin' : ''}`} />
+                           </Button>
+                        </div>
                     </div>
                 </div>
                 <AlertDialogFooter>
