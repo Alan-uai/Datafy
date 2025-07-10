@@ -50,7 +50,13 @@ export function Dashboard() {
     'status': true,
   }
 
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(initialColumns);
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(() => {
+    if (typeof window !== 'undefined') {
+      const savedVisibility = localStorage.getItem('columnVisibility');
+      return savedVisibility ? JSON.parse(savedVisibility) : initialColumns;
+    }
+    return initialColumns;
+  });
 
   const columnNames: Record<keyof typeof initialColumns, string> = {
     'produto': 'Produto',
@@ -85,7 +91,18 @@ export function Dashboard() {
         category: 'pesado', // This category is not in the initial list, but is in the image
     };
     setProducts([sampleProduct]);
+
+    const savedVisibility = localStorage.getItem('columnVisibility');
+    if (savedVisibility) {
+        setColumnVisibility(JSON.parse(savedVisibility));
+    }
   }, []);
+
+  useEffect(() => {
+    if(isClient) {
+        localStorage.setItem('columnVisibility', JSON.stringify(columnVisibility));
+    }
+  }, [columnVisibility, isClient]);
 
   const handleAddProduct = (newProduct: Omit<Product, "id">) => {
     setProducts((prev) => [
@@ -132,7 +149,7 @@ export function Dashboard() {
                                }
                                onSelect={(e) => e.preventDefault()}
                              >
-                               {columnNames[key]}
+                               {columnNames[key as keyof typeof columnNames]}
                              </DropdownMenuCheckboxItem>
                            )
                          })}
