@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { LogOut, Sun, User as UserIcon, BarChart3, ShieldAlert } from 'lucide-react';
+import { LogOut, Sun, User as UserIcon, BarChart3 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 
 export function Header() {
@@ -38,7 +38,7 @@ export function Header() {
     <TooltipProvider>
       <header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-background/95 backdrop-blur-sm">
         <Link href="/">
-          <AppLogo text="Datafy" />
+          <AppLogo />
         </Link>
         
         <div className="flex items-center gap-2 sm:gap-4">

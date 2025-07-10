@@ -17,7 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Settings, Search, Filter, ArrowUp, Grid3x3, X, Loader2, ListPlus } from "lucide-react";
+import { Plus, Settings, Search, Filter, ArrowUp, X, Loader2, ListPlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -47,6 +47,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AppLogo } from "@/components/shared/AppLogo";
 
 type ColumnVisibility = Record<string, boolean>;
 
@@ -180,7 +181,7 @@ export function Dashboard() {
         const fetchedProducts = await getProductsByList(currentUser.uid, listId);
         setProducts(fetchedProducts);
         if (currentUser && userProfile) {
-            updateUserProfile(currentUser.uid, {
+            await updateUserProfile(currentUser.uid, {
                 preferences: { ...userProfile.preferences, lastActiveListId: listId }
             });
         }
@@ -196,10 +197,10 @@ export function Dashboard() {
   const handleColumnVisibilityChange = (key: string, value: boolean) => {
     const newVisibility = { ...columnVisibility, [key]: value };
     setColumnVisibility(newVisibility);
-    if (currentUser) {
+    if (currentUser && userProfile) {
         updateUserProfile(currentUser.uid, {
             preferences: {
-                ...(userProfile?.preferences ?? {}),
+                ...userProfile.preferences,
                 columnVisibility: newVisibility,
             },
         });
@@ -237,7 +238,7 @@ export function Dashboard() {
         console.error("Failed to create list", error);
         toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar a nova lista." });
     }
-  }
+  };
 
   const handleWidgetEditing = () => {
       if (isEditingWidgets && currentUser && userProfile) {
@@ -252,7 +253,7 @@ export function Dashboard() {
       if (!userProfile) return;
       setUserProfile({
           ...userProfile,
-          preferences: { ...userProfile.preferences, activeWidgets: newActiveWidgets }
+          preferences: { ...(userProfile?.preferences ?? {}), activeWidgets: newActiveWidgets }
       });
   }
 
@@ -283,7 +284,7 @@ export function Dashboard() {
         <div className="p-4 md:p-6 space-y-6">
             <header className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <Grid3x3 className="h-7 w-7"/>
+                    <AppLogo />
                     <h1 className="text-2xl font-bold">Dashboard</h1>
                 </div>
                 <div className="flex items-center gap-2">
@@ -374,23 +375,27 @@ export function Dashboard() {
             <Card>
                 <CardContent className="p-4">
                     <Tabs value={activeListId || ""} onValueChange={handleListChange}>
-                        <Carousel setApi={setCarouselApi} className="w-full">
-                          <CarouselContent>
-                            {productLists.map(list => (
-                              <CarouselItem key={list.id} className="basis-auto pr-2">
-                                <TabsTrigger value={list.id}>{list.name}</TabsTrigger>
-                              </CarouselItem>
-                            ))}
-                            <CarouselItem className="basis-auto pr-2">
-                               <Button variant="ghost" onClick={() => setIsAddListDialogOpen(true)}>
-                                  <ListPlus className="h-4 w-4 mr-2" />
-                                  Nova Lista
-                               </Button>
-                            </CarouselItem>
-                          </CarouselContent>
-                           <CarouselPrevious className="hidden sm:flex"/>
-                           <CarouselNext className="hidden sm:flex"/>
-                        </Carousel>
+                        <div className="relative">
+                            <TabsList className="p-0 bg-transparent">
+                                <Carousel setApi={setCarouselApi} className="w-full">
+                                <CarouselContent className="-ml-1">
+                                    {productLists.map(list => (
+                                    <CarouselItem key={list.id} className="basis-auto pl-1">
+                                        <TabsTrigger value={list.id}>{list.name}</TabsTrigger>
+                                    </CarouselItem>
+                                    ))}
+                                    <CarouselItem className="basis-auto pl-1">
+                                    <Button variant="ghost" onClick={() => setIsAddListDialogOpen(true)}>
+                                        <ListPlus className="h-4 w-4 mr-2" />
+                                        Nova Lista
+                                    </Button>
+                                    </CarouselItem>
+                                </CarouselContent>
+                                <CarouselPrevious className="absolute -left-12 top-1/2 -translate-y-1/2 hidden sm:flex"/>
+                                <CarouselNext className="absolute -right-12 top-1/2 -translate-y-1/2 hidden sm:flex"/>
+                                </Carousel>
+                            </TabsList>
+                        </div>
                         
                         {productLists.map(list => (
                            <TabsContent key={list.id} value={list.id} className="mt-4">

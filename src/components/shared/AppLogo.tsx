@@ -2,20 +2,17 @@
 "use client";
 
 import React from 'react';
-import type { LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ShieldAlert } from 'lucide-react';
 
 interface AppLogoProps {
   iconSize?: number;
-  text?: string;
   textSize?: string;
   className?: string;
 }
 
 export function AppLogo({ 
   iconSize = 24, 
-  text, 
   textSize = 'text-xl', 
   className 
 }: AppLogoProps) {
@@ -26,7 +23,7 @@ export function AppLogo({
       transition={{ type: 'spring', stiffness: 400, damping: 10 }}
     >
       <ShieldAlert style={{ width: iconSize, height: iconSize }} className="text-primary" />
-      {text && <h1 className={textSize}>{text}</h1>}
+      <h1 className={textSize}>Datafy</h1>
     </motion.div>
   );
 }
