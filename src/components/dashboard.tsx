@@ -399,7 +399,7 @@ export function Dashboard() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
                             <Settings className="h-4 w-4 mr-2" />
-                            Colunas
+                            <span>Colunas</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -421,7 +421,7 @@ export function Dashboard() {
 
                       <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
                           <Settings className="h-4 w-4 mr-2" />
-                          {isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}
+                          <span>{isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}</span>
                       </Button>
                 </div>
             </header>
@@ -451,18 +451,19 @@ export function Dashboard() {
         <div className="flex-1 flex flex-col">
             <div className="px-4 md:px-6 py-4 border-t">
                  <Tabs value={activeListId || ""} onValueChange={handleListChange} className="w-full">
-                     <TabsList className="grid-cols-none p-0 bg-transparent h-auto">
+                     <TabsList className="p-0 bg-transparent h-auto flex flex-wrap items-center gap-1">
                         {productLists.map(list => (
-                            <TabsTrigger 
-                                key={list.id} 
-                                value={list.id} 
-                                className="h-auto p-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground group/tab relative"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <DynamicIcon name={list.icon || 'List'} />
-                                    <span>{list.name}</span>
-                                </div>
-                                <div className="absolute right-0 top-0 bottom-0 flex items-center gap-1 p-2 opacity-100 sm:opacity-0 group-hover/tab:opacity-100 transition-opacity bg-background sm:bg-transparent">
+                            <div key={list.id} className="flex items-center group/tab relative">
+                                <TabsTrigger 
+                                    value={list.id} 
+                                    className="h-auto p-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <DynamicIcon name={list.icon || 'List'} />
+                                        <span>{list.name}</span>
+                                    </div>
+                                </TabsTrigger>
+                                <div className="flex items-center gap-1 ml-1 opacity-100 sm:opacity-0 group-hover/tab:opacity-100 transition-opacity">
                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openManageListDialog(list); }}>
                                         <Edit className="h-4 w-4" />
                                    </Button>
@@ -486,7 +487,7 @@ export function Dashboard() {
                                     </AlertDialogContent>
                                   </AlertDialog>
                                 </div>
-                            </TabsTrigger>
+                            </div>
                         ))}
                          <Button variant="ghost" onClick={() => openManageListDialog(null)}>
                             <Plus className="h-4 w-4 mr-2" />
@@ -610,3 +611,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
