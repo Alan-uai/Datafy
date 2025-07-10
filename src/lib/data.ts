@@ -1,4 +1,4 @@
-import type { Product, Category } from './types';
+import type { Product, Category, ProductList } from './types';
 import { Beer, Refrigerator, Snowflake, Weight } from 'lucide-react';
 
 export const categories: Category[] = [
@@ -17,6 +17,7 @@ export const products: Product[] = [
     expiryDate: new Date(new Date().setDate(new Date().getDate() + 5)),
     price: 4.50,
     category: 'geladeira',
+    listId: 'default'
   },
   {
     id: '2',
@@ -26,6 +27,7 @@ export const products: Product[] = [
     expiryDate: new Date(new Date().setDate(new Date().getDate() + 2)),
     price: 7.00,
     category: 'geladeira',
+    listId: 'default'
   },
   {
     id: '3',
@@ -35,6 +37,7 @@ export const products: Product[] = [
     expiryDate: new Date(new Date().setDate(new Date().getDate() + 10)),
     price: 1.20,
     category: 'geladeira',
+    listId: 'default'
   },
   {
     id: '4',
@@ -44,6 +47,7 @@ export const products: Product[] = [
     expiryDate: new Date(new Date().setDate(new Date().getDate() + 20)),
     price: 8.99,
     category: 'bebidas',
+    listId: 'default'
   },
   {
     id: '5',
@@ -53,6 +57,7 @@ export const products: Product[] = [
     expiryDate: new Date(new Date().setDate(new Date().getDate() + 90)),
     price: 25.00,
     category: 'congelados',
+    listId: 'default'
   },
   {
     id: '6',
@@ -62,6 +67,7 @@ export const products: Product[] = [
     expiryDate: new Date(new Date().setDate(new Date().getDate() + 150)),
     price: 3.50,
     category: 'bebidas',
+    listId: 'default'
   },
   {
     id: '101',
@@ -71,5 +77,6 @@ export const products: Product[] = [
     expiryDate: new Date('2025-07-27T00:00:00'),
     price: 24.90,
     category: 'pesado',
+    listId: 'default'
   },
 ];

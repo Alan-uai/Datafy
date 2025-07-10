@@ -17,6 +17,7 @@ export type Product = {
   expiryDate: Date;
   price: number;
   category: string;
+  listId: string;
   // AI fields
   originalId?: string;
   produto?: string;
@@ -24,4 +25,11 @@ export type Product = {
   unidade?: string;
   validade?: string;
   isExploding?: boolean;
+};
+
+export type ProductList = {
+    id: string;
+    name: string;
+    userId: string;
+    createdAt: any; // Firestore Timestamp
 };

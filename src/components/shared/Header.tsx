@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Grid3x3, LogOut, Sun, User as UserIcon } from 'lucide-react';
+import { Grid3x3, LogOut, Sun, User as UserIcon, BarChart3 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 
 export function Header() {
@@ -66,6 +66,10 @@ export function Header() {
               <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <UserIcon className="mr-2 h-4 w-4" />
                 <span>Meu Perfil</span>
+              </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => router.push('/analytics')}>
+                <BarChart3 className="mr-2 h-4 w-4" />
+                <span>Análise</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500 focus:bg-red-500/10">
