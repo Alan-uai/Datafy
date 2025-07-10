@@ -39,6 +39,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +60,7 @@ const columnNames: Record<string, string> = {
     'marca': 'Marca',
     'qtde': 'Qtde',
     'validade': 'Validade',
-    'preco': 'Preço (R$)',
+    'preco': 'Preço',
     'categoria': 'Categoria',
     'status': 'Status',
 };
@@ -388,6 +389,21 @@ export function Dashboard() {
     return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4 ml-2" /> : <ArrowDown className="h-4 w-4 ml-2" />;
   };
 
+  const AvailableWidgetCard = ({ widgetId, onAdd }: { widgetId: AllWidgetType; onAdd: (id: AllWidgetType) => void }) => {
+    const widgetInfo = WIDGET_MAP[widgetId];
+    const Icon = widgetInfo.Icon;
+
+    return (
+      <button
+        onClick={() => onAdd(widgetId)}
+        className="flex flex-col items-center justify-center text-center p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors h-full w-40 flex-shrink-0"
+      >
+        <Icon className="h-6 w-6 mb-2" />
+        <span className="text-sm font-medium">{widgetInfo.title}</span>
+      </button>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full bg-background relative">
         <div className="p-4 md:p-6">
@@ -397,8 +413,8 @@ export function Dashboard() {
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
-                            <Settings className="h-4 w-4" />
-                            <span className="hidden sm:inline">Colunas</span>
+                            <Settings className="h-4 w-4 mr-2" />
+                            <span>Colunas</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -419,37 +435,26 @@ export function Dashboard() {
                       </DropdownMenu>
 
                       <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
-                          <Settings className="h-4 w-4" />
-                          <span className="hidden sm:inline">{isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}</span>
+                          <Settings className="h-4 w-4 mr-2" />
+                          <span>{isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}</span>
                       </Button>
-                      
-                      {isEditingWidgets && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button size="sm">
-                                    <Plus className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Adicionar Widget</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>Widgets Disponíveis</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {availableWidgets.length > 0 ? (
-                                    availableWidgets.map(widgetId => (
-                                        <DropdownMenuItem key={widgetId} onSelect={() => addWidget(widgetId)}>
-                                            <LayoutGrid className="mr-2 h-4 w-4" />
-                                            {WIDGET_MAP[widgetId].title}
-                                        </DropdownMenuItem>
-                                    ))
-                                ) : (
-                                    <DropdownMenuItem disabled>Todos os widgets estão ativos</DropdownMenuItem>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
                 </div>
             </header>
             
+            {isEditingWidgets && availableWidgets.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Adicionar Widgets</h3>
+                <ScrollArea className="w-full whitespace-nowrap">
+                  <div className="flex gap-4 pb-4">
+                    {availableWidgets.map(widgetId => (
+                      <AvailableWidgetCard key={widgetId} widgetId={widgetId} onAdd={addWidget} />
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              </div>
+            )}
+
             <DndContext sensors={[]} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
@@ -634,4 +639,3 @@ export function Dashboard() {
   );
 }
 
-    
