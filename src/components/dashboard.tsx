@@ -18,7 +18,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, Settings, Edit, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, Settings, Edit, Trash2, RefreshCw, LayoutGrid } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,15 +36,14 @@ import { getProductLists, getProductsByList, addProductList, addProduct, updateP
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -55,12 +54,12 @@ import { DynamicIcon } from "@/components/shared/DynamicIcon";
 import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
 import { debounce } from 'lodash';
 
-const columnNames = {
+const columnNames: Record<string, string> = {
     'produto': 'Produto',
     'marca': 'Marca',
     'qtde': 'Qtde',
     'validade': 'Validade',
-    'preco': 'Preço',
+    'preco': 'Preço (R$)',
     'categoria': 'Categoria',
     'status': 'Status',
 };
@@ -175,14 +174,14 @@ export function Dashboard() {
     if (!currentUser) return;
     setIsLoading(true);
     try {
-        const profile = await getUserProfile(currentUser.uid);
-        setUserProfile(profile);
+        const profileData = await getUserProfile(currentUser.uid);
+        setUserProfile(profileData);
 
         const lists = await getProductLists(currentUser.uid);
         setProductLists(lists);
         
         if (lists.length > 0) {
-            const lastListId = profile?.preferences?.lastActiveListId;
+            const lastListId = profileData?.preferences?.lastActiveListId;
             const listToLoad = lists.find(l => l.id === lastListId) || lists[0];
             setActiveListId(listToLoad.id);
             const fetchedProducts = await getProductsByList(currentUser.uid, listToLoad.id);
@@ -392,14 +391,14 @@ export function Dashboard() {
   return (
     <div className="flex flex-col h-full bg-background relative">
         <div className="p-4 md:p-6">
-            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <header className="flex items-center justify-between gap-4 mb-6">
                  <h1 className="text-2xl font-bold">Dashboard</h1>
-                 <div className="flex items-center gap-2 self-end sm:self-auto">
+                 <div className="flex items-center gap-2">
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
-                            <Settings className="h-4 w-4 mr-2" />
-                            <span>Colunas</span>
+                            <Settings className="h-4 w-4" />
+                            <span className="hidden sm:inline">Colunas</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -420,9 +419,34 @@ export function Dashboard() {
                       </DropdownMenu>
 
                       <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          <span>{isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}</span>
+                          <Settings className="h-4 w-4" />
+                          <span className="hidden sm:inline">{isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}</span>
                       </Button>
+                      
+                      {isEditingWidgets && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button size="sm">
+                                    <Plus className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Adicionar Widget</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Widgets Disponíveis</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {availableWidgets.length > 0 ? (
+                                    availableWidgets.map(widgetId => (
+                                        <DropdownMenuItem key={widgetId} onSelect={() => addWidget(widgetId)}>
+                                            <LayoutGrid className="mr-2 h-4 w-4" />
+                                            {WIDGET_MAP[widgetId].title}
+                                        </DropdownMenuItem>
+                                    ))
+                                ) : (
+                                    <DropdownMenuItem disabled>Todos os widgets estão ativos</DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                 </div>
             </header>
             
@@ -450,19 +474,21 @@ export function Dashboard() {
         
         <div className="flex-1 flex flex-col">
             <div className="px-4 md:px-6 py-4 border-t">
-                 <Tabs value={activeListId || ""} onValueChange={handleListChange} className="w-full">
-                     <TabsList className="p-0 bg-transparent h-auto flex flex-wrap items-center gap-1">
+                 <div className="w-full">
+                     <div className="flex flex-wrap items-center gap-1">
                         {productLists.map(list => (
-                            <div key={list.id} className="flex items-center group/tab relative">
-                                <TabsTrigger 
-                                    value={list.id} 
-                                    className="h-auto p-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                            <div key={list.id} className="flex items-center group/tab">
+                                <Button 
+                                    variant="ghost"
+                                    onClick={() => handleListChange(list.id)}
+                                    className={`h-auto p-2 data-[active=true]:bg-primary data-[active=true]:text-primary-foreground`}
+                                    data-active={activeListId === list.id}
                                 >
                                     <div className="flex items-center gap-2">
                                         <DynamicIcon name={list.icon || 'List'} />
                                         <span>{list.name}</span>
                                     </div>
-                                </TabsTrigger>
+                                </Button>
                                 <div className="flex items-center gap-1 ml-1 opacity-100 sm:opacity-0 group-hover/tab:opacity-100 transition-opacity">
                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openManageListDialog(list); }}>
                                         <Edit className="h-4 w-4" />
@@ -493,10 +519,10 @@ export function Dashboard() {
                             <Plus className="h-4 w-4 mr-2" />
                             Lista
                         </Button>
-                    </TabsList>
-                </Tabs>
+                    </div>
+                 </div>
                  {productLists.length === 0 && !isLoading && (
-                    <div className="text-center py-10">
+                    <div className="text-center py-10 flex-1 flex flex-col items-center justify-center">
                         <h3 className="text-lg font-medium">Crie sua primeira lista</h3>
                         <p className="text-muted-foreground">Comece a organizar seus produtos criando uma lista.</p>
                         <Button className="mt-4" onClick={() => openManageListDialog(null)}>Criar Lista</Button>
@@ -542,7 +568,6 @@ export function Dashboard() {
                                 {columnVisibility['preco'] && <TableHead><Button variant="ghost" onClick={() => handleSort('price')}>Preço {renderSortIcon('price')}</Button></TableHead>}
                                 {columnVisibility['categoria'] && <TableHead><Button variant="ghost" onClick={() => handleSort('category')}>Categoria {renderSortIcon('category')}</Button></TableHead>}
                                 {columnVisibility['status'] && <TableHead>Status</TableHead>}
-                                <TableHead className="w-[100px] text-right">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -555,9 +580,6 @@ export function Dashboard() {
                                 {columnVisibility['preco'] && <TableCell>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
                                 {columnVisibility['categoria'] && <TableCell>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
                                 {columnVisibility['status'] && <TableCell><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
-                                <TableCell className="text-right">
-                                  {/* Action buttons here */}
-                                </TableCell>
                             </TableRow>
                             ))}
                         </TableBody>
@@ -611,3 +633,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
