@@ -32,7 +32,7 @@ import { getProductLists, getProductsByList, addProductList, addProduct, updateP
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
