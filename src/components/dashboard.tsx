@@ -17,7 +17,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Search, Filter, ArrowUp, X, Loader2, ListPlus, Settings } from "lucide-react";
+import { Plus, Search, Filter, ArrowUp, X, Loader2, ListPlus, Settings, Edit, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,12 +30,11 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserProfile, updateUserProfile, type UserProfile } from "@/services/userService";
-import { getProductLists, getProductsByList, addProductList, addProduct } from "@/services/productService";
+import { getProductLists, getProductsByList, addProductList, addProduct, updateProductList, deleteProductList } from "@/services/productService";
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,6 +47,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DynamicIcon } from "@/components/shared/DynamicIcon";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 const columnNames = {
     'produto': 'Produto',
@@ -70,6 +78,8 @@ const initialColumns: ColumnVisibility = {
     'categoria': true,
     'status': true,
 };
+
+const availableListIcons = ["Beer", "Refrigerator", "Snowflake", "Weight", "ShoppingCart", "Apple", "Carrot", "Milk", "Package"];
 
 
 const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetType, isEditing: boolean, onRemove: (id: AllWidgetType) => void, children: React.ReactNode }) => {
@@ -104,16 +114,17 @@ export function Dashboard() {
   const { toast } = useToast();
   const { userProfile, setUserProfile, savePreferences } = useUserProfile();
   
-  // Initialize products state with an empty array
   const [products, setProducts] = useState<Product[]>([]);
   const [productLists, setProductLists] = useState<ProductList[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [categories] = useState<Category[]>(initialCategories);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [isAddListDialogOpen, setIsAddListDialogOpen] = useState(false);
+  const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState(false);
+  const [isManageListDialogOpen, setIsManageListDialogOpen] = useState(false);
+  const [editingList, setEditingList] = useState<ProductList | null>(null);
+
   const newListNameRef = useRef<HTMLInputElement>(null);
+  const [newListIcon, setNewListIcon] = useState<string>(availableListIcons[0]);
 
   const productsForAI = useMemo(() => {
     if (!products) return [];
@@ -162,15 +173,6 @@ export function Dashboard() {
     loadInitialData();
   }, [loadInitialData]);
   
-  useEffect(() => {
-    if (!carouselApi || !activeListId) return;
-    const activeListIndex = productLists.findIndex(l => l.id === activeListId);
-    if (activeListIndex !== -1 && activeListIndex !== carouselApi.selectedScrollSnap()) {
-      carouselApi.scrollTo(activeListIndex);
-    }
-  }, [activeListId, productLists, carouselApi]);
-
-
   const handleListChange = async (listId: string) => {
     if (!currentUser || listId === activeListId) return;
     setActiveListId(listId);
@@ -189,7 +191,6 @@ export function Dashboard() {
     }
   };
 
-
   const handleAddProduct = async (productData: Omit<Product, "id" | "listId">) => {
     if (!currentUser || !activeListId) return;
     try {
@@ -203,25 +204,68 @@ export function Dashboard() {
     }
   };
   
-  const handleCreateList = async () => {
-    const newName = newListNameRef.current?.value;
-    if (!currentUser || !newName || !newName.trim()) {
+  const handleManageList = async () => {
+    const listName = newListNameRef.current?.value;
+    if (!currentUser || !listName || !listName.trim()) {
         toast({ variant: "destructive", title: "Nome inválido", description: "Por favor, insira um nome para a lista." });
         return;
     }
+
     try {
-        const newListId = await addProductList(currentUser.uid, newName.trim());
-        const newList: ProductList = { id: newListId, name: newName.trim(), userId: currentUser.uid, createdAt: new Date() };
-        setProductLists(prev => [...prev, newList]);
-        setActiveListId(newListId);
-        setProducts([]);
-        setIsAddListDialogOpen(false);
-        toast({ title: "Lista criada!", description: `A lista "${newName.trim()}" foi criada com sucesso.` });
+        if (editingList) { // Update existing list
+            const updatedData = { name: listName.trim(), icon: newListIcon };
+            await updateProductList(editingList.id, updatedData);
+            setProductLists(prev => prev.map(l => l.id === editingList.id ? { ...l, ...updatedData } : l));
+            toast({ title: "Lista atualizada!", description: `A lista "${listName.trim()}" foi atualizada.` });
+        } else { // Create new list
+            const newListId = await addProductList(currentUser.uid, listName.trim(), newListIcon);
+            const newList: ProductList = { id: newListId, name: listName.trim(), icon: newListIcon, userId: currentUser.uid, createdAt: new Date() };
+            setProductLists(prev => [...prev, newList]);
+            setActiveListId(newListId);
+            setProducts([]);
+            toast({ title: "Lista criada!", description: `A lista "${listName.trim()}" foi criada com sucesso.` });
+        }
+        setIsManageListDialogOpen(false);
+        setEditingList(null);
     } catch (error) {
-        console.error("Failed to create list", error);
-        toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar a nova lista." });
+        console.error("Failed to manage list", error);
+        toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar a lista." });
     }
   };
+
+  const openManageListDialog = (list: ProductList | null) => {
+    setEditingList(list);
+    setNewListIcon(list?.icon || availableListIcons[0]);
+    setIsManageListDialogOpen(true);
+    // Use timeout to focus after dialog is rendered
+    setTimeout(() => {
+        if (newListNameRef.current) {
+            newListNameRef.current.value = list?.name || '';
+        }
+    }, 100);
+  };
+
+  const handleDeleteList = async (listId: string) => {
+    if (!currentUser) return;
+    try {
+      await deleteProductList(currentUser, listId);
+      const newLists = productLists.filter(l => l.id !== listId);
+      setProductLists(newLists);
+      
+      if (activeListId === listId) {
+        if (newLists.length > 0) {
+          handleListChange(newLists[0].id);
+        } else {
+          setActiveListId(null);
+          setProducts([]);
+        }
+      }
+      toast({ title: "Lista excluída!" });
+    } catch (error) {
+       console.error("Failed to delete list", error);
+       toast({ variant: "destructive", title: "Erro", description: "Não foi possível excluir a lista." });
+    }
+  }
 
   const updateWidgets = (newActiveWidgets: AllWidgetType[]) => {
       savePreferences({ activeWidgets: newActiveWidgets });
@@ -267,7 +311,6 @@ export function Dashboard() {
         <div className="p-4 md:p-6 space-y-6">
             <header className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">Dashboard</h1>
-
                  <div className="flex items-center gap-2">
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -299,83 +342,37 @@ export function Dashboard() {
                       </Button>
                 </div>
             </header>
-
-
-            {isEditingWidgets && (
-                <Card className="p-4 bg-muted/50">
-                    <h3 className="mb-4 text-lg font-semibold">Adicionar Widgets</h3>
-                     {availableWidgets.length > 0 ? (
-                        <Carousel opts={{ align: "start", dragFree: true }}>
-                            <CarouselContent>
-                                {availableWidgets.map(widgetId => {
-                                    const widget = WIDGET_MAP[widgetId];
-                                    return (
-                                        <CarouselItem key={widgetId} className="basis-1/3 md:basis-1/4 lg:basis-1/5">
-                                            <Button
-                                                variant="outline"
-                                                className="h-24 w-full flex flex-col items-center justify-center gap-2 p-2 bg-background hover:bg-accent"
-                                                onClick={() => addWidget(widgetId)}
-                                            >
-                                                <widget.Icon className="h-6 w-6 text-primary" />
-                                                <span className="text-xs text-center">{widget.title}</span>
-                                            </Button>
-                                        </CarouselItem>
-                                    );
-                                })}
-                            </CarouselContent>
-                            <CarouselPrevious />
-                            <CarouselNext />
-                        </Carousel>
-                     ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">Todos os widgets já foram adicionados.</p>
-                     )}
-                </Card>
-            )}
-
-            <DndContext sensors={[]} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-6">
-                        {activeWidgets.map(widgetId => {
-                            const widgetInfo = WIDGET_MAP[widgetId];
-                            if (!widgetInfo) return null;
-                            const WidgetComponent = widgetInfo.component;
-                            const widgetProps = widgetInfo.id === 'expiryAttention' 
-                                ? { listProducts: productsForAI } 
-                                : widgetDataProps;
-
-                            return (
-                                <SortableWidget key={widgetId} id={widgetId} isEditing={isEditingWidgets} onRemove={removeWidget}>
-                                    <WidgetComponent {...widgetProps as any} />
-                                </SortableWidget>
-                            );
-                        })}
-                    </div>
-                </SortableContext>
-            </DndContext>
             
             <Card>
                 <CardContent className="p-4">
-                    <Tabs value={activeListId || ""} onValueChange={handleListChange}>
-                        <div className="relative">
-                            <TabsList className="p-0 bg-transparent">
-                                <Carousel setApi={setCarouselApi} className="w-full">
-                                <CarouselContent className="-ml-1">
-                                    {productLists.map(list => (
-                                    <CarouselItem key={list.id} className="basis-auto pl-1">
-                                        <TabsTrigger value={list.id}>{list.name}</TabsTrigger>
-                                    </CarouselItem>
-                                    ))}
-                                    <CarouselItem className="basis-auto pl-1">
-                                    <Button variant="ghost" onClick={() => setIsAddListDialogOpen(true)}>
-                                        <ListPlus className="h-4 w-4 mr-2" />
-                                        Nova Lista
-                                    </Button>
-                                    </CarouselItem>
-                                </CarouselContent>
-                                <CarouselPrevious className="absolute -left-12 top-1/2 -translate-y-1/2 hidden sm:flex"/>
-                                <CarouselNext className="absolute -right-12 top-1/2 -translate-y-1/2 hidden sm:flex"/>
-                                </Carousel>
+                    <Tabs value={activeListId || ""} onValueChange={handleListChange} className="w-full">
+                         <div className="flex items-center gap-2 flex-wrap">
+                            <TabsList className="p-0 bg-transparent h-auto">
+                                {productLists.map(list => (
+                                <TabsTrigger 
+                                    key={list.id} 
+                                    value={list.id} 
+                                    className="h-auto p-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground group/tab"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <DynamicIcon name={list.icon || 'List'} />
+                                        <span>{list.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 ml-2 opacity-0 group-hover/tab:opacity-100 transition-opacity">
+                                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openManageListDialog(list); }}>
+                                            <Edit className="h-4 w-4" />
+                                       </Button>
+                                       <Button size="icon" variant="ghost" className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteList(list.id); }}>
+                                            <Trash2 className="h-4 w-4" />
+                                       </Button>
+                                    </div>
+                                </TabsTrigger>
+                                ))}
                             </TabsList>
+                             <Button variant="outline" onClick={() => openManageListDialog(null)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Lista
+                            </Button>
                         </div>
                         
                         {productLists.map(list => (
@@ -383,7 +380,7 @@ export function Dashboard() {
                              <div className="flex items-center gap-2">
                                 <div className="relative w-full">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                    <Input placeholder="Buscar produtos na lista..." className="pl-10"/>
+                                    <Input placeholder="Buscar produtos..." className="pl-10"/>
                                 </div>
                                 <Button variant="outline"><Filter className="mr-2 h-4 w-4"/>Filtro</Button>
                             </div>
@@ -396,7 +393,7 @@ export function Dashboard() {
                                             {(userProfile.preferences.columnVisibility.marca ?? true) && <TableHead>Marca</TableHead>}
                                             {(userProfile.preferences.columnVisibility.qtde ?? true) && <TableHead>Qtde</TableHead>}
                                             {(userProfile.preferences.columnVisibility.validade ?? true) && <TableHead>Validade</TableHead>}
-                                            {(userProfile.preferences.columnVisibility.preco ?? true) && <TableHead>Preço (R$)</TableHead>}
+                                            {(userProfile.preferences.columnVisibility.preco ?? true) && <TableHead><div>Preço<div className="font-normal text-muted-foreground">(R$)</div></div></TableHead>}
                                             {(userProfile.preferences.columnVisibility.categoria ?? true) && <TableHead>Categoria</TableHead>}
                                             {(userProfile.preferences.columnVisibility.status ?? true) && <TableHead>Status</TableHead>}
                                             <TableHead className="w-[100px] text-right">Ações</TableHead>
@@ -432,36 +429,79 @@ export function Dashboard() {
                         <div className="text-center p-16">
                             <h3 className="text-lg font-medium">Crie sua primeira lista</h3>
                             <p className="text-muted-foreground">Comece a organizar seus produtos criando uma lista.</p>
-                            <Button className="mt-4" onClick={() => setIsAddListDialogOpen(true)}>Criar Lista</Button>
+                            <Button className="mt-4" onClick={() => openManageListDialog(null)}>Criar Lista</Button>
                         </div>
                     )}
                 </CardContent>
             </Card>
+
+            <DndContext sensors={[]} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-6">
+                        {activeWidgets.map(widgetId => {
+                            const widgetInfo = WIDGET_MAP[widgetId];
+                            if (!widgetInfo) return null;
+                            const WidgetComponent = widgetInfo.component;
+                            const widgetProps = widgetInfo.id === 'expiryAttention' 
+                                ? { listProducts: productsForAI } 
+                                : widgetDataProps;
+
+                            return (
+                                <SortableWidget key={widgetId} id={widgetId} isEditing={isEditingWidgets} onRemove={removeWidget}>
+                                    <WidgetComponent {...widgetProps as any} />
+                                </SortableWidget>
+                            );
+                        })}
+                    </div>
+                </SortableContext>
+            </DndContext>
+            
+
         </div>
 
-        <AddProductDialog categories={categories} onAddProduct={handleAddProduct} open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <Button onClick={() => setIsDialogOpen(true)} className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90">
+        <AddProductDialog categories={categories} onAddProduct={handleAddProduct} open={isAddProductDialogOpen} onOpenChange={setIsAddProductDialogOpen}>
+            <Button onClick={() => setIsAddProductDialogOpen(true)} className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90">
                 <Plus className="h-8 w-8" />
             </Button>
         </AddProductDialog>
 
-        <AlertDialog open={isAddListDialogOpen} onOpenChange={setIsAddListDialogOpen}>
+        <AlertDialog open={isManageListDialogOpen} onOpenChange={setIsManageListDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Criar Nova Lista</AlertDialogTitle>
+                    <AlertDialogTitle>{editingList ? 'Editar Lista' : 'Criar Nova Lista'}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Digite o nome para sua nova lista de produtos.
+                        {editingList ? 'Altere o nome e o ícone da sua lista.' : 'Escolha um nome e um ícone para sua nova lista.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="py-4">
+                <div className="py-4 space-y-4">
                     <Input ref={newListNameRef} placeholder="Ex: Compras da Semana" />
+                    <div>
+                        <label className="text-sm font-medium mb-2 block">Ícone</label>
+                        <Select value={newListIcon} onValueChange={setNewListIcon}>
+                             <SelectTrigger>
+                                <SelectValue placeholder="Selecione um ícone" />
+                             </SelectTrigger>
+                             <SelectContent>
+                                {availableListIcons.map(iconName => (
+                                    <SelectItem key={iconName} value={iconName}>
+                                       <div className="flex items-center gap-2">
+                                         <DynamicIcon name={iconName} />
+                                         <span>{iconName}</span>
+                                       </div>
+                                    </SelectItem>
+                                ))}
+                             </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCreateList}>Criar</AlertDialogAction>
+                    <AlertDialogCancel onClick={() => setEditingList(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleManageList}>{editingList ? 'Salvar Alterações' : 'Criar'}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
     </div>
   );
 }
+
+    

@@ -30,6 +30,9 @@ export type Product = {
 export type ProductList = {
     id: string;
     name: string;
+    icon?: string;
     userId: string;
     createdAt: any; // Firestore Timestamp
 };
+
+    

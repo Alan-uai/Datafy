@@ -1,6 +1,7 @@
-import { collection, query, where, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Product, ProductList } from '@/lib/types';
+import type { User } from 'firebase/auth';
 
 // ====== ProductList Functions ======
 
@@ -15,14 +16,49 @@ export const getProductLists = async (userId: string): Promise<ProductList[]> =>
   }
 };
 
-export const addProductList = async (userId: string, name: string): Promise<string> => {
+export const addProductList = async (userId: string, name: string, icon?: string): Promise<string> => {
   const newListRef = await addDoc(collection(db, 'productLists'), {
     userId,
     name,
+    icon: icon || 'List',
     createdAt: serverTimestamp(),
   });
   return newListRef.id;
 };
+
+export const updateProductList = async (listId: string, updates: Partial<ProductList>): Promise<void> => {
+    const listRef = doc(db, 'productLists', listId);
+    await updateDoc(listRef, {
+        ...updates,
+        updatedAt: serverTimestamp()
+    });
+};
+
+export const deleteProductList = async (user: User, listId: string): Promise<void> => {
+    const batch = writeBatch(db);
+
+    // 1. Delete the list itself
+    const listRef = doc(db, 'productLists', listId);
+    batch.delete(listRef);
+
+    // 2. Find and delete all products in that list
+    const productsQuery = query(collection(db, 'products'), where('userId', '==', user.uid), where('listId', '==', listId));
+    const productsSnapshot = await getDocs(productsQuery);
+    productsSnapshot.forEach(productDoc => {
+        batch.delete(productDoc.ref);
+    });
+
+    // 3. Update user preferences if this was the last active list
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists() && userSnap.data().preferences?.lastActiveListId === listId) {
+       batch.update(userRef, { "preferences.lastActiveListId": "" });
+    }
+    
+    // Commit the batch
+    await batch.commit();
+};
+
 
 // ====== Product Functions ======
 
@@ -87,3 +123,5 @@ export const deleteProduct = async (productId: string): Promise<void> => {
   const productRef = doc(db, 'products', productId);
   await deleteDoc(productRef);
 };
+
+    

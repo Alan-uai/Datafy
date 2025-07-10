@@ -39,6 +39,15 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   List: Icons.List,
   CalendarCheck: Icons.CalendarCheck,
   BarChart: Icons.BarChart,
+  Edit: Icons.Edit,
+  Trash2: Icons.Trash2,
+  Beer: Icons.Beer,
+  Refrigerator: Icons.Refrigerator,
+  Snowflake: Icons.Snowflake,
+  Weight: Icons.Weight,
+  Apple: Icons.Apple,
+  Carrot: Icons.Carrot,
+  Milk: Icons.Milk,
   // Add other icons as needed
 };
 
@@ -56,3 +65,5 @@ export const DynamicIcon = ({ name, ...props }: DynamicIconProps) => {
 
   return <IconComponent {...props} />;
 };
+
+    
