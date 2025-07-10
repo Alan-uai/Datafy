@@ -40,7 +40,6 @@ import { WIDGET_MAP, type AllWidgetType } from './dashboard/widgets/widget-map';
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { AppLogo } from "@/components/shared/AppLogo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -267,9 +266,7 @@ export function Dashboard() {
     <div className="flex flex-col h-full bg-background relative">
         <div className="p-4 md:p-6 space-y-6">
             <header className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold">Dashboard</h1>
-                </div>
+                <h1 className="text-2xl font-bold">Dashboard</h1>
 
                  <div className="flex items-center gap-2">
                      <DropdownMenu>
