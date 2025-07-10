@@ -23,8 +23,16 @@ export function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories] = useState<Category[]>(initialCategories);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
-  const [isClient, setIsClient] = useState(false)
+  const [isClient, setIsClient] = useState(false);
+
+  // Convert Date objects to string for AI analysis
+  const productsForAI = useMemo(() => {
+    return products.map(p => ({
+      ...p,
+      validade: p.expiryDate.toISOString(),
+      produto: p.name,
+    }));
+  }, [products]);
   
   useEffect(() => {
     setIsClient(true)
@@ -39,7 +47,7 @@ export function Dashboard() {
         category: 'pesado', // This category is not in the initial list, but is in the image
     };
     setProducts([sampleProduct]);
-  }, [])
+  }, []);
 
   const handleAddProduct = (newProduct: Omit<Product, "id">) => {
     setProducts((prev) => [
@@ -55,15 +63,6 @@ export function Dashboard() {
         </div>
       );
   }
-
-  // Convert Date objects to string for AI analysis
-  const productsForAI = useMemo(() => {
-    return products.map(p => ({
-      ...p,
-      validade: p.expiryDate.toISOString(),
-      produto: p.name,
-    }));
-  }, [products]);
 
   return (
     <div className="flex flex-col h-full bg-background relative">
