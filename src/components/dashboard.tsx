@@ -431,7 +431,7 @@ export function Dashboard() {
             <Card>
                 <CardContent className="p-4">
                     <Tabs value={activeListId || ""} onValueChange={handleListChange} className="w-full">
-                         <div className="flex items-center gap-2 flex-wrap pb-4 border-b">
+                         <TabsList className="flex items-center gap-2 flex-wrap pb-4 border-b">
                             {productLists.map(list => (
                                 <TabsTrigger 
                                     key={list.id} 
@@ -472,7 +472,7 @@ export function Dashboard() {
                                 <Plus className="h-4 w-4 mr-2" />
                                 Lista
                             </Button>
-                        </div>
+                        </TabsList>
                     </Tabs>
                      {productLists.length === 0 && !isLoading && (
                         <div className="text-center p-16">
@@ -615,7 +615,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
-
-    
