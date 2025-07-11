@@ -62,12 +62,15 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     for (let i = 0; i < drops.length; i++) {
         const x = i * fontSize;
         const y = drops[i] * fontSize;
-        const trailText = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
-        const leaderText = leadingChars.charAt(Math.floor(Math.random() * leadingChars.length));
         
+        // Always draw a green trail character first.
+        const trailText = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
         trailCtx.fillStyle = '#0F0';
         trailCtx.fillText(trailText, x, y);
 
+        // Leader (bright) character is drawn at the tip of the drop.
+        const leaderText = leadingChars.charAt(Math.floor(Math.random() * leadingChars.length));
+        
         if (mode === 'padrão' && leaderCtx) {
             leaderCtx.fillStyle = '#cceeff';
             leaderCtx.fillText(leaderText, x, y);
@@ -146,4 +149,3 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     </div>
   );
 };
-

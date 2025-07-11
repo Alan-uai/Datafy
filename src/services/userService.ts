@@ -184,5 +184,3 @@ export const checkPremiumStatus = async (uid: string): Promise<boolean> => {
     // Is premium and not expired
     return true;
 }
-
-    

@@ -4,8 +4,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { getUserProfile } from '@/services/userService';
-import { auth } from '@/lib/firebase';
 import { cookies } from 'next/headers';
 import { cn } from '@/lib/utils';
 import { MatrixBackground } from '@/components/shared/MatrixBackground';
@@ -22,8 +20,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  // We can't use the useUserProfile hook here because this is a server component.
-  // We will read the theme from a cookie instead. This is faster and ensures no flicker
+  // We read the theme from a cookie. This is faster and ensures no flicker
   // on initial load, as the server can render the correct theme immediately.
   const theme = cookies().get('theme')?.value || 'dark';
   const animation = cookies().get('matrixAnimation')?.value || 'cintilar';

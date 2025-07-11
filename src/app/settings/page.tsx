@@ -29,17 +29,26 @@ export default function SettingsPage() {
   const [currentMatrixMode, setCurrentMatrixMode] = useState<'padrão' | 'merge'>(() => (getCookie('matrixMode') as 'padrão' | 'merge') || 'padrão');
   const [currentMatrixSpeed, setCurrentMatrixSpeed] = useState<number>(() => Number(getCookie('matrixSpeed')) || 100);
 
-  const saveCookie = (name: string, value: string | number) => {
-    document.cookie = `${name}=${value};path=/;max-age=31536000`; // Expires in 1 year
+  const saveCookie = (name: string, value: string | number, days = 365) => {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
   };
-
+  
   const handleThemeChange = (theme: 'dark' | 'matrix') => {
     setCurrentTheme(theme);
     savePreferences({ theme });
     saveCookie('theme', theme);
+
+    // Apply class to HTML tag for instant visual change
     document.documentElement.className = cn(theme, theme === 'matrix' && `animate-${currentAnimation}`);
-    // Reload to apply background component if needed
-    window.location.reload();
+    
+    // The MatrixBackground component will be conditionally rendered by RootLayout
+    // based on the cookie, so a reload might still be needed if it wasn't there before.
+    // A full reload is a bit jarring, let's try a soft navigation or just let the user see it on next page load.
+    // For now, if switching TO matrix, we might need a reload.
+    if(theme === 'matrix' && getCookie('theme') !== 'matrix') {
+        window.location.reload();
+    }
   };
   
   const handleAnimationChange = (animation: 'cintilar' | 'girar') => {
@@ -55,7 +64,7 @@ export default function SettingsPage() {
     setCurrentMatrixMode(mode);
     savePreferences({ matrixMode: mode });
     saveCookie('matrixMode', mode);
-    window.location.reload();
+    window.location.reload(); // Reload needed to change canvas structure
   };
 
   const handleSpeedChange = (value: number[]) => {
@@ -63,7 +72,8 @@ export default function SettingsPage() {
     setCurrentMatrixSpeed(newSpeed);
     savePreferences({ matrixSpeed: newSpeed });
     saveCookie('matrixSpeed', newSpeed);
-    // No reload needed for speed, handled by component state
+    // This can be handled by the component, but for simplicity let's reload
+    window.location.reload();
   };
   
   useEffect(() => {
