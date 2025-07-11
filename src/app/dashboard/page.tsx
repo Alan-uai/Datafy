@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo } from "react";
@@ -12,7 +13,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 import type { DragEndEvent } from '@dnd-kit/core';
 
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardHeader } from "@/app/dashboard/components/DashboardHeader";
 import { WidgetManager } from "@/components/dashboard/WidgetManager";
 import { ProductListTabs } from "@/components/dashboard/ProductListTabs";
 import { ProductView } from "@/components/dashboard/ProductView";
@@ -109,7 +110,7 @@ export default function Dashboard() {
   const widgetDataProps = { products, categories: initialCategories, savePreferences, preferences };
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative bg-transparent">
         <div className="p-4 md:p-6">
             <DashboardHeader
                 isEditingWidgets={preferences.isEditingWidgets}
