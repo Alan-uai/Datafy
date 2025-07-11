@@ -137,11 +137,11 @@
   body {
     @apply bg-background text-foreground;
   }
-  
-  .matrix {
+
+  .dark body {
     background-color: hsl(var(--background));
   }
-
+  
   .matrix body {
     background-color: transparent;
   }

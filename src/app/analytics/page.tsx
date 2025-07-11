@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, getProductsByList, getProductsByUser } from '@/services/productService';
 import type { Product, ProductList, Category } from '@/lib/types';
@@ -10,11 +10,11 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, List } from 'lucide-react';
 import { WIDGET_MAP, AllWidgetType } from '@/components/dashboard/widgets/widget-map';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 const AnalyticsDashboard: React.FC<{ products: Product[]; categories: Category[] }> = ({ products, categories }) => {
   const widgetDataProps = { products, categories };
   const allWidgets = (Object.keys(WIDGET_MAP) as AllWidgetType[]).filter(
-    // Exclude interactive widgets from the analytics page
     (id) => id !== 'expiryAttention'
   );
 
@@ -73,11 +73,12 @@ export default function AnalyticsPage() {
 
   if (!currentUser) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <main className="flex-1 flex items-center justify-center">
-          <p>Por favor, faça login para ver as análises.</p>
-        </main>
-      </div>
+        <EmptyState
+            icon={<BarChart3 />}
+            title="Análises Bloqueadas"
+            description="Por favor, faça login para ver as análises do seu inventário."
+            className="flex-1"
+        />
     );
   }
 
@@ -115,13 +116,12 @@ export default function AnalyticsPage() {
           </Tabs>
 
            {productLists.length === 0 && allProducts.length === 0 && (
-            <div className="text-center py-16">
-              <List className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-medium">Nenhum dado para analisar</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Comece adicionando produtos em suas listas para ver os gráficos.
-              </p>
-            </div>
+            <EmptyState
+                icon={<List />}
+                title="Nenhum dado para analisar"
+                description="Comece adicionando produtos em suas listas para ver os gráficos."
+                className="py-16"
+            />
           )}
 
         </div>

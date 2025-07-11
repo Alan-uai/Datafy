@@ -13,7 +13,7 @@ export default function MatrixBackground({
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   const leaderCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
-  
+
   const draw = useCallback((
     trailCtx: CanvasRenderingContext2D,
     leaderCtx: CanvasRenderingContext2D | null,
@@ -22,17 +22,7 @@ export default function MatrixBackground({
     const trailCanvas = trailCtx.canvas;
     
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
-    const hiragana = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
-    const kanji = '日一国会人年大十二本中長出三同時政事自行社見月分議後前民生連五発間対上部東者党地員切動';
-    const numerals = '0123456789';
-    const latinUpper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const latinLower = 'abcdefghijklmnopqrstuvwxyz';
-    const specialChars = '@#$€£¥§%&/()=?*<>|!çéàèùâêîôûëïü';
-    
-    const leadingChars = latinUpper + latinLower + specialChars;
-    const trailChars = katakana + hiragana + kanji + numerals;
-    const alphabet = leadingChars + trailChars;
-
+    const alphabet = katakana + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     const fontSize = 16;
     
     trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
@@ -45,22 +35,19 @@ export default function MatrixBackground({
     }
 
     for (let i = 0; i < drops.length; i++) {
+        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
         const x = i * fontSize;
         const y = drops[i] * fontSize;
-        
-        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
         
         trailCtx.fillStyle = '#0F0';
         trailCtx.fillText(text, x, y);
 
-        const leaderText = leadingChars.charAt(Math.floor(Math.random() * leadingChars.length));
-        
         if (mode === 'padrão' && leaderCtx) {
             leaderCtx.fillStyle = '#cceeff';
-            leaderCtx.fillText(leaderText, x, y);
+            leaderCtx.fillText(text, x, y);
         } else if (mode === 'merge') {
             trailCtx.fillStyle = '#cceeff';
-            trailCtx.fillText(leaderText, x, y);
+            trailCtx.fillText(text, x, y);
         }
 
         if (y > trailCanvas.height && Math.random() > 0.975) {
@@ -70,58 +57,61 @@ export default function MatrixBackground({
     }
 
   }, [mode]);
-
+  
   useEffect(() => {
-    const canvases = [trailCanvasRef.current, leaderCanvasRef.current];
-    const trailCanvas = trailCanvasRef.current;
-    const leaderCanvas = leaderCanvasRef.current;
-    const trailCtx = trailCanvas?.getContext('2d');
-    const leaderCtx = mode === 'padrão' ? leaderCanvas?.getContext('2d') : null;
-    let drops: number[] = [];
-
     const setup = () => {
-        canvases.forEach(canvas => {
-            if (canvas) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
-        });
-        if (trailCanvas) {
-            const columns = Math.floor(trailCanvas.width / 16);
-            drops = Array(columns).fill(1).map((_, i) => Math.floor(Math.random() * trailCanvas.height));
+        const trailCanvas = trailCanvasRef.current;
+        const leaderCanvas = leaderCanvasRef.current;
+        const trailCtx = trailCanvas?.getContext('2d');
+        const leaderCtx = mode === 'padrão' ? leaderCanvas?.getContext('2d') : null;
+
+        if (!trailCanvas || !trailCtx || (mode === 'padrão' && !leaderCtx)) {
+            return;
         }
-        if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-        animate();
-    };
 
-    let lastTime = 0;
-    const baseInterval = 50;
-    const speedMultiplier = 100 / Math.max(1, speed);
-    const interval = baseInterval * speedMultiplier;
+        const resizeCanvas = () => {
+            if (trailCanvas) {
+                trailCanvas.width = window.innerWidth;
+                trailCanvas.height = window.innerHeight;
+            }
+            if (leaderCanvas) {
+                leaderCanvas.width = window.innerWidth;
+                leaderCanvas.height = window.innerHeight;
+            }
+        };
 
-    const animate = (timestamp: number = 0) => {
-        if (timestamp - lastTime >= interval) {
-            if (trailCtx) {
+        resizeCanvas();
+        
+        const columns = Math.floor(trailCanvas.width / 16);
+        const drops = Array(columns).fill(1).map((_, i) => Math.floor(Math.random() * trailCanvas.height));
+
+        let lastTime = 0;
+        const baseInterval = 50;
+        const speedMultiplier = 100 / Math.max(1, speed);
+        const interval = baseInterval * speedMultiplier;
+
+        const animate = (timestamp: number = 0) => {
+            if (timestamp - lastTime >= interval) {
                 draw(trailCtx, leaderCtx, drops);
+                lastTime = timestamp;
             }
-            lastTime = timestamp;
-        }
-        animationFrameId.current = requestAnimationFrame(animate);
-    };
-    
-    if (typeof window !== 'undefined') {
-        setup();
-        window.addEventListener('resize', setup);
-    }
+            animationFrameId.current = requestAnimationFrame(animate);
+        };
+        
+        animate();
 
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', setup);
-      }
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
+        window.addEventListener('resize', resizeCanvas);
+
+        return () => {
+            window.removeEventListener('resize', resizeCanvas);
+            if (animationFrameId.current) {
+                cancelAnimationFrame(animationFrameId.current);
+            }
+        };
     };
+
+    const cleanup = setup();
+    return cleanup;
   }, [draw, mode, speed]);
 
   return (

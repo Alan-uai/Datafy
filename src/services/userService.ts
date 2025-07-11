@@ -2,6 +2,7 @@
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { UserPreferences } from '@/lib/types';
+import { products } from '@/lib/data';
 
 
 export interface Achievement {
@@ -46,7 +47,7 @@ export interface UserProfile {
   updatedAt: any;
 }
 
-const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {
+export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {
   isPremium: false,
   stats: { productsCount: 0, listsCount: 0, daysActive: 0, efficiencyScore: 0 },
   achievements: [],
@@ -106,21 +107,29 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
   if (docSnap.exists()) {
     const data = docSnap.data();
-    // Ensure all default fields are present
+    // Ensure all default fields are present by merging with defaults
     const profile: UserProfile = {
       ...defaultProfile,
       ...data,
-      createdAt: data.createdAt?.toDate(),
-      updatedAt: data.updatedAt?.toDate(),
+      uid: data.uid,
+      displayName: data.displayName,
+      email: data.email,
+      photoURL: data.photoURL,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
       achievements: (data.achievements || []).map((ach: any) => ({
         ...ach,
-        unlockedAt: ach.unlockedAt?.toDate() ?? null
+        unlockedAt: ach.unlockedAt?.toDate ? ach.unlockedAt.toDate() : null
       })),
        preferences: {
         ...defaultProfile.preferences,
-        ...data.preferences,
+        ...(data.preferences || {}),
+      },
+      stats: {
+          ...defaultProfile.stats,
+          ...(data.stats || {})
       }
-    } as UserProfile;
+    };
     return profile;
   }
   return null;
@@ -156,17 +165,14 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
 
 export const updateUserPreferences = async (uid: string, preferences: Partial<UserPreferences>): Promise<void> => {
   const userRef = doc(db, 'users', uid);
-  const existingProfile = await getUserProfile(uid);
   
-  const updatedPreferences = {
-    ...existingProfile?.preferences,
-    ...preferences,
-  };
-
-  await updateDoc(userRef, {
-    preferences: updatedPreferences,
-    updatedAt: serverTimestamp(),
-  });
+  // To avoid overwriting the whole preferences object, we need to use dot notation for nested fields.
+  const updates: Record<string, any> = { 'updatedAt': serverTimestamp() };
+  for (const [key, value] of Object.entries(preferences)) {
+      updates[`preferences.${key}`] = value;
+  }
+  
+  await updateDoc(userRef, updates);
 }
 
 

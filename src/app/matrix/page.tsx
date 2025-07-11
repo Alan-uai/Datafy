@@ -18,8 +18,8 @@ export default function MatrixPage() {
   const [matrixConfig, setMatrixConfig] = useState({ mode: 'padrão' as 'padrão' | 'merge', speed: 100 });
 
   useEffect(() => {
-    // Force matrix theme for this test page
-    const themeCookie = 'matrix';
+    // This logic ensures the page reflects the current theme settings from cookies.
+    const themeCookie = 'matrix'; // Force matrix theme for this page
     const modeCookie = getCookie('matrixMode') as 'padrão' | 'merge' || 'padrão';
     const speedCookie = Number(getCookie('matrixSpeed')) || 100;
     
@@ -29,10 +29,8 @@ export default function MatrixPage() {
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                const newTheme = 'matrix';
                 const newMode = (getCookie('matrixMode') as 'padrão' | 'merge') || 'padrão';
                 const newSpeed = Number(getCookie('matrixSpeed')) || 100;
-                setTheme(newTheme);
                 setMatrixConfig({ mode: newMode, speed: newSpeed });
             }
         });
@@ -46,7 +44,7 @@ export default function MatrixPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      {theme === 'matrix' && <MatrixBackground key={`${matrixConfig.mode}-${matrixConfig.speed}`} {...matrixConfig} />}
+      <MatrixBackground key={`${matrixConfig.mode}-${matrixConfig.speed}`} {...matrixConfig} />
       
       <div className="relative z-10 flex flex-col flex-1 bg-transparent">
         <Header />
