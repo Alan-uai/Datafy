@@ -46,7 +46,7 @@ import type { Product, Category } from "@/lib/types";
 const formSchema = z.object({
   name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
   brand: z.string().min(2, { message: "A marca deve ter pelo menos 2 caracteres." }),
-  quantity: z.coerce.number().min(1, { message: "A quantidade deve ser pelo menos 1." }),
+  quantity: z.coerce.number().int({ message: "A quantidade deve ser um número inteiro." }).min(1, { message: "A quantidade deve ser pelo menos 1." }),
   price: z.coerce.number().min(0.01, { message: "O preço deve ser positivo." }),
   expiryDate: z.date({
     required_error: "A data de validade é obrigatória.",
@@ -72,7 +72,7 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
       name: "",
       brand: "",
       quantity: 1,
-      price: '' as any, // Start with empty string to avoid uncontrolled to controlled error
+      price: 0,
     },
   });
 
@@ -91,7 +91,7 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
         name: "",
         brand: "",
         quantity: 1,
-        price: '' as any,
+        price: "" as any,
         expiryDate: undefined,
         category: undefined,
       });
