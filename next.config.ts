@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    allowedDevOrigins: [
+        "http://localhost:9002",
+        "https://*.cluster-duylic2g3fbzerqpzxxbw6helm.cloudworkstations.dev"
+    ]
+  },
+  favicon: false,
 };
 
 export default nextConfig;

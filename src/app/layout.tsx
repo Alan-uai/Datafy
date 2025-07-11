@@ -1,7 +1,6 @@
 
 "use client";
 
-import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -15,17 +14,8 @@ export default function RootLayoutWrapper({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Metadata cannot be in a client component, so we wrap it.
-  // This is a common pattern.
   return (
     <html lang="pt-BR" className='dark'>
-        <head>
-            <title>Datafy</title>
-            <meta name="description" content="Gerencie seu estoque e validade de produtos." />
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet" />
-        </head>
         <body>
             <AuthProvider>
                 <RootLayoutContent>{children}</RootLayoutContent>
