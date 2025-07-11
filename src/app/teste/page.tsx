@@ -3,6 +3,7 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 export default function TestePage() {
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,7 +25,6 @@ export default function TestePage() {
     const uiCtx = uiCanvas.getContext('2d');
 
     if (!trailCtx || !leaderCtx || !uiCtx) return;
-
 
     // --- Draw Matrix Rain (Background Canvases) ---
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
@@ -63,7 +63,8 @@ export default function TestePage() {
     }
 
     // --- Draw UI Card (Foreground Canvas) ---
-    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height); // Clear UI canvas before redrawing
+    // This is the critical fix: clear the UI canvas before redrawing
+    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height); 
 
     const cardWidth = 400;
     const cardHeight = 150;
@@ -152,8 +153,8 @@ export default function TestePage() {
   }, [draw]);
 
   return (
-    <div className={cn('matrix relative min-h-screen')}>
-      <div className="fixed inset-0 -z-10 bg-black">
+    <div className={cn('matrix relative min-h-screen bg-black')}>
+      <div className="fixed inset-0 -z-10">
         <canvas 
           ref={trailCanvasRef} 
           className="absolute inset-0 z-10"
