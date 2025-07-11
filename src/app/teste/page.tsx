@@ -12,15 +12,19 @@ export default function TestePage() {
 
   const draw = useCallback(() => {
     const trailCanvas = trailCanvasRef.current;
-    const trailCtx = trailCanvas?.getContext('2d');
+    if (!trailCanvas) return;
+    const trailCtx = trailCanvas.getContext('2d');
     
     const leaderCanvas = leaderCanvasRef.current;
-    const leaderCtx = leaderCanvas?.getContext('2d');
+    if (!leaderCanvas) return;
+    const leaderCtx = leaderCanvas.getContext('2d');
 
     const uiCanvas = uiCanvasRef.current;
-    const uiCtx = uiCanvas?.getContext('2d');
+    if (!uiCanvas) return;
+    const uiCtx = uiCanvas.getContext('2d');
 
-    if (!trailCanvas || !trailCtx || !leaderCanvas || !leaderCtx || !uiCanvas || !uiCtx) return;
+    if (!trailCtx || !leaderCtx || !uiCtx) return;
+
 
     // --- Draw Matrix Rain (Background Canvases) ---
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
@@ -105,11 +109,13 @@ export default function TestePage() {
     const interval = 50; 
 
     const animate = (timestamp: number) => {
-        if (timestamp - lastTime >= interval) {
-            draw();
-            lastTime = timestamp;
-        }
-        animationFrameId.current = requestAnimationFrame(animate);
+      const allCanvasesReady = trailCanvasRef.current && leaderCanvasRef.current && uiCanvasRef.current;
+      
+      if (allCanvasesReady && (timestamp - lastTime >= interval)) {
+          draw();
+          lastTime = timestamp;
+      }
+      animationFrameId.current = requestAnimationFrame(animate);
     }
     
     const setup = () => {
@@ -122,8 +128,10 @@ export default function TestePage() {
             }
         });
         
-        (trailCanvasRef.current as any).drops = []; // Reset drops on resize
-
+        if(trailCanvasRef.current) {
+            (trailCanvasRef.current as any).drops = []; // Reset drops on resize
+        }
+        
         if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = requestAnimationFrame(animate);
     }
