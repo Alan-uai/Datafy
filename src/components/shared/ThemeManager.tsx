@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect } from 'react';
@@ -43,7 +42,8 @@ export const ThemeManager = () => {
   const { theme, matrixMode, matrixSpeed } = userProfile.preferences;
   const ActiveThemeComponent = themeMap[theme] || themeMap['dark'];
   
-  const props = theme === 'matrix' ? { key: `${matrixMode}-${matrixSpeed}`, mode: matrixMode, speed: matrixSpeed } : {};
+  const key = theme === 'matrix' ? `${matrixMode}-${matrixSpeed}` : theme;
+  const props = theme === 'matrix' ? { mode: matrixMode, speed: matrixSpeed } : {};
 
-  return <ActiveThemeComponent {...props} />;
+  return <ActiveThemeComponent key={key} {...props} />;
 };
