@@ -4,6 +4,21 @@
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ThemeManager } from '@/components/shared/ThemeManager';
+
+function RootLayoutWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <ThemeManager />
+      <ProtectedRoute>
+        {children}
+      </ProtectedRoute>
+      <Toaster />
+    </AuthProvider>
+  );
+}
+
 
 export default function RootLayout({
   children,
@@ -13,10 +28,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className='dark'>
         <body>
-            <AuthProvider>
+            <RootLayoutWrapper>
                 {children}
-            </AuthProvider>
-            <Toaster />
+            </RootLayoutWrapper>
         </body>
     </html>
   );
