@@ -11,7 +11,7 @@ const protectedRoutes = ['/dashboard', '/profile', '/settings', '/analytics'];
 
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { currentUser, userProfile, loading: authLoading, logout } = useAuth();
+  const { currentUser, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -22,40 +22,38 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route)) || pathname === '/';
     const isAuthRoute = unprotectedRoutes.includes(pathname);
-
-    if (currentUser && !userProfile && isProtectedRoute) {
-        logout().then(() => router.push('/login'));
-        return;
-    }
-
+    
+    // If not authenticated and trying to access a protected route
     if (!currentUser && isProtectedRoute) {
       router.push('/login');
     }
 
+    // If authenticated and trying to access an auth route (like /login)
     if (currentUser && isAuthRoute) {
       router.push('/');
     }
     
-  }, [currentUser, userProfile, authLoading, router, pathname, logout]);
+  }, [currentUser, userProfile, authLoading, router, pathname]);
 
+  // Show a loading spinner while authentication status is being determined
   if (authLoading) {
      return <LoadingSpinner fullPage />;
   }
   
-  const isAuthRoute = unprotectedRoutes.includes(pathname);
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route)) || pathname === '/';
-
-  if (currentUser && !userProfile && isProtectedRoute) {
-      return <LoadingSpinner fullPage text="Redirecionando..." />;
-  }
   
-  if ((currentUser && userProfile && isProtectedRoute) || (!currentUser && isAuthRoute)) {
+  // If the user is authenticated, their profile is loaded, and it's a protected route, show the page
+  if (currentUser && userProfile && isProtectedRoute) {
     return <>{children}</>;
   }
   
-  if (!isProtectedRoute && !isAuthRoute) {
-      return <>{children}</>;
+  const isUnprotectedRoute = unprotectedRoutes.includes(pathname);
+
+  // If it's an unprotected route, show the page (the logic inside the useEffect handles redirecting if logged in)
+  if (isUnprotectedRoute) {
+    return <>{children}</>;
   }
 
+  // Fallback loading spinner for other cases (e.g., waiting for redirect)
   return <LoadingSpinner fullPage />;
 }
