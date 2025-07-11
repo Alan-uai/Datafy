@@ -113,15 +113,20 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
         if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = requestAnimationFrame(animate);
     }
-
-    setup();
-    window.addEventListener('resize', setup);
+    
+    // Run setup only on the client
+    if (typeof window !== 'undefined') {
+        setup();
+        window.addEventListener('resize', setup);
+    }
 
     return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', setup);
+      }
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
-      window.removeEventListener('resize', setup);
     };
   }, [draw, mode, speed]);
 
