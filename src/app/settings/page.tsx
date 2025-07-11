@@ -15,8 +15,6 @@ export default function SettingsPage() {
 
   const handleThemeChange = (theme: 'dark' | 'matrix') => {
     savePreferences({ theme });
-    // This is a client-side only way to update the theme without a page reload
-    // We also set a cookie for the server-side rendering in RootLayout
     document.cookie = `theme=${theme};path=/;max-age=31536000`;
     document.documentElement.className = theme;
   };
@@ -104,25 +102,25 @@ export default function SettingsPage() {
                   <RadioGroup
                     value={theme || 'dark'}
                     onValueChange={(value) => handleThemeChange(value as 'dark' | 'matrix')}
-                    className="flex flex-col sm:flex-row gap-4"
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                   >
-                    <div className="flex-1">
+                    <div>
                       <RadioGroupItem value="dark" id="theme-dark" className="peer sr-only" />
                       <Label
                         htmlFor="theme-dark"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24"
                       >
-                        <Palette className="mb-3 h-6 w-6" />
+                        <Palette className="mb-2 h-6 w-6" />
                         Padrão
                       </Label>
                     </div>
-                    <div className="flex-1">
+                    <div>
                       <RadioGroupItem value="matrix" id="theme-matrix" className="peer sr-only" />
                       <Label
                         htmlFor="theme-matrix"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24"
                       >
-                          <Bot className="mb-3 h-6 w-6" />
+                          <Bot className="mb-2 h-6 w-6" />
                           Matrix
                       </Label>
                     </div>
