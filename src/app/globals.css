@@ -14,20 +14,16 @@
 
 @keyframes cintilate-effect {
   0% {
-    color: hsl(120, 100%, 75%);
-    border-color: hsl(120, 100%, 75%);
+    opacity: 0.7;
+    border-color: hsl(var(--primary) / 0.7);
   }
-  33% {
-    color: hsl(0, 0%, 100%);
-    border-color: hsl(0, 0%, 100%);
-  }
-  66% {
-    color: hsl(120, 100%, 25%);
-    border-color: hsl(120, 100%, 25%);
+  50% {
+    opacity: 1;
+    border-color: hsl(var(--primary) / 1);
   }
   100% {
-    color: hsl(120, 100%, 75%);
-    border-color: hsl(120, 100%, 75%);
+    opacity: 0.7;
+    border-color: hsl(var(--primary) / 0.7);
   }
 }
 
@@ -108,19 +104,19 @@
     --card-foreground: 120 100% 75%;
     --popover: 140 10% 2% / 0.9;
     --popover-foreground: 120 100% 75%;
-    --primary: 231 56% 48%;
+    --primary: 120 100% 50%;
     --primary-foreground: 120 100% 10%;
     --secondary: 130 15% 12% / 0.8;
     --secondary-foreground: 120 90% 80%;
     --muted: 130 15% 12% / 0.8;
     --muted-foreground: 120 40% 60%;
-    --accent: 80 60% 50% / 0.5;
+    --accent: 120 60% 50% / 0.5;
     --accent-foreground: 120 100% 85%;
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 120 95% 25%;
     --input: 130 15% 12% / 0.8;
-    --ring: 231 56% 48%;
+    --ring: 120 95% 75%;
     --chart-1: 120 80% 50%;
     --chart-2: 120 70% 40%;
     --chart-3: 120 60% 30%;
@@ -128,46 +124,69 @@
     --chart-5: 120 40% 10%;
     --radius: 0.5rem;
   }
+  .padrão {
+    --background: 0 0% 2%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 10% / 0.8;
+    --primary: 40 90% 60%;
+    --border: 40 90% 70%;
+  }
+  .verão {
+    --background: 45 100% 95%;
+    --foreground: 25 80% 20%;
+    --card: 0 0% 100% / 0.5;
+    --primary: 50 100% 50%;
+    --border: 50 100% 60%;
+  }
+  .espaço {
+    --background: 240 60% 5%;
+    --foreground: 240 20% 90%;
+    --card: 240 30% 15% / 0.7;
+    --primary: 260 100% 70%;
+    --border: 260 100% 80%;
+  }
+  .sakura {
+    --background: 340 100% 97%;
+    --foreground: 330 40% 25%;
+    --card: 330 50% 90% / 0.6;
+    --primary: 335 100% 75%;
+    --border: 335 100% 85%;
+  }
+  .dia-noite {
+    --background: 210 60% 10%;
+    --foreground: 210 20% 90%;
+    --card: 210 40% 20% / 0.7;
+    --primary: 60 100% 50%;
+    --border: 60 100% 70%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-  body {
+  
+  html.dark body {
     @apply bg-background text-foreground;
   }
 
-  html.dark body {
-    background-color: hsl(var(--background));
-  }
-
-  html.matrix body,
-  html.padrão body,
-  html.verão body,
-  html.espaço body,
-  html.sakura body,
-  html.dia-noite body {
+  html:not(.dark) body {
     background-color: transparent;
+    @apply text-foreground;
+  }
+  
+  .animate-cintilar * {
+     animation: cintilate-effect 2s ease-in-out infinite;
   }
 
-  .animate-cintilate *,
-  .animate-cintilate {
-     animation: cintilate-effect 4s linear infinite;
-  }
-  
-  .animate-rotate *,
-  .animate-rotate {
+  .animate-girar *:not(body):not(html) {
     animation: rotate-effect 4s linear infinite;
-  }
-  
-  .animate-rotate *:not(body):not(body *):not(html) {
-      border: 1px solid transparent;
-      background: conic-gradient(from var(--angle), hsl(120, 100%, 25%), hsl(120, 100%, 75%), hsl(0, 0%, 100%), hsl(120, 100%, 25%)) border-box;
-      -webkit-mask:
-          linear-gradient(#fff 0 0) padding-box, 
-          linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-              mask-composite: exclude;
+    border: 1px solid transparent;
+    background: conic-gradient(from var(--angle), hsl(var(--background)), hsl(var(--primary)), white, hsl(var(--primary)), hsl(var(--background))) border-box;
+    -webkit-mask:
+        linear-gradient(#fff 0 0) padding-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
   }
 }

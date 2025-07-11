@@ -47,7 +47,7 @@ export interface UserPreferences {
     isEditingWidgets: boolean;
     dashboardScale: 'normal' | 'compact';
     attentionHorizonDays: number;
-    matrixAnimation: 'cintilar' | 'girar';
-    matrixMode: 'padrão' | 'merge';
-    matrixSpeed: number;
+    themeAnimation: 'cintilar' | 'girar' | 'nenhuma';
+    themeSpeed: number;
+    themeSize: number;
 }

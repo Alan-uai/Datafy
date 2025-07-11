@@ -67,9 +67,9 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
     isEditingWidgets: false,
     dashboardScale: 'normal',
     attentionHorizonDays: 7,
-    matrixAnimation: 'cintilar',
-    matrixMode: 'padrão',
-    matrixSpeed: 100,
+    themeAnimation: 'nenhuma',
+    themeSpeed: 100,
+    themeSize: 100,
   },
   privacy: { showEmail: false, showActivity: true },
 };

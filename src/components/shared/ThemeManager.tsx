@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect } from 'react';
@@ -10,9 +11,15 @@ import DayNightTheme from '@/components/themes/DayNightTheme';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import type { UserPreferences } from '@/lib/types';
+import type { UserPreferences, ThemeName } from '@/lib/types';
 
-const themeMap: Record<UserPreferences['theme'], React.FC<any>> = {
+interface ThemeComponentProps {
+    animation: UserPreferences['themeAnimation'];
+    speed: UserPreferences['themeSpeed'];
+    size: UserPreferences['themeSize'];
+}
+
+const themeMap: Record<ThemeName, React.FC<any>> = {
     'dark': () => null, // No custom component for dark, it uses CSS vars
     'padrão': DefaultTheme,
     'matrix': MatrixBackground,
@@ -27,23 +34,23 @@ export const ThemeManager = () => {
   
   useEffect(() => {
     if (userProfile?.preferences) {
-      const { theme, matrixAnimation } = userProfile.preferences;
-      document.documentElement.className = cn(theme, theme === 'matrix' && `animate-${matrixAnimation}`);
+      const { theme, themeAnimation } = userProfile.preferences;
+      document.documentElement.className = cn(theme, themeAnimation !== 'nenhuma' && `animate-${themeAnimation}`);
     } else {
       // Fallback to dark theme if profile isn't loaded yet
       document.documentElement.className = 'dark';
     }
   }, [userProfile?.preferences]);
 
-  if (!userProfile?.preferences) {
+  if (!userProfile?.preferences || userProfile.preferences.theme === 'dark') {
     return null;
   }
 
-  const { theme, matrixMode, matrixSpeed } = userProfile.preferences;
-  const ActiveThemeComponent = themeMap[theme] || themeMap['dark'];
+  const { theme, themeAnimation, themeSpeed, themeSize } = userProfile.preferences;
+  const ActiveThemeComponent = themeMap[theme];
   
-  const key = theme === 'matrix' ? `${matrixMode}-${matrixSpeed}` : theme;
-  const props = theme === 'matrix' ? { mode: matrixMode, speed: matrixSpeed } : {};
+  const key = `${theme}-${themeAnimation}-${themeSpeed}-${themeSize}`;
+  const props = { animation: themeAnimation, speed: themeSpeed, size: themeSize };
 
   return <ActiveThemeComponent key={key} {...props} />;
 };
