@@ -9,14 +9,14 @@ export default function TestePage() {
   const leaderCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
 
-  const drawBackground = useCallback(() => {
+  const draw = useCallback(() => {
     const trailCanvas = trailCanvasRef.current;
     const leaderCanvas = leaderCanvasRef.current;
-    if (!trailCanvas || !leaderCanvas) return;
 
-    const trailCtx = trailCanvas.getContext('2d');
-    const leaderCtx = leaderCanvas.getContext('2d');
-    if (!trailCtx || !leaderCtx) return;
+    const trailCtx = trailCanvas?.getContext('2d');
+    const leaderCtx = leaderCanvas?.getContext('2d');
+    
+    if (!trailCanvas || !trailCtx || !leaderCanvas || !leaderCtx) return;
 
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
     const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -26,7 +26,9 @@ export default function TestePage() {
     const columns = Math.floor(trailCanvas.width / fontSize);
 
     const drops = (trailCanvas as any).drops || Array(columns).fill(1).map((_,i) => i * fontSize);
-    (trailCanvas as any).drops = drops;
+    if (!(trailCanvas as any).drops) {
+        (trailCanvas as any).drops = drops;
+    }
 
     trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     trailCtx.fillRect(0, 0, trailCanvas.width, trailCanvas.height);
@@ -59,7 +61,7 @@ export default function TestePage() {
 
     const animate = (timestamp: number) => {
       if (timestamp - lastTime >= interval) {
-          drawBackground();
+          draw();
           lastTime = timestamp;
       }
       animationFrameId.current = requestAnimationFrame(animate);
@@ -76,7 +78,7 @@ export default function TestePage() {
         });
         
         if(trailCanvasRef.current) {
-            (trailCanvasRef.current as any).drops = [];
+            (trailCanvasRef.current as any).drops = undefined;
         }
         
         if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
@@ -96,20 +98,18 @@ export default function TestePage() {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [drawBackground]);
+  }, [draw]);
 
   return (
-    <div className={cn('matrix relative min-h-screen bg-black')}>
-      <div className="fixed inset-0 -z-10">
+    <div className={cn('relative min-h-screen bg-black')}>
         <canvas 
           ref={trailCanvasRef} 
-          className="absolute inset-0 z-10"
+          className="absolute inset-0 z-10 block"
         />
         <canvas 
           ref={leaderCanvasRef} 
-          className="absolute inset-0 z-20"
+          className="absolute inset-0 z-20 block"
         />
-      </div>
     </div>
   );
 }
