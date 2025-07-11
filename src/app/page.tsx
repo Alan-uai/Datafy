@@ -19,8 +19,10 @@ import { ProductView } from "@/components/dashboard/ProductView";
 import { DashboardModals } from "@/components/dashboard/DashboardModals";
 import { MultiSelectBar } from "@/components/dashboard/MultiSelectBar";
 import type { AllWidgetType } from "@/components/dashboard/widgets/widget-map";
+import { Header } from "@/components/shared/Header";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-export default function Dashboard() {
+function DashboardComponent() {
   const { userProfile, savePreferences, isLoading: isProfileLoading } = useUserProfile();
   
   const { 
@@ -206,4 +208,18 @@ export default function Dashboard() {
         )}
     </div>
   );
+}
+
+
+export default function Dashboard() {
+    return (
+        <ProtectedRoute>
+            <div className="relative min-h-screen flex flex-col bg-transparent">
+                <Header />
+                <main className="flex-1">
+                    <DashboardComponent />
+                </main>
+            </div>
+        </ProtectedRoute>
+    )
 }
