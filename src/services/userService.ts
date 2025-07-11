@@ -19,8 +19,7 @@ export interface UserPreferences {
     activeWidgets: AllWidgetType[];
     lastActiveListId?: string;
     isEditingWidgets: boolean;
-    activeDashboardWidgets: AllWidgetType[];
-    availableDashboardWidgets: AllWidgetType[];
+    dashboardScale: 'normal' | 'compact';
 }
 
 export interface UserProfile {
@@ -74,10 +73,9 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
       'categoria': true,
       'status': true,
     },
-    activeWidgets: ['expiryAttention', 'statsCards', 'lowStockItems'],
+    activeWidgets: ['expiryAttention', 'statsCards'],
     isEditingWidgets: false,
-    activeDashboardWidgets: ['expiryAttention', 'statsCards', 'lowStockItems'],
-    availableDashboardWidgets: ['categoryDistribution', 'stockValueByCategory', 'priceRangeDistribution']
+    dashboardScale: 'normal',
   },
   privacy: { showEmail: false, showActivity: true },
 };
@@ -180,10 +178,13 @@ export const checkPremiumStatus = async (uid: string): Promise<boolean> => {
     const profile = await getUserProfile(uid);
     if (!profile?.isPremium) return false;
     
+    // Check for expiration if premiumExpiresAt exists
     if (profile.premiumExpiresAt && new Date(profile.premiumExpiresAt) < new Date()) {
-        await updateUserProfile(uid, { isPremium: false });
+        // Expiration date has passed, update profile to non-premium
+        await updateUserProfile(uid, { isPremium: false, premiumExpiresAt: undefined });
         return false;
     }
 
+    // Is premium and not expired
     return true;
 }

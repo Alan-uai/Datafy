@@ -38,20 +38,25 @@ import {
   ShoppingCart,
   List,
   CalendarCheck,
-  X
+  X,
+  Minimize2,
+  Maximize2
 } from 'lucide-react';
-import { getUserProfile, updateUserProfile, type UserProfile as UserProfileType, createUserProfile } from '@/services/userService';
+import { getUserProfile, updateUserProfile, type UserProfile as UserProfileType, createUserProfile, updateUserPreferences } from '@/services/userService';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 export default function ProfilePage() {
   const { currentUser, logout } = useAuth();
+  const { userProfile: initialProfile, savePreferences } = useUserProfile();
   const router = useRouter();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'personal' | 'achievements' | 'premium'>('personal');
-  const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
+  const [activeTab, setActiveTab] = useState<'personal' | 'achievements' | 'premium' | 'settings'>('personal');
+  const [userProfile, setUserProfile] = useState<UserProfileType | null>(initialProfile);
 
   const loadUserProfile = useCallback(async () => {
     if (!currentUser?.uid) return;
@@ -225,6 +230,7 @@ export default function ProfilePage() {
   const tabs = [
     { id: 'personal', label: 'Pessoal', icon: User },
     { id: 'achievements', label: 'Conquistas', icon: Trophy },
+    { id: 'settings', label: 'Aparência', icon: Settings },
     { id: 'premium', label: 'Premium', icon: Crown },
   ];
 
@@ -330,15 +336,17 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <CardTitle>Informações do Perfil</CardTitle>
                    <div className="flex gap-2">
-                     {isEditing && (
+                     {isEditing && activeTab === 'personal' && (
                         <Button onClick={() => setIsEditing(false)} variant="ghost">
                            <X className="w-4 h-4 mr-2" /> Cancelar
                         </Button>
                       )}
-                      <Button onClick={isEditing ? handleSave : () => setIsEditing(true)}>
-                        {isEditing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
-                        {isEditing ? 'Salvar' : 'Editar'}
-                      </Button>
+                      {activeTab === 'personal' && (
+                        <Button onClick={isEditing ? handleSave : () => setIsEditing(true)}>
+                          {isEditing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
+                          {isEditing ? 'Salvar' : 'Editar'}
+                        </Button>
+                      )}
                    </div>
                 </div>
                 <div className="flex flex-wrap gap-1 bg-muted rounded-lg p-1 mt-4">
@@ -398,6 +406,37 @@ export default function ProfilePage() {
                       </Card>
                     </motion.div>
                   )}
+
+                   {activeTab === 'settings' && (
+                     <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+                        <Card className="bg-background">
+                            <CardHeader><CardTitle className="flex items-center gap-2 text-base">Tamanho da Interface (Dashboard)</CardTitle></CardHeader>
+                            <CardContent>
+                                <RadioGroup 
+                                    defaultValue={userProfile.preferences.dashboardScale || 'normal'} 
+                                    onValueChange={(value) => savePreferences({ dashboardScale: value as 'normal' | 'compact' })}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="normal" id="scale-normal" />
+                                        <Label htmlFor="scale-normal" className="flex items-center gap-2 cursor-pointer">
+                                            <Maximize2 className="w-4 h-4"/> Normal
+                                        </Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="compact" id="scale-compact" />
+                                        <Label htmlFor="scale-compact" className="flex items-center gap-2 cursor-pointer">
+                                            <Minimize2 className="w-4 h-4"/> Compacto
+                                        </Label>
+                                    </div>
+                                </RadioGroup>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    O modo compacto diminui o tamanho de textos e botões no dashboard para exibir mais informações.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                   )}
 
                   {activeTab === 'premium' && (
                      <motion.div key="premium" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center p-8 bg-muted/30 rounded-lg">

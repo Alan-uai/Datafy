@@ -23,15 +23,17 @@ export type WidgetConfig = {
   description: string;
   Icon: LucideIcon;
   component: React.FC<WidgetProps> | React.FC<ExpiryWidgetProps>;
+  premium?: boolean;
 };
 
-export const WIDGET_MAP = {
+export const WIDGET_MAP: Record<AllWidgetType, WidgetConfig> = {
   statsCards: {
     id: "statsCards",
     title: "Estatísticas Rápidas",
     description: "Visão geral do seu inventário.",
     Icon: LayoutDashboard,
     component: StatsCardsWidget,
+    premium: false,
   },
   expiryAttention: {
     id: "expiryAttention",
@@ -39,6 +41,7 @@ export const WIDGET_MAP = {
     description: "Análise de itens críticos próximos da validade.",
     Icon: ShieldAlert,
     component: ExpiryAttentionReportCard,
+    premium: false,
   },
   lowStockItems: {
     id: "lowStockItems",
@@ -46,6 +49,7 @@ export const WIDGET_MAP = {
     description: "Produtos que precisam de reposição.",
     Icon: Package,
     component: LowStockItemsWidget,
+    premium: true,
   },
   categoryDistribution: {
     id: "categoryDistribution",
@@ -53,6 +57,7 @@ export const WIDGET_MAP = {
     description: "Gráfico de pizza das categorias de produtos.",
     Icon: PieChart,
     component: CategoryDistributionWidget,
+    premium: true,
   },
   stockValueByCategory: {
     id: "stockValueByCategory",
@@ -60,6 +65,7 @@ export const WIDGET_MAP = {
     description: "Valor total do estoque para cada categoria.",
     Icon: BarChart,
     component: StockValueByCategoryWidget,
+    premium: true,
   },
   priceRangeDistribution: {
     id: "priceRangeDistribution",
@@ -67,9 +73,8 @@ export const WIDGET_MAP = {
     description: "Como os produtos se distribuem por faixa de preço.",
     Icon: CircleDollarSign,
     component: PriceRangeDistributionWidget,
+    premium: true,
   },
 } as const;
 
 export type AllWidgetType = keyof typeof WIDGET_MAP;
-
-    

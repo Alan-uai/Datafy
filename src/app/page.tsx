@@ -1,4 +1,4 @@
-import { Dashboard } from "@/components/dashboard";
+import Dashboard from "@/app/dashboard/page";
 import { Header } from "@/components/shared/Header";
 
 export default function Home() {

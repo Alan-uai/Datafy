@@ -12,13 +12,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { LogOut, BarChart3 } from 'lucide-react';
+import { LogOut, BarChart3, Settings } from 'lucide-react';
 import { AppLogo } from './AppLogo';
+import React, { useState, useEffect } from 'react';
+import { checkPremiumStatus } from '@/services/userService';
 
 export function Header() {
   const { currentUser, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    const fetchPremiumStatus = async () => {
+      if (currentUser) {
+        const status = await checkPremiumStatus(currentUser.uid);
+        setIsPremium(status);
+      }
+    };
+    fetchPremiumStatus();
+  }, [currentUser]);
 
   const handleLogout = async () => {
     await logout();
@@ -35,6 +48,18 @@ export function Header() {
     return 'U';
   };
 
+  const AnalyticsButton = () => (
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      onClick={() => isPremium && router.push('/analytics')}
+      disabled={!isPremium}
+      className={!isPremium ? 'opacity-50 cursor-not-allowed' : ''}
+    >
+      <BarChart3 className="h-5 w-5" />
+    </Button>
+  );
+
   return (
     <TooltipProvider>
       <header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-background/95 backdrop-blur-sm">
@@ -42,24 +67,30 @@ export function Header() {
           <Link href="/">
             <AppLogo />
           </Link>
-          <h1 className="text-xl font-bold hidden sm:block">
-            {pathname === '/' && 'Dashboard'}
-            {pathname === '/analytics' && 'Análise'}
-            {pathname === '/profile' && 'Meu Perfil'}
-          </h1>
         </div>
         
         <div className="flex items-center gap-1 sm:gap-2">
           {currentUser && (
             <>
+              {pathname === '/' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/profile')}>
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Configurações</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            
               <Tooltip>
                 <TooltipTrigger asChild>
-                   <Button variant="ghost" size="icon" onClick={() => router.push('/analytics')}>
-                      <BarChart3 className="h-5 w-5" />
-                   </Button>
+                   <AnalyticsButton/>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Análise</p>
+                  <p>Análise {isPremium ? '' : '(Premium)'}</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -96,5 +127,3 @@ export function Header() {
     </TooltipProvider>
   );
 }
-
-    
