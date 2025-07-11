@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { EmailPasswordLoginForm } from "@/components/auth/EmailPasswordLoginForm";
@@ -8,25 +9,30 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppLogo } from "@/components/shared/AppLogo";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const { currentUser } = useAuth();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleAuthSuccess = () => {
-    setIsAuthenticating(true);
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 2000);
+    // O ProtectedRoute irá gerenciar o redirecionamento automaticamente.
+    // O router.push aqui pode ser removido para evitar conflitos.
   };
 
   const handleGoogleSignIn = () => {
     setIsGoogleLoading(true);
     // O GoogleSignInButton vai gerenciar o loading internamente
   };
+  
+  // Se o usuário já estiver logado, o ProtectedRoute cuidará do redirecionamento.
+  // Podemos mostrar um spinner enquanto isso acontece para evitar um piscar da página de login.
+  if (currentUser) {
+    return <LoadingSpinner fullPage text="REDIRECIONANDO"/>;
+  }
 
   // Floating particles animation
   const particles = Array.from({ length: 20 }, (_, i) => ({
@@ -37,9 +43,6 @@ export default function LoginPage() {
     duration: 3 + Math.random() * 2,
   }));
 
-  if (isAuthenticating) {
-    return <LoadingSpinner fullPage text="AUTENTICANDO"/>;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-800 flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative">

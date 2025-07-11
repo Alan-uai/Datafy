@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,53 +13,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { createUserProfile } from "@/services/userService";
 import { UserPlus, Star, Zap } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { currentUser } = useAuth();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(false);
-
-  const playSuccessSound = () => {
-    if (soundEnabled) {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
-
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    }
-  };
-
-  const handleButtonClick = (action: () => void) => {
-    setSoundEnabled(true);
-    playSuccessSound();
-    action();
-  };
-
+  
   const handleAuthSuccess = async (user: FirebaseUser | null) => {
+    if (!user) return;
+
     setIsAuthenticating(true);
-    playSuccessSound();
 
-    if (user) {
-      // Create user profile in Firestore, handling potential undefined photoURL
+    try {
       await createUserProfile(user.uid, {
-        photoURL: user.photoURL || null,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL || undefined,
       });
-
-      // Navigate to dashboard after a short delay
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 3000);
+    } catch (error) {
+       console.error("Failed to create user profile during signup", error);
+    } finally {
+        // O ProtectedRoute vai cuidar do redirecionamento
     }
   };
 
@@ -68,9 +44,10 @@ export default function SignupPage() {
     { icon: Zap, text: "Sincronização Rápida", delay: 0.5 },
     { icon: UserPlus, text: "Interface Amigável", delay: 1 },
   ];
-
-  if (isAuthenticating) {
-    return <LoadingSpinner fullPage text="CRIANDO CONTA" />;
+  
+  // Se o usuário já estiver logado, o ProtectedRoute cuidará do redirecionamento.
+  if (currentUser || isAuthenticating) {
+    return <LoadingSpinner fullPage text="PREPARANDO SUA CONTA"/>;
   }
 
   return (
@@ -177,7 +154,6 @@ export default function SignupPage() {
               >
                 <GoogleSignInButton 
                   onSuccess={(userCredential) => handleAuthSuccess(userCredential.user)}
-                  onClick={() => handleButtonClick(() => {})}
                   className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg"
                 />
               </motion.div>
@@ -198,7 +174,6 @@ export default function SignupPage() {
               >
                 <SignupForm 
                   onSuccess={(user) => handleAuthSuccess(user)}
-                  onButtonClick={() => handleButtonClick(() => {})}
                 />
               </motion.div>
 
@@ -213,7 +188,6 @@ export default function SignupPage() {
                   <Link 
                     href="/login" 
                     className="text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-4"
-                    onClick={() => setSoundEnabled(true)}
                   >
                     Fazer login
                   </Link>
