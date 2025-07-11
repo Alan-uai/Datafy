@@ -71,12 +71,18 @@ export const PremiumTab: React.FC<PremiumTabProps> = ({ userProfile, setUserProf
     };
 
     try {
-      await updateUserProfile(currentUser.uid, { premium: newPremiumStatus });
+      // Optimistically update UI
       setUserProfile(prev => prev ? { ...prev, premium: newPremiumStatus } : null);
+      
+      // Update Firestore
+      await updateUserProfile(currentUser.uid, { premium: newPremiumStatus });
+      
       toast({ title: `Bem-vindo ao Premium ${planLevel}!`, description: "Seu plano foi ativado com sucesso." });
     } catch (error) {
       console.error("Failed to upgrade premium plan:", error);
       toast({ variant: "destructive", title: "Erro na Assinatura", description: "Não foi possível atualizar seu plano." });
+      // Revert UI on error
+      setUserProfile(prev => prev ? { ...prev, premium: userProfile.premium } : null);
     }
   };
 

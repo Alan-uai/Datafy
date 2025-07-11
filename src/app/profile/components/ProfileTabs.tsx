@@ -32,42 +32,60 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({ userProfile, setUserPr
   
   const [activeTab, setActiveTab] = useState<'personal' | 'achievements' | 'premium'>('personal');
   const [isEditing, setIsEditing] = useState(false);
+  const [localProfile, setLocalProfile] = useState(userProfile);
 
-  const updateProfileField = (field: keyof UserProfile, value: any) => {
-    setUserProfile(prev => prev ? ({ ...prev, [field]: value }) : null);
+  // Sync local state when prop changes
+  React.useEffect(() => {
+    setLocalProfile(userProfile);
+  }, [userProfile]);
+
+  const updateLocalProfileField = (field: keyof UserProfile, value: any) => {
+    setLocalProfile(prev => prev ? ({ ...prev, [field]: value }) : null);
   };
 
   const handleSave = async () => {
-    if (!userProfile || !currentUser?.uid) return;
+    if (!localProfile || !currentUser?.uid) return;
     try {
-      if (!userProfile.displayName?.trim()) {
+      if (!localProfile.displayName?.trim()) {
         toast({ variant: "destructive", title: "Campo Obrigatório", description: "Nome é obrigatório." });
         return;
       }
       const dataToUpdate = {
-        displayName: userProfile.displayName,
-        birthDate: userProfile.birthDate,
-        location: userProfile.location,
-        phone: userProfile.phone,
-        website: userProfile.website,
-        bio: userProfile.bio,
+        displayName: localProfile.displayName,
+        birthDate: localProfile.birthDate,
+        location: localProfile.location,
+        phone: localProfile.phone,
+        website: localProfile.website,
+        bio: localProfile.bio,
       };
+
+      // Update central state first for instant UI feedback
+      setUserProfile(localProfile);
+
+      // Then update Firestore
       await updateUserProfile(currentUser.uid, dataToUpdate);
+      
       setIsEditing(false);
       toast({ title: "Perfil atualizado", description: "Suas informações foram salvas." });
     } catch (error) {
       toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar o perfil." });
     }
   };
+  
+  const handleCancelEdit = () => {
+    setLocalProfile(userProfile); // Revert local changes
+    setIsEditing(false);
+  };
 
   const renderTabContent = () => {
+    if (!localProfile) return null;
     switch (activeTab) {
       case 'personal':
-        return <PersonalInfoForm userProfile={userProfile} updateProfile={updateProfileField} isEditing={isEditing} />;
+        return <PersonalInfoForm userProfile={localProfile} updateProfile={updateLocalProfileField} isEditing={isEditing} />;
       case 'achievements':
-        return <AchievementList achievements={userProfile.achievements} />;
+        return <AchievementList achievements={localProfile.achievements} />;
       case 'premium':
-        return <PremiumTab userProfile={userProfile} />;
+        return <PremiumTab userProfile={localProfile} setUserProfile={setUserProfile} />;
       default:
         return null;
     }
@@ -81,7 +99,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({ userProfile, setUserPr
             <CardTitle>Informações do Perfil</CardTitle>
             <div className="flex gap-2">
               {isEditing && activeTab === 'personal' && (
-                <Button onClick={() => setIsEditing(false)} variant="ghost">
+                <Button onClick={handleCancelEdit} variant="ghost">
                   <X className="w-4 h-4 mr-2" /> Cancelar
                 </Button>
               )}

@@ -1,27 +1,20 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateUserPreferences, type UserProfile, type UserPreferences } from '@/services/userService';
+import { updateUserPreferences, type UserPreferences } from '@/services/userService';
 import { useToast } from './use-toast';
 
 export function useUserProfile() {
-  const { userProfile: authUserProfile, loading: authLoading } = useAuth();
+  const { userProfile, setUserProfile, loading: isLoading } = useAuth();
   const { toast } = useToast();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(authUserProfile);
-  const [isLoading, setIsLoading] = useState(authLoading);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    setUserProfile(authUserProfile);
-    setIsLoading(authLoading);
-  }, [authUserProfile, authLoading]);
 
   const savePreferences = useCallback((newPreferences: Partial<UserPreferences>) => {
     if (!userProfile) return;
 
-    // Optimistically update local state
+    // Optimistically update the central state in AuthContext
     const updatedProfile = {
         ...userProfile,
         preferences: { ...userProfile.preferences, ...newPreferences }
@@ -38,11 +31,11 @@ export function useUserProfile() {
       } catch (error) {
         console.error("Failed to save preferences:", error);
         toast({ variant: "destructive", title: "Erro ao salvar preferências" });
-        // Revert to the auth context's state on failure
-        setUserProfile(authUserProfile);
+        // On failure, we could revert state, but AuthContext will refetch on next load anyway.
+        // For now, the optimistic update stays.
       }
-    }, 500); // 0.5-second debounce
-  }, [userProfile, authUserProfile, toast]);
+    }, 500);
+  }, [userProfile, setUserProfile, toast]);
   
   return { userProfile, setUserProfile, isLoading, savePreferences };
 }

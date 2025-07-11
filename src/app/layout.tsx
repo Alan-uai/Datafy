@@ -4,7 +4,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { cn } from '@/lib/utils';
 import { ThemeManager } from '@/components/shared/ThemeManager';
 
 
@@ -31,7 +30,7 @@ export default function RootLayout({
             <ThemeManager />
             <div className="relative z-10">
                 <ProtectedRoute>
-                {children}
+                  {children}
                 </ProtectedRoute>
             </div>
             <Toaster />

@@ -1,15 +1,15 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signOut as firebaseSignOut } from '@/lib/firebase';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { getUserProfile, createUserProfile, type UserProfile } from '@/services/userService';
 
 interface AuthContextType {
   currentUser: User | null;
   userProfile: UserProfile | null;
+  setUserProfile: Dispatch<SetStateAction<UserProfile | null>>; // Expose setter
   loading: boolean;
   logout: () => Promise<void>;
   hasPremium: () => boolean;
@@ -18,6 +18,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   userProfile: null,
+  setUserProfile: () => {}, // Default empty setter
   loading: true,
   logout: async () => {},
   hasPremium: () => false,
@@ -34,19 +35,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
+      setLoading(true);
       if (user) {
+        setCurrentUser(user);
         try {
           let profile = await getUserProfile(user.uid);
-          // If profile doesn't exist, create it. This is the crucial fix.
           if (!profile) {
             console.log(`Profile not found for user ${user.uid}. Creating a new one.`);
-            await createUserProfile(user.uid, {
+            const newProfileData = {
                 displayName: user.displayName,
                 email: user.email,
                 photoURL: user.photoURL || undefined,
-            });
-            // Fetch the newly created profile to ensure the state is up-to-date
+            };
+            await createUserProfile(user.uid, newProfileData);
             profile = await getUserProfile(user.uid);
           }
           setUserProfile(profile);
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserProfile(null);
         }
       } else {
+        setCurrentUser(null);
         setUserProfile(null);
       }
       setLoading(false);
@@ -64,29 +66,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const logout = async () => {
     await firebaseSignOut(auth);
-    // Setting states to null is handled by the onAuthStateChanged listener
   };
   
   const hasPremium = useCallback(() => {
     if (!userProfile?.premium) return false;
-    // Optional: Check for expiration if premium.expiresAt is implemented
-    // if (userProfile.premium.expiresAt && new Date(userProfile.premium.expiresAt) < new Date()) {
-    //   return false;
-    // }
     return true;
   }, [userProfile]);
 
   const value = {
     currentUser,
     userProfile,
+    setUserProfile,
     loading,
     logout,
     hasPremium,
   };
 
+  // Render children directly, ProtectedRoute will handle loading state
   return (
     <AuthContext.Provider value={value}>
-      {loading ? <LoadingSpinner fullPage /> : children}
+      {children}
     </AuthContext.Provider>
   );
 }

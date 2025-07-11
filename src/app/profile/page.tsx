@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -9,64 +9,38 @@ import { motion } from 'framer-motion';
 
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { User } from 'lucide-react';
-import type { UserProfile as UserProfileType } from '@/services/userService';
-import { getUserProfile, createUserProfile } from '@/services/userService';
 import { updateUserStatsAndAchievements } from '@/services/userProfileService';
 
 import { ProfileCard } from './components/ProfileCard';
 import { ProfileTabs } from './components/ProfileTabs';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 export default function ProfilePage() {
   const { currentUser, logout } = useAuth();
+  const { userProfile, setUserProfile, isLoading } = useUserProfile();
   const router = useRouter();
   const { toast } = useToast();
-  
-  const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const loadUserProfile = useCallback(async () => {
-    if (!currentUser?.uid) return;
-    setIsLoading(true);
+  const loadUserStats = useCallback(async () => {
+    if (!userProfile || !currentUser) return;
     try {
-      let profile = await getUserProfile(currentUser.uid);
-      if (!profile) {
-        const newProfileData: Partial<UserProfileType> = {
-          uid: currentUser.uid,
-          displayName: currentUser.displayName || 'Novo Usuário',
-          email: currentUser.email || '',
-          photoURL: currentUser.photoURL || undefined,
-        };
-        await createUserProfile(currentUser.uid, newProfileData);
-        profile = await getUserProfile(currentUser.uid);
-      }
-      
-      if (profile) {
-        const updatedProfile = await updateUserStatsAndAchievements(profile, currentUser, toast);
-        setUserProfile(updatedProfile);
-      } else {
-         throw new Error("Não foi possível carregar ou criar o perfil.");
-      }
-
+      const updatedProfile = await updateUserStatsAndAchievements(userProfile, currentUser, toast);
+      setUserProfile(updatedProfile);
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('Error loading profile stats:', error);
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Não foi possível carregar o perfil."
+        description: "Não foi possível carregar as estatísticas do perfil."
       });
-    } finally {
-      setIsLoading(false);
     }
-  }, [currentUser, toast]);
+  }, [currentUser, userProfile, setUserProfile, toast]);
 
   useEffect(() => {
-    if (currentUser?.uid) {
-      loadUserProfile();
-    } else {
-        // If there's no user, stop loading. The ProtectedRoute will handle redirection.
-        setIsLoading(false);
+    if (currentUser?.uid && userProfile) {
+      loadUserStats();
     }
-  }, [currentUser, loadUserProfile]);
+  }, [currentUser, userProfile, loadUserStats]);
 
   const handleLogout = async () => {
     try {
@@ -77,11 +51,11 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !userProfile) {
     return <LoadingSpinner />;
   }
   
-  if (!userProfile) {
+  if (!currentUser) {
      return <div className="p-4 md:p-6">Nenhum perfil encontrado. Faça login para ver seu perfil.</div>;
   }
 
