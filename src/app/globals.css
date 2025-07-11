@@ -138,16 +138,12 @@
     @apply bg-background text-foreground;
   }
 
-  .dark body {
-    background-color: hsl(var(--background));
-  }
-  
   .matrix body,
-  .padrão body,
-  .verão body,
-  .espaço body,
-  .sakura body,
-  .dia-noite body {
+  html.padrão body,
+  html.verão body,
+  html.espaço body,
+  html.sakura body,
+  html.dia-noite body {
     background-color: transparent;
   }
 
