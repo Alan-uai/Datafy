@@ -13,18 +13,14 @@ export default function MatrixBackground({
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   const leaderCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
-  const dropsRef = useRef<number[]>([]);
-
-  const draw = useCallback(() => {
-    const trailCanvas = trailCanvasRef.current;
-    const trailCtx = trailCanvas?.getContext('2d');
+  
+  const draw = useCallback((
+    trailCtx: CanvasRenderingContext2D,
+    leaderCtx: CanvasRenderingContext2D | null,
+    drops: number[]
+  ) => {
+    const trailCanvas = trailCtx.canvas;
     
-    const leaderCanvas = leaderCanvasRef.current;
-    const leaderCtx = leaderCanvas?.getContext('2d');
-
-    if (!trailCanvas || !trailCtx) return;
-    if (mode === 'padrão' && (!leaderCanvas || !leaderCtx)) return;
-
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
     const hiragana = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
     const kanji = '日一国会人年大十二本中長出三同時政事自行社見月分議後前民生連五発間対上部東者党地員切動';
@@ -38,14 +34,13 @@ export default function MatrixBackground({
     const alphabet = leadingChars + trailChars;
 
     const fontSize = 16;
-    const drops = dropsRef.current;
-
+    
     trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     trailCtx.fillRect(0, 0, trailCanvas.width, trailCanvas.height);
     trailCtx.font = `${fontSize}px monospace`;
     
     if (leaderCtx) {
-        leaderCtx.clearRect(0, 0, leaderCanvas!.width, leaderCanvas!.height);
+        leaderCtx.clearRect(0, 0, leaderCtx.canvas.width, leaderCtx.canvas.height);
         leaderCtx.font = `${fontSize}px monospace`;
     }
 
@@ -77,36 +72,41 @@ export default function MatrixBackground({
   }, [mode]);
 
   useEffect(() => {
+    const canvases = [trailCanvasRef.current, leaderCanvasRef.current];
+    const trailCanvas = trailCanvasRef.current;
+    const leaderCanvas = leaderCanvasRef.current;
+    const trailCtx = trailCanvas?.getContext('2d');
+    const leaderCtx = mode === 'padrão' ? leaderCanvas?.getContext('2d') : null;
+    let drops: number[] = [];
+
+    const setup = () => {
+        canvases.forEach(canvas => {
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+        if (trailCanvas) {
+            const columns = Math.floor(trailCanvas.width / 16);
+            drops = Array(columns).fill(1).map((_, i) => Math.floor(Math.random() * trailCanvas.height));
+        }
+        if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+        animate();
+    };
+
     let lastTime = 0;
-    const baseInterval = 50; 
+    const baseInterval = 50;
     const speedMultiplier = 100 / Math.max(1, speed);
     const interval = baseInterval * speedMultiplier;
 
-    const animate = (timestamp: number) => {
-      if (trailCanvasRef.current) { // Only animate if canvas exists
+    const animate = (timestamp: number = 0) => {
         if (timestamp - lastTime >= interval) {
-            draw();
+            if (trailCtx) {
+                draw(trailCtx, leaderCtx, drops);
+            }
             lastTime = timestamp;
         }
         animationFrameId.current = requestAnimationFrame(animate);
-      }
-    };
-    
-    const setup = () => {
-      const canvases = [trailCanvasRef.current, leaderCanvasRef.current];
-      const fontSize = 16;
-
-      canvases.forEach(canvas => {
-          if (canvas) {
-              canvas.width = window.innerWidth;
-              canvas.height = window.innerHeight;
-              const columns = Math.floor(canvas.width / fontSize);
-              dropsRef.current = Array(columns).fill(1).map((_, i) => Math.floor(Math.random() * canvas.height));
-          }
-      });
-      
-      if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = requestAnimationFrame(animate); 
     };
     
     if (typeof window !== 'undefined') {
