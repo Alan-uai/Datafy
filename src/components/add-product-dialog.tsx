@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -58,12 +58,13 @@ const formSchema = z.object({
 type AddProductDialogProps = {
   children: React.ReactNode;
   categories: Category[];
-  onAddProduct: (product: Omit<Product, "id">) => void;
+  onAddProduct: (product: Omit<Product, "id" | "listId">) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingProduct?: Product | null;
 };
 
-export function AddProductDialog({ children, categories, onAddProduct, open, onOpenChange }: AddProductDialogProps) {
+export function AddProductDialog({ children, categories, onAddProduct, open, onOpenChange, editingProduct }: AddProductDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,10 +75,31 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
     },
   });
 
+  useEffect(() => {
+    if (editingProduct) {
+      form.reset({
+        name: editingProduct.name,
+        brand: editingProduct.brand,
+        quantity: editingProduct.quantity,
+        price: editingProduct.price,
+        expiryDate: new Date(editingProduct.expiryDate),
+        category: editingProduct.category,
+      });
+    } else {
+      form.reset({
+        name: "",
+        brand: "",
+        quantity: 1,
+        price: undefined,
+        expiryDate: undefined,
+        category: undefined,
+      });
+    }
+  }, [editingProduct, open, form]);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     onAddProduct(values);
-    form.reset({ name: "", brand: "", quantity: 1, price: undefined, category: undefined, expiryDate: undefined });
-    onOpenChange(false);
+    form.reset();
   }
 
   return (
@@ -85,9 +107,9 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Item</DialogTitle>
+          <DialogTitle>{editingProduct ? "Editar Produto" : "Adicionar Novo Item"}</DialogTitle>
           <DialogDescription>
-            Preencha as informações do produto para adicioná-lo ao seu inventário.
+            {editingProduct ? "Altere as informações do produto." : "Preencha as informações do produto para adicioná-lo ao seu inventário."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -193,7 +215,7 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
                 render={({ field }) => (
                   <FormItem className="pt-2">
                     <FormLabel>Categoria</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
@@ -214,7 +236,7 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
             </div>
             <DialogFooter>
                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-               <Button type="submit" className="bg-accent text-accent-foreground hover:bg-accent/90">Salvar</Button>
+               <Button type="submit">{editingProduct ? "Salvar Alterações" : "Salvar"}</Button>
             </DialogFooter>
           </form>
         </Form>

@@ -9,7 +9,7 @@ export const getProductLists = async (userId: string): Promise<ProductList[]> =>
   try {
     const listsQuery = query(collection(db, 'productLists'), where('userId', '==', userId));
     const querySnapshot = await getDocs(listsQuery);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductList));
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductList)).sort((a,b) => a.createdAt > b.createdAt ? 1 : -1);
   } catch (error) {
     console.error("Error fetching product lists:", error);
     return [];
@@ -37,25 +37,21 @@ export const updateProductList = async (listId: string, updates: Partial<Product
 export const deleteProductList = async (user: User, listId: string): Promise<void> => {
     const batch = writeBatch(db);
 
-    // 1. Delete the list itself
     const listRef = doc(db, 'productLists', listId);
     batch.delete(listRef);
 
-    // 2. Find and delete all products in that list
     const productsQuery = query(collection(db, 'products'), where('userId', '==', user.uid), where('listId', '==', listId));
     const productsSnapshot = await getDocs(productsQuery);
     productsSnapshot.forEach(productDoc => {
         batch.delete(productDoc.ref);
     });
 
-    // 3. Update user preferences if this was the last active list
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
     if (userSnap.exists() && userSnap.data().preferences?.lastActiveListId === listId) {
        batch.update(userRef, { "preferences.lastActiveListId": "" });
     }
     
-    // Commit the batch
     await batch.commit();
 };
 
@@ -111,7 +107,7 @@ export const addProduct = async (userId: string, listId: string, productData: Om
   return docRef.id;
 };
 
-export const updateProduct = async (productId: string, updates: Partial<Product>): Promise<void> => {
+export const updateProduct = async (productId: string, updates: Partial<Omit<Product, 'id' | 'listId'>>): Promise<void> => {
   const productRef = doc(db, 'products', productId);
   await updateDoc(productRef, {
       ...updates,
@@ -124,4 +120,20 @@ export const deleteProduct = async (productId: string): Promise<void> => {
   await deleteDoc(productRef);
 };
 
-    
+export const deleteMultipleProducts = async (productIds: string[]): Promise<void> => {
+  const batch = writeBatch(db);
+  productIds.forEach(id => {
+    const productRef = doc(db, 'products', id);
+    batch.delete(productRef);
+  });
+  await batch.commit();
+};
+
+export const moveMultipleProducts = async (productIds: string[], targetListId: string): Promise<void> => {
+  const batch = writeBatch(db);
+  productIds.forEach(id => {
+    const productRef = doc(db, 'products', id);
+    batch.update(productRef, { listId: targetListId });
+  });
+  await batch.commit();
+};

@@ -18,7 +18,7 @@ import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
 import { format } from "date-fns";
-import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, Settings, Edit, Trash2, RefreshCw, LayoutGrid, Crown, Lock } from "lucide-react";
+import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, Settings, Edit, Trash2, RefreshCw, LayoutGrid, Crown, Lock, Move, XCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,9 +30,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserProfile, updateUserProfile, type UserProfile, checkPremiumStatus } from "@/services/userService";
-import { getProductLists, getProductsByList, addProductList, addProduct, updateProductList, deleteProductList } from "@/services/productService";
+import { checkPremiumStatus } from "@/services/userService";
+import { getProductLists, getProductsByList, addProductList, addProduct, updateProduct, updateProductList, deleteProductList, deleteProduct, deleteMultipleProducts, moveMultipleProducts } from "@/services/productService";
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -50,12 +51,18 @@ import {
   DropdownMenuTrigger,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import { DynamicIcon } from "@/components/shared/DynamicIcon";
 import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
 import { debounce } from 'lodash';
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+
 
 const columnNames: Record<string, string> = {
     'produto': 'Produto',
@@ -110,8 +117,9 @@ export default function Dashboard() {
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPremium, setIsPremium] = useState<boolean>(false);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [categories] = useState<Category[]>(initialCategories);
   const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState<boolean>(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isManageListDialogOpen, setIsManageListDialogOpen] = useState<boolean>(false);
   const [editingList, setEditingList] = useState<ProductList | null>(null);
   
@@ -123,6 +131,11 @@ export default function Dashboard() {
   const [newListIcon, setNewListIcon] = useState<string>("List");
   const [isSuggestingIcon, setIsSuggestingIcon] = useState<boolean>(false);
   const newListNameRef = useRef<HTMLInputElement>(null);
+
+  // State for multi-select
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const dashboardScale = useMemo(() => userProfile?.preferences?.dashboardScale || 'normal', [userProfile]);
 
@@ -213,7 +226,6 @@ export default function Dashboard() {
   
   useEffect(() => {
     let tempProducts = [...products];
-    // Filtering
     if (searchQuery) {
         tempProducts = tempProducts.filter(p => 
             p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -234,7 +246,6 @@ export default function Dashboard() {
         tempProducts = tempProducts.filter(p => new Date(p.expiryDate) > today && new Date(p.expiryDate) <= nextWeek);
     }
 
-    // Sorting
     if (sortKey) {
         tempProducts.sort((a, b) => {
             const valA = a[sortKey as keyof Product];
@@ -262,6 +273,7 @@ export default function Dashboard() {
     if (!currentUser || listId === activeListId) return;
     setActiveListId(listId);
     setIsLoading(true);
+    resetSelection();
     try {
         const fetchedProducts = await getProductsByList(currentUser.uid, listId);
         setProducts(fetchedProducts);
@@ -276,19 +288,44 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddProduct = async (productData: Omit<Product, "id" | "listId">) => {
+  const handleAddOrUpdateProduct = async (productData: Omit<Product, "id" | "listId">) => {
     if (!currentUser || !activeListId) return;
     try {
-      const newProductId = await addProduct(currentUser.uid, activeListId, productData);
-      const newProduct = { ...productData, id: newProductId, listId: activeListId };
-      setProducts((prev) => [...prev, newProduct]);
-      toast({ title: "Produto adicionado!", description: `${productData.name} foi salvo.` });
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, productData);
+        setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...productData } : p));
+        toast({ title: "Produto atualizado!", description: `${productData.name} foi atualizado.` });
+      } else {
+        const newProductId = await addProduct(currentUser.uid, activeListId, productData);
+        const newProduct = { ...productData, id: newProductId, listId: activeListId };
+        setProducts(prev => [...prev, newProduct]);
+        toast({ title: "Produto adicionado!", description: `${productData.name} foi salvo.` });
+      }
+      setEditingProduct(null);
+      setIsAddProductDialogOpen(false);
     } catch (error) {
-       console.error("Failed to add product", error);
-       toast({ variant: "destructive", title: "Erro ao adicionar produto" });
+       console.error("Failed to save product", error);
+       toast({ variant: "destructive", title: "Erro ao salvar produto" });
     }
   };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsAddProductDialogOpen(true);
+  };
   
+  const handleDeleteProduct = async (productId: string) => {
+    if (!currentUser) return;
+    try {
+        await deleteProduct(productId);
+        setProducts(prev => prev.filter(p => p.id !== productId));
+        toast({ title: "Produto excluído!" });
+    } catch (error) {
+        console.error("Failed to delete product", error);
+        toast({ variant: "destructive", title: "Erro ao excluir produto" });
+    }
+  };
+
   const handleManageList = async () => {
     const listName = newListNameRef.current?.value;
     if (!currentUser || !listName || !listName.trim()) {
@@ -393,6 +430,70 @@ export default function Dashboard() {
       const isEditing = !userProfile.preferences.isEditingWidgets;
       savePreferences({ isEditingWidgets: isEditing });
   };
+
+  // Multi-select handlers
+  const resetSelection = () => {
+    setIsMultiSelectMode(false);
+    setSelectedProductIds(new Set());
+  };
+
+  const handleProductPointerDown = (productId: string) => {
+    pressTimeoutRef.current = setTimeout(() => {
+      setIsMultiSelectMode(true);
+      setSelectedProductIds(prev => new Set(prev).add(productId));
+    }, 500);
+  };
+
+  const handleProductPointerUp = () => {
+    if (pressTimeoutRef.current) {
+      clearTimeout(pressTimeoutRef.current);
+    }
+  };
+
+  const handleProductClick = (product: Product) => {
+    if (isMultiSelectMode) {
+      setSelectedProductIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(product.id)) {
+          newSet.delete(product.id);
+        } else {
+          newSet.add(product.id);
+        }
+        if (newSet.size === 0) {
+            setIsMultiSelectMode(false);
+        }
+        return newSet;
+      });
+    }
+  };
+
+  const handleMoveSelected = async (targetListId: string) => {
+    if (!currentUser || selectedProductIds.size === 0) return;
+    try {
+      const productIdsToMove = Array.from(selectedProductIds);
+      await moveMultipleProducts(productIdsToMove, targetListId);
+      setProducts(prev => prev.filter(p => !productIdsToMove.includes(p.id)));
+      toast({ title: `${productIdsToMove.length} produto(s) movido(s)!` });
+      resetSelection();
+    } catch (error) {
+      console.error("Failed to move products", error);
+      toast({ variant: "destructive", title: "Erro ao mover produtos" });
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!currentUser || selectedProductIds.size === 0) return;
+    try {
+      const productIdsToDelete = Array.from(selectedProductIds);
+      await deleteMultipleProducts(productIdsToDelete);
+      setProducts(prev => prev.filter(p => !productIdsToDelete.includes(p.id)));
+      toast({ title: `${productIdsToDelete.length} produto(s) excluído(s)!` });
+      resetSelection();
+    } catch (error) {
+      console.error("Failed to delete selected products", error);
+      toast({ variant: "destructive", title: "Erro ao excluir produtos" });
+    }
+  };
   
   if (isLoading || !userProfile) {
       return (
@@ -463,8 +564,8 @@ export default function Dashboard() {
                     </DropdownMenu>
 
                     <Button variant="outline" size="sm" onClick={handleWidgetEditing}>
-                        <LayoutGrid className="h-4 w-4 mr-2" />
-                        <span>{isEditingWidgets ? "Finalizar Edição" : "Editar Widgets"}</span>
+                        <Settings className="h-4 w-4 mr-2" />
+                        <span>{isEditingWidgets ? "Finalizar" : "Widgets"}</span>
                     </Button>
                 </div>
             </header>
@@ -487,7 +588,7 @@ export default function Dashboard() {
                 <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
                     <div className={cn(
                       "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6",
-                      dashboardScale === 'compact' && 'grid-cols-2'
+                      dashboardScale === 'compact' && 'grid-cols-2 md:grid-cols-2'
                     )}>
                         {activeWidgets.map(widgetId => {
                             const widgetInfo = WIDGET_MAP[widgetId];
@@ -576,29 +677,31 @@ export default function Dashboard() {
             
             {activeListId && (
             <div className="flex-1 flex flex-col">
-                 <div className="flex flex-row items-center gap-4 p-4 md:px-6">
-                    <div className="relative flex-1">
+                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 md:px-6">
+                    <div className="relative flex-1 w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                        <Input placeholder="Buscar produtos..." className={cn('pl-10', dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                        <Input placeholder="Buscar produtos..." className={cn('pl-10 w-full', dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                     </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className={cn('shrink-0', dashboardScale === 'compact' ? 'h-9 px-3' : 'h-10')}>
-                              <Filter className="mr-2 h-4 w-4"/>
-                              Filtro
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 max-h-60 overflow-y-auto">
-                            <DropdownMenuLabel>Filtrar por validade</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
-                            <DropdownMenuRadioItem value="all">Todos</DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="today">Vence Hoje</DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="expired">Vencidos</DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="next7">Próximos 7 dias</DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className={cn('shrink-0 w-full sm:w-auto', dashboardScale === 'compact' ? 'h-9 px-3' : 'h-10')}>
+                                <Filter className="mr-2 h-4 w-4"/>
+                                Filtro
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 max-h-60 overflow-y-auto">
+                                <DropdownMenuLabel>Filtrar por validade</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
+                                <DropdownMenuRadioItem value="all">Todos</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="today">Vence Hoje</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="expired">Vencidos</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="next7">Próximos 7 dias</DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
 
                  <div className={cn("flex-1", dashboardScale === 'compact' ? 'overflow-hidden' : 'overflow-x-auto')}>
@@ -616,15 +719,49 @@ export default function Dashboard() {
                         </TableHeader>
                         <TableBody>
                             {filteredProducts.map((product) => (
-                            <TableRow key={product.id} className={dashboardScale === 'compact' ? 'h-10' : ''}>
-                                <TableCell className={cn('font-medium truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
-                                {columnVisibility['marca'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.brand}</TableCell>}
-                                {columnVisibility['qtde'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.quantity}</TableCell>}
-                                {columnVisibility['validade'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{format(product.expiryDate, 'dd/MM/yy')}</TableCell>}
-                                {columnVisibility['preco'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                                {columnVisibility['categoria'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
-                                {columnVisibility['status'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
-                            </TableRow>
+                             <Popover key={product.id}>
+                                <PopoverTrigger asChild>
+                                    <TableRow
+                                        data-state={selectedProductIds.has(product.id) ? 'selected' : 'unselected'}
+                                        className={cn(dashboardScale === 'compact' ? 'h-10' : '', 'cursor-pointer data-[state=selected]:bg-primary/20')}
+                                        onPointerDown={() => handleProductPointerDown(product.id)}
+                                        onPointerUp={handleProductPointerUp}
+                                        onClick={() => handleProductClick(product)}
+                                    >
+                                        <TableCell className={cn('font-medium truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
+                                        {columnVisibility['marca'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.brand}</TableCell>}
+                                        {columnVisibility['qtde'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.quantity}</TableCell>}
+                                        {columnVisibility['validade'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{format(product.expiryDate, 'dd/MM/yy')}</TableCell>}
+                                        {columnVisibility['preco'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
+                                        {columnVisibility['categoria'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
+                                        {columnVisibility['status'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
+                                    </TableRow>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-40 p-2">
+                                    <div className="flex flex-col gap-1">
+                                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleEditProduct(product)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Editar
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="w-full justify-start text-destructive hover:text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Excluir "{product.name}"?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Esta ação é permanente.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>Excluir</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                             ))}
                         </TableBody>
                     </Table>
@@ -639,7 +776,16 @@ export default function Dashboard() {
         </div>
 
 
-        <AddProductDialog categories={categories} onAddProduct={handleAddProduct} open={isAddProductDialogOpen} onOpenChange={setIsAddProductDialogOpen}>
+        <AddProductDialog 
+            categories={categories} 
+            onAddProduct={handleAddOrUpdateProduct}
+            open={isAddProductDialogOpen} 
+            onOpenChange={(isOpen) => {
+                setIsAddProductDialogOpen(isOpen);
+                if (!isOpen) setEditingProduct(null);
+            }}
+            editingProduct={editingProduct}
+        >
             <Button onClick={() => setIsAddProductDialogOpen(true)} className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90">
                 <Plus className="h-8 w-8" />
             </Button>
@@ -674,6 +820,58 @@ export default function Dashboard() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        <AnimatePresence>
+            {isMultiSelectMode && (
+                <motion.div 
+                    initial={{ y: 100, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 100, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                    className="fixed bottom-4 left-1/2 -translate-x-1/2 w-auto bg-background border rounded-lg shadow-2xl flex items-center gap-2 p-2 z-50"
+                >
+                    <Button variant="ghost" size="icon" onClick={resetSelection}>
+                        <XCircle className="h-5 w-5"/>
+                    </Button>
+                    <span className="font-medium text-sm pr-2 border-r">{selectedProductIds.size} selecionado(s)</span>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost">
+                                <Move className="mr-2 h-4 w-4" /> Mover
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Mover para a lista</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {productLists.filter(l => l.id !== activeListId).map(list => (
+                                <DropdownMenuItem key={list.id} onSelect={() => handleMoveSelected(list.id)}>
+                                    <DynamicIcon name={list.icon} className="mr-2 h-4 w-4" /> {list.name}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" className="text-destructive hover:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                            </Button>
+                        </AlertDialogTrigger>
+                         <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir {selectedProductIds.size} produtos?</AlertDialogTitle>
+                                <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteSelected}>Excluir</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </motion.div>
+            )}
+        </AnimatePresence>
     </div>
   );
 }
