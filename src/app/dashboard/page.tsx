@@ -69,6 +69,8 @@ export default function Dashboard() {
     openManageListDialog,
     closeDialogs
   } = useDialogs();
+  
+  const productsForAI = useMemo(() => products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name })), [products]);
 
   const isLoading = isProfileLoading || isProductDataLoading;
 
@@ -106,7 +108,6 @@ export default function Dashboard() {
   
   const { preferences, premium } = userProfile;
   const widgetDataProps = { products, categories: initialCategories, savePreferences, preferences };
-  const productsForAI = useMemo(() => products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name })), [products]);
 
   return (
     <div className="flex flex-col h-full relative bg-transparent">
