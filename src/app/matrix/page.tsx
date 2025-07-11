@@ -43,28 +43,31 @@ export default function MatrixPage() {
       drops[i] = 1;
     }
 
-    let animationTimeoutId: number;
+    let animationTimeoutId: any;
 
     const draw = () => {
       // --- Trail Canvas ---
       // Apply fade effect to the trail canvas
       trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
       trailCtx.fillRect(0, 0, trailCanvas.width, trailCanvas.height);
+      trailCtx.font = `${fontSize}px monospace`;
+      
+      // Draw the green trail characters
+      for (let i = 0; i < drops.length; i++) {
+        const text = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
+        trailCtx.fillStyle = '#0F0';
+        // The trail character is drawn at the *previous* position of the leader
+        if (drops[i] > 1) {
+             trailCtx.fillText(text, i * fontSize, (drops[i] - 1) * fontSize);
+        }
+      }
 
       // --- Leader Canvas ---
       // Clear the leader canvas completely in each frame
       leaderCtx.clearRect(0, 0, leaderCanvas.width, leaderCanvas.height);
-      
-      trailCtx.font = `${fontSize}px monospace`;
       leaderCtx.font = `${fontSize}px monospace`;
-      
-      for (let i = 0; i < drops.length; i++) {
-        // Draw green trail character on trail canvas
-        const trailText = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
-        trailCtx.fillStyle = '#0F0';
-        trailCtx.fillText(trailText, i * fontSize, drops[i] * fontSize);
 
-        // Draw the bright leader character on the separate leader canvas
+      for(let i = 0; i < drops.length; i++) {
         const leaderText = leadingChars.charAt(Math.floor(Math.random() * leadingChars.length));
         leaderCtx.fillStyle = '#cceeff';
         leaderCtx.fillText(leaderText, i * fontSize, drops[i] * fontSize);
@@ -76,7 +79,7 @@ export default function MatrixPage() {
 
         drops[i]++;
       }
-      animationTimeoutId = window.requestAnimationFrame(draw);
+      animationTimeoutId = setTimeout(() => requestAnimationFrame(draw), 200); // Slow down animation
     };
 
     draw();
@@ -90,7 +93,7 @@ export default function MatrixPage() {
     window.addEventListener('resize', handleResize);
 
     return () => {
-        window.cancelAnimationFrame(animationTimeoutId);
+        if (animationTimeoutId) clearTimeout(animationTimeoutId);
         window.removeEventListener('resize', handleResize);
     };
   }, []);
