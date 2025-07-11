@@ -487,7 +487,7 @@ export default function Dashboard() {
                 <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
                     <div className={cn(
                       "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6",
-                      dashboardScale === 'compact' && 'sm:grid-cols-2'
+                      dashboardScale === 'compact' && 'grid-cols-2'
                     )}>
                         {activeWidgets.map(widgetId => {
                             const widgetInfo = WIDGET_MAP[widgetId];
@@ -601,28 +601,28 @@ export default function Dashboard() {
                     </DropdownMenu>
                 </div>
 
-                 <div className={cn("flex-1 overflow-x-auto", dashboardScale === 'compact' && 'sm:overflow-x-hidden')}>
-                    <Table className={cn(dashboardScale === 'compact' ? 'text-sm' : '', dashboardScale === 'compact' && 'sm:table-fixed sm:w-full')}>
+                 <div className={cn("flex-1", dashboardScale === 'compact' ? 'overflow-hidden' : 'overflow-x-auto')}>
+                    <Table className={cn(dashboardScale === 'compact' ? 'text-sm table-fixed w-full' : '')}>
                         <TableHeader>
                             <TableRow className="border-b hover:bg-transparent">
-                                <TableHead><Button variant="ghost" onClick={() => handleSort('name')} className={dashboardScale === 'compact' ? 'p-1' : ''}>Produto {renderSortIcon('name')}</Button></TableHead>
-                                {columnVisibility['marca'] && <TableHead><Button variant="ghost" onClick={() => handleSort('brand')} className={dashboardScale === 'compact' ? 'p-1' : ''}>Marca {renderSortIcon('brand')}</Button></TableHead>}
-                                {columnVisibility['qtde'] && <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')} className={dashboardScale === 'compact' ? 'p-1' : ''}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
-                                {columnVisibility['validade'] && <TableHead><Button variant="ghost" onClick={() => handleSort('expiryDate')} className={dashboardScale === 'compact' ? 'p-1' : ''}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
-                                {columnVisibility['preco'] && <TableHead><Button variant="ghost" onClick={() => handleSort('price')} className={dashboardScale === 'compact' ? 'p-1' : ''}>Preço {renderSortIcon('price')}</Button></TableHead>}
-                                {columnVisibility['categoria'] && <TableHead><Button variant="ghost" onClick={() => handleSort('category')} className={dashboardScale === 'compact' ? 'p-1' : ''}>Categoria {renderSortIcon('category')}</Button></TableHead>}
+                                <TableHead><Button variant="ghost" onClick={() => handleSort('name')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Produto {renderSortIcon('name')}</Button></TableHead>
+                                {columnVisibility['marca'] && <TableHead><Button variant="ghost" onClick={() => handleSort('brand')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
+                                {columnVisibility['qtde'] && <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
+                                {columnVisibility['validade'] && <TableHead><Button variant="ghost" onClick={() => handleSort('expiryDate')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
+                                {columnVisibility['preco'] && <TableHead><Button variant="ghost" onClick={() => handleSort('price')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Preço {renderSortIcon('price')}</Button></TableHead>}
+                                {columnVisibility['categoria'] && <TableHead><Button variant="ghost" onClick={() => handleSort('category')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Categoria {renderSortIcon('category')}</Button></TableHead>}
                                 {columnVisibility['status'] && <TableHead>Status</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredProducts.map((product) => (
                             <TableRow key={product.id} className={dashboardScale === 'compact' ? 'h-10' : ''}>
-                                <TableCell className={cn('font-medium', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
-                                {columnVisibility['marca'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.brand}</TableCell>}
+                                <TableCell className={cn('font-medium truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
+                                {columnVisibility['marca'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.brand}</TableCell>}
                                 {columnVisibility['qtde'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.quantity}</TableCell>}
-                                {columnVisibility['validade'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}
+                                {columnVisibility['validade'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{format(product.expiryDate, 'dd/MM/yy')}</TableCell>}
                                 {columnVisibility['preco'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                                {columnVisibility['categoria'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
+                                {columnVisibility['categoria'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
                                 {columnVisibility['status'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
                             </TableRow>
                             ))}
