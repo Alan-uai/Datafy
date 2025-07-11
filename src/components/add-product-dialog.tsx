@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect } from "react";
@@ -71,7 +72,7 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
       name: "",
       brand: "",
       quantity: 1,
-      price: undefined,
+      price: '' as any, // Start with empty string to avoid uncontrolled to controlled error
     },
   });
 
@@ -90,7 +91,7 @@ export function AddProductDialog({ children, categories, onAddProduct, open, onO
         name: "",
         brand: "",
         quantity: 1,
-        price: undefined,
+        price: '' as any,
         expiryDate: undefined,
         category: undefined,
       });
