@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 export default function TestePage() {
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   const leaderCanvasRef = useRef<HTMLCanvasElement>(null);
-  const uiCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
 
   const drawBackground = useCallback(() => {
@@ -53,49 +52,7 @@ export default function TestePage() {
         drops[i]++;
     }
   }, []);
-
-  const drawUICard = useCallback(() => {
-    const uiCanvas = uiCanvasRef.current;
-    if (!uiCanvas) return;
-    const uiCtx = uiCanvas.getContext('2d');
-    if (!uiCtx) return;
-
-    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
-
-    const cardWidth = 400;
-    const cardHeight = 150;
-    const cardX = (uiCanvas.width - cardWidth) / 2;
-    const cardY = (uiCanvas.height - cardHeight) / 2;
-    const cornerRadius = 8;
-
-    uiCtx.fillStyle = 'rgba(20, 20, 25, 0.85)';
-    uiCtx.strokeStyle = 'rgba(120, 255, 120, 0.5)';
-    uiCtx.lineWidth = 1;
-
-    uiCtx.beginPath();
-    uiCtx.moveTo(cardX + cornerRadius, cardY);
-    uiCtx.lineTo(cardX + cardWidth - cornerRadius, cardY);
-    uiCtx.quadraticCurveTo(cardX + cardWidth, cardY, cardX + cardWidth, cardY + cornerRadius);
-    uiCtx.lineTo(cardX + cardWidth, cardY + cardHeight - cornerRadius);
-    uiCtx.quadraticCurveTo(cardX + cardWidth, cardY + cardHeight, cardX + cardWidth - cornerRadius, cardY + cardHeight);
-    uiCtx.lineTo(cardX + cornerRadius, cardY + cardHeight);
-    uiCtx.quadraticCurveTo(cardX, cardY + cardHeight, cardX, cardY + cardHeight - cornerRadius);
-    uiCtx.lineTo(cardX, cardY + cornerRadius);
-    uiCtx.quadraticCurveTo(cardX, cardY, cardX + cornerRadius, cardY);
-    uiCtx.closePath();
-    uiCtx.fill();
-    uiCtx.stroke();
-    
-    uiCtx.fillStyle = 'hsl(120, 100%, 75%)';
-    uiCtx.font = 'bold 18px Inter, sans-serif';
-    uiCtx.fillText('Card Estático no Canvas', cardX + 20, cardY + 40);
-
-    uiCtx.fillStyle = 'hsl(120, 80%, 85%)';
-    uiCtx.font = '14px Inter, sans-serif';
-    uiCtx.fillText('Este card foi desenhado uma única vez.', cardX + 20, cardY + 70);
-    uiCtx.fillText('A animação de fundo roda de forma independente.', cardX + 20, cardY + 90);
-  }, []);
-
+  
   useEffect(() => {
     let lastTime = 0;
     const interval = 50; 
@@ -109,7 +66,7 @@ export default function TestePage() {
     }
     
     const setup = () => {
-        const canvases = [trailCanvasRef.current, leaderCanvasRef.current, uiCanvasRef.current];
+        const canvases = [trailCanvasRef.current, leaderCanvasRef.current];
         
         canvases.forEach(canvas => {
             if (canvas) {
@@ -122,10 +79,8 @@ export default function TestePage() {
             (trailCanvasRef.current as any).drops = [];
         }
         
-        drawUICard(); // Desenha o card apenas uma vez.
-
         if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = requestAnimationFrame(animate); // Inicia o loop da animação de fundo.
+        animationFrameId.current = requestAnimationFrame(animate); 
     }
     
     if (typeof window !== 'undefined') {
@@ -141,7 +96,7 @@ export default function TestePage() {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [drawBackground, drawUICard]);
+  }, [drawBackground]);
 
   return (
     <div className={cn('matrix relative min-h-screen bg-black')}>
@@ -153,10 +108,6 @@ export default function TestePage() {
         <canvas 
           ref={leaderCanvasRef} 
           className="absolute inset-0 z-20"
-        />
-        <canvas
-          ref={uiCanvasRef}
-          className="absolute inset-0 z-30"
         />
       </div>
     </div>
