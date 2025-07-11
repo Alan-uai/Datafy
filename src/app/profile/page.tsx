@@ -8,13 +8,13 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { User, LogOut } from 'lucide-react';
+import { User } from 'lucide-react';
 import type { UserProfile as UserProfileType } from '@/services/userService';
 import { getUserProfile, createUserProfile } from '@/services/userService';
 import { updateUserStatsAndAchievements } from '@/services/userProfileService';
 
-import { ProfileCard } from '@/components/profile/ProfileCard';
-import { ProfileTabs } from '@/components/profile/ProfileTabs';
+import { ProfileCard } from './components/ProfileCard';
+import { ProfileTabs } from './components/ProfileTabs';
 
 export default function ProfilePage() {
   const { currentUser, logout } = useAuth();

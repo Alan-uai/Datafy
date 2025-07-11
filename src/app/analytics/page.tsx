@@ -9,24 +9,8 @@ import { categories as initialCategories } from '@/lib/data';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, List } from 'lucide-react';
-import { WIDGET_MAP, AllWidgetType } from '@/components/dashboard/widgets/widget-map';
 import { EmptyState } from '@/components/shared/EmptyState';
-
-const AnalyticsDashboard: React.FC<{ products: Product[]; categories: Category[] }> = ({ products, categories }) => {
-  const widgetDataProps = { products, categories };
-  const allWidgets = (Object.keys(WIDGET_MAP) as AllWidgetType[]).filter(
-    (id) => id !== 'expiryAttention'
-  );
-
-  return (
-    <div className="space-y-6">
-      {allWidgets.map(widgetId => {
-        const WidgetComponent = WIDGET_MAP[widgetId].component;
-        return <WidgetComponent key={widgetId} {...widgetDataProps as any} />;
-      })}
-    </div>
-  );
-};
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 
 export default function AnalyticsPage() {
   const { currentUser } = useAuth();
