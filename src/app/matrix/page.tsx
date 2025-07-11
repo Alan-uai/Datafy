@@ -76,7 +76,7 @@ export default function MatrixPage() {
 
         drops[i]++;
       }
-      animationTimeoutId = window.setTimeout(draw, 500); // Drastically slow down the animation
+      animationTimeoutId = window.requestAnimationFrame(draw);
     };
 
     draw();
@@ -90,7 +90,7 @@ export default function MatrixPage() {
     window.addEventListener('resize', handleResize);
 
     return () => {
-        window.clearTimeout(animationTimeoutId);
+        window.cancelAnimationFrame(animationTimeoutId);
         window.removeEventListener('resize', handleResize);
     };
   }, []);
