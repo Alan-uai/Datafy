@@ -137,27 +137,26 @@
   body {
     @apply bg-background text-foreground;
   }
-  .matrix body {
-    position: relative;
-    background-image: 
-      radial-gradient(ellipse at 50% 50%, hsla(120,80%,50%,0.2) 0%, transparent 40%),
-      linear-gradient(transparent 50%, hsla(120, 80%, 30%, 0.8) 100%);
-    background-size: 100% 100%, 2px 200px;
-    animation: matrix-rain 5s linear infinite;
-    will-change: background-position;
+  
+  .matrix {
+    background-color: hsl(var(--background));
   }
 
-  .matrix.animate-cintilate *,
-  .matrix.animate-cintilate body {
+  .matrix body {
+    background-color: transparent;
+  }
+
+  .animate-cintilate *,
+  .animate-cintilate body {
      animation: cintilate-effect 4s linear infinite;
   }
   
-  .matrix.animate-rotate *,
-  .matrix.animate-rotate body {
+  .animate-rotate *,
+  .animate-rotate body {
     animation: rotate-effect 4s linear infinite;
   }
   
-  .matrix.animate-rotate *:not(body):not(body *):not(html) {
+  .animate-rotate *:not(body):not(body *):not(html) {
       border: 1px solid transparent;
       background: conic-gradient(from var(--angle), hsl(120, 100%, 25%), hsl(120, 100%, 75%), hsl(0, 0%, 100%), hsl(120, 100%, 25%)) border-box;
       -webkit-mask:

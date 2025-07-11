@@ -14,12 +14,12 @@ export const metadata: Metadata = {
   description: 'Gerencie seu estoque e validade de produtos.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const themeCookie = cookieStore.get('theme')?.value || 'dark';
   const animationCookie = cookieStore.get('matrixAnimation')?.value || 'cintilar';
 
@@ -33,7 +33,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-background">
+      <body>
         <ThemeManager />
         <AuthProvider>
           <ProtectedRoute>
