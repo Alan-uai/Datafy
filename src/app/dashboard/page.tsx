@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -54,6 +55,7 @@ import { DynamicIcon } from "@/components/shared/DynamicIcon";
 import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
 import { debounce } from 'lodash';
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const columnNames: Record<string, string> = {
     'produto': 'Produto',
@@ -418,7 +420,10 @@ export default function Dashboard() {
       <button
         onClick={() => onAdd(widgetId)}
         disabled={isLocked}
-        className="relative flex flex-col items-center justify-center text-center p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors h-full w-40 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        className={cn(
+          "relative flex flex-col items-center justify-center text-center p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors h-full w-40 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
+           dashboardScale === 'compact' && 'w-auto p-2 flex-grow basis-0'
+        )}
       >
         {isLocked && <div className="absolute inset-0 bg-black/30 rounded-lg z-10 flex items-center justify-center"><Lock className="w-6 h-6 text-yellow-400" /></div>}
         <Icon className="h-6 w-6 mb-2" />
@@ -467,20 +472,23 @@ export default function Dashboard() {
             {isEditingWidgets && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Adicionar Widgets</h3>
-                <ScrollArea className="w-full whitespace-nowrap">
-                  <div className="flex gap-4 pb-4">
+                <ScrollArea className={cn("w-full whitespace-nowrap", dashboardScale === 'compact' && "sm:whitespace-normal")}>
+                  <div className={cn("flex gap-4 pb-4", dashboardScale === 'compact' && "sm:flex-wrap")}>
                     {availableWidgets.map(widgetId => (
                       <AvailableWidgetCard key={widgetId} widgetId={widgetId} onAdd={addWidget} />
                     ))}
                   </div>
-                  <ScrollBar orientation="horizontal" />
+                  <ScrollBar orientation="horizontal" className={cn(dashboardScale === 'compact' && "sm:hidden")} />
                 </ScrollArea>
               </div>
             )}
 
             <DndContext sensors={[]} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={activeWidgets} strategy={verticalListSortingStrategy}>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
+                    <div className={cn(
+                      "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6",
+                      dashboardScale === 'compact' && 'sm:grid-cols-2'
+                    )}>
                         {activeWidgets.map(widgetId => {
                             const widgetInfo = WIDGET_MAP[widgetId];
                             if (!widgetInfo) return null;
@@ -505,17 +513,17 @@ export default function Dashboard() {
         <div className="flex-1 flex flex-col">
             <div className="px-4 md:px-6 py-4 border-t">
                  <div className="w-full">
-                     <ScrollArea className="w-full whitespace-nowrap">
-                        <div className="flex items-center gap-1 pb-2">
+                     <ScrollArea className={cn("w-full", dashboardScale === 'compact' && 'sm:overflow-x-hidden')}>
+                        <div className={cn("flex items-center gap-1 pb-2", dashboardScale === 'compact' && 'sm:flex-wrap')}>
                           {productLists.map(list => (
                               <div key={list.id} className="flex items-center group/tab shrink-0">
                                   <Button 
                                       variant="ghost"
                                       onClick={() => handleListChange(list.id)}
-                                      className={`
-                                        data-[active=true]:bg-primary data-[active=true]:text-primary-foreground
-                                        ${dashboardScale === 'compact' ? 'h-8 p-2 text-sm' : 'h-auto p-2'}
-                                      `}
+                                      className={cn(
+                                        "data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
+                                        dashboardScale === 'compact' ? 'h-8 p-2 text-sm' : 'h-auto p-2'
+                                      )}
                                       data-active={activeListId === list.id}
                                   >
                                       <div className="flex items-center gap-2">
@@ -554,7 +562,7 @@ export default function Dashboard() {
                               Lista
                           </Button>
                         </div>
-                        <ScrollBar orientation="horizontal" />
+                        <ScrollBar orientation="horizontal" className={cn(dashboardScale === 'compact' && 'sm:hidden')} />
                      </ScrollArea>
                  </div>
                  {productLists.length === 0 && !isLoading && (
@@ -571,11 +579,11 @@ export default function Dashboard() {
                  <div className="flex flex-row items-center gap-4 p-4 md:px-6">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                        <Input placeholder="Buscar produtos..." className={`pl-10 ${dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10'}`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                        <Input placeholder="Buscar produtos..." className={cn('pl-10', dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className={`shrink-0 ${dashboardScale === 'compact' ? 'h-9 px-3' : 'h-10'}`}>
+                            <Button variant="outline" className={cn('shrink-0', dashboardScale === 'compact' ? 'h-9 px-3' : 'h-10')}>
                               <Filter className="mr-2 h-4 w-4"/>
                               Filtro
                             </Button>
@@ -593,8 +601,8 @@ export default function Dashboard() {
                     </DropdownMenu>
                 </div>
 
-                 <div className="flex-1 overflow-x-auto">
-                    <Table className={dashboardScale === 'compact' ? 'text-sm' : ''}>
+                 <div className={cn("flex-1 overflow-x-auto", dashboardScale === 'compact' && 'sm:overflow-x-hidden')}>
+                    <Table className={cn(dashboardScale === 'compact' ? 'text-sm' : '', dashboardScale === 'compact' && 'sm:table-fixed sm:w-full')}>
                         <TableHeader>
                             <TableRow className="border-b hover:bg-transparent">
                                 <TableHead><Button variant="ghost" onClick={() => handleSort('name')} className={dashboardScale === 'compact' ? 'p-1' : ''}>Produto {renderSortIcon('name')}</Button></TableHead>
@@ -609,7 +617,7 @@ export default function Dashboard() {
                         <TableBody>
                             {filteredProducts.map((product) => (
                             <TableRow key={product.id} className={dashboardScale === 'compact' ? 'h-10' : ''}>
-                                <TableCell className={`font-medium ${dashboardScale === 'compact' ? 'p-2' : 'p-4'}`}>{product.name}</TableCell>
+                                <TableCell className={cn('font-medium', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
                                 {columnVisibility['marca'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.brand}</TableCell>}
                                 {columnVisibility['qtde'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.quantity}</TableCell>}
                                 {columnVisibility['validade'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{format(product.expiryDate, 'dd/MM/yyyy')}</TableCell>}

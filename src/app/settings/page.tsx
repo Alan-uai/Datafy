@@ -1,0 +1,92 @@
+
+"use client";
+
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { Header } from '@/components/shared/Header';
+import { Minimize2, Maximize2, Settings } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+export default function SettingsPage() {
+  const { userProfile, savePreferences, isLoading } = useUserProfile();
+
+  if (isLoading || !userProfile) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <Header />
+      <main className="flex-1 p-4 md:p-6">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <div className="flex items-center gap-3">
+              <Settings className="w-8 h-8 text-primary" />
+              <h1 className="text-3xl font-bold">Configurações</h1>
+            </div>
+            <p className="text-muted-foreground">
+              Personalize a aparência e o comportamento do aplicativo.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Aparência</CardTitle>
+                <CardDescription>Ajuste como o dashboard é exibido.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                    <div>
+                        <Label className="text-base font-medium">Tamanho da Interface (Dashboard)</Label>
+                        <p className="text-sm text-muted-foreground mb-3">
+                           O modo compacto exibe mais informações na tela, ideal para visualização rápida.
+                        </p>
+                        <RadioGroup
+                          defaultValue={userProfile.preferences.dashboardScale || 'normal'}
+                          onValueChange={(value) => savePreferences({ dashboardScale: value as 'normal' | 'compact' })}
+                          className="flex flex-col sm:flex-row gap-4"
+                        >
+                          <div className="flex-1">
+                            <RadioGroupItem value="normal" id="scale-normal" className="peer sr-only" />
+                            <Label 
+                              htmlFor="scale-normal" 
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                              <Maximize2 className="mb-3 h-6 w-6" />
+                              Normal
+                            </Label>
+                          </div>
+                          <div className="flex-1">
+                            <RadioGroupItem value="compact" id="scale-compact" className="peer sr-only" />
+                            <Label 
+                              htmlFor="scale-compact" 
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                                <Minimize2 className="mb-3 h-6 w-6" />
+                                Compacto
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                    </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </main>
+    </div>
+  );
+}
