@@ -3,7 +3,6 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 export default function TestePage() {
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,22 +10,15 @@ export default function TestePage() {
   const uiCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
 
-  const draw = useCallback(() => {
+  const drawBackground = useCallback(() => {
     const trailCanvas = trailCanvasRef.current;
-    if (!trailCanvas) return;
-    const trailCtx = trailCanvas.getContext('2d');
-    
     const leaderCanvas = leaderCanvasRef.current;
-    if (!leaderCanvas) return;
+    if (!trailCanvas || !leaderCanvas) return;
+
+    const trailCtx = trailCanvas.getContext('2d');
     const leaderCtx = leaderCanvas.getContext('2d');
+    if (!trailCtx || !leaderCtx) return;
 
-    const uiCanvas = uiCanvasRef.current;
-    if (!uiCanvas) return;
-    const uiCtx = uiCanvas.getContext('2d');
-
-    if (!trailCtx || !leaderCtx || !uiCtx) return;
-
-    // --- Draw Matrix Rain (Background Canvases) ---
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
     const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const nums = '0123456789';
@@ -34,12 +26,11 @@ export default function TestePage() {
     const fontSize = 16;
     const columns = Math.floor(trailCanvas.width / fontSize);
 
-    const drops = (trailCanvas as any).drops || Array(columns).fill(1);
+    const drops = (trailCanvas as any).drops || Array(columns).fill(1).map((_,i) => i * fontSize);
     (trailCanvas as any).drops = drops;
-    
+
     trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     trailCtx.fillRect(0, 0, trailCanvas.width, trailCanvas.height);
-    
     trailCtx.fillStyle = '#0F0';
     trailCtx.font = `${fontSize}px monospace`;
 
@@ -61,10 +52,15 @@ export default function TestePage() {
         }
         drops[i]++;
     }
+  }, []);
 
-    // --- Draw UI Card (Foreground Canvas) ---
-    // This is the critical fix: clear the UI canvas before redrawing
-    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height); 
+  const drawUICard = useCallback(() => {
+    const uiCanvas = uiCanvasRef.current;
+    if (!uiCanvas) return;
+    const uiCtx = uiCanvas.getContext('2d');
+    if (!uiCtx) return;
+
+    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
 
     const cardWidth = 400;
     const cardHeight = 150;
@@ -72,9 +68,8 @@ export default function TestePage() {
     const cardY = (uiCanvas.height - cardHeight) / 2;
     const cornerRadius = 8;
 
-    // Card Background
-    uiCtx.fillStyle = 'rgba(20, 20, 25, 0.85)'; // Semi-transparent dark background
-    uiCtx.strokeStyle = 'rgba(120, 255, 120, 0.5)'; // Greenish border
+    uiCtx.fillStyle = 'rgba(20, 20, 25, 0.85)';
+    uiCtx.strokeStyle = 'rgba(120, 255, 120, 0.5)';
     uiCtx.lineWidth = 1;
 
     uiCtx.beginPath();
@@ -88,21 +83,17 @@ export default function TestePage() {
     uiCtx.lineTo(cardX, cardY + cornerRadius);
     uiCtx.quadraticCurveTo(cardX, cardY, cardX + cornerRadius, cardY);
     uiCtx.closePath();
-    
     uiCtx.fill();
     uiCtx.stroke();
     
-    // Card Title
-    uiCtx.fillStyle = 'hsl(120, 100%, 75%)'; // Bright green for text
+    uiCtx.fillStyle = 'hsl(120, 100%, 75%)';
     uiCtx.font = 'bold 18px Inter, sans-serif';
-    uiCtx.fillText('Card de Teste (em Canvas)', cardX + 20, cardY + 40);
+    uiCtx.fillText('Card Estático no Canvas', cardX + 20, cardY + 40);
 
-    // Card Description
     uiCtx.fillStyle = 'hsl(120, 80%, 85%)';
     uiCtx.font = '14px Inter, sans-serif';
-    uiCtx.fillText('Este card foi desenhado em um terceiro canvas,', cardX + 20, cardY + 70);
-    uiCtx.fillText('posicionado sobre a animação de fundo.', cardX + 20, cardY + 90);
-
+    uiCtx.fillText('Este card foi desenhado uma única vez.', cardX + 20, cardY + 70);
+    uiCtx.fillText('A animação de fundo roda de forma independente.', cardX + 20, cardY + 90);
   }, []);
 
   useEffect(() => {
@@ -110,10 +101,8 @@ export default function TestePage() {
     const interval = 50; 
 
     const animate = (timestamp: number) => {
-      const allCanvasesReady = trailCanvasRef.current && leaderCanvasRef.current && uiCanvasRef.current;
-      
-      if (allCanvasesReady && (timestamp - lastTime >= interval)) {
-          draw();
+      if (timestamp - lastTime >= interval) {
+          drawBackground();
           lastTime = timestamp;
       }
       animationFrameId.current = requestAnimationFrame(animate);
@@ -130,11 +119,13 @@ export default function TestePage() {
         });
         
         if(trailCanvasRef.current) {
-            (trailCanvasRef.current as any).drops = []; // Reset drops on resize
+            (trailCanvasRef.current as any).drops = [];
         }
         
+        drawUICard(); // Desenha o card apenas uma vez.
+
         if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = requestAnimationFrame(animate);
+        animationFrameId.current = requestAnimationFrame(animate); // Inicia o loop da animação de fundo.
     }
     
     if (typeof window !== 'undefined') {
@@ -150,7 +141,7 @@ export default function TestePage() {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [draw]);
+  }, [drawBackground, drawUICard]);
 
   return (
     <div className={cn('matrix relative min-h-screen bg-black')}>
