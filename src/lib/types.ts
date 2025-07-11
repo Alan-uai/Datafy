@@ -29,7 +29,7 @@ export type ProductList = {
 };
 
 export interface UserPreferences {
-    theme: 'dark' | 'light' | 'system';
+    theme: 'dark' | 'light' | 'system' | 'matrix';
     soundEnabled: boolean;
     language: 'pt-BR' | 'en-US';
     columnVisibility: Record<string, boolean>;

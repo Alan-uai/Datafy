@@ -58,7 +58,7 @@ export function useUserProfile() {
         // Optionally revert state here
         loadUserProfile();
       }
-    }, 1000); // 1-second debounce
+    }, 500); // 0.5-second debounce
   }, [currentUser?.uid, toast, loadUserProfile, userProfile]);
 
   return { userProfile, setUserProfile, isLoading, loadUserProfile, savePreferences };
