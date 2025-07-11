@@ -50,8 +50,12 @@ export default function Dashboard() {
     handleSort,
     filteredProducts
   } = useProductTableControls(products);
+  
+  const productsForAI = useMemo(() => {
+      if (!products) return [];
+      return products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name }))
+  }, [products]);
 
-  const productsForAI = useMemo(() => products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name })), [products]);
 
   const {
     selectedProductIds,
@@ -111,7 +115,7 @@ export default function Dashboard() {
   }
   
   const { preferences, premium } = userProfile;
-  const widgetDataProps = { products, categories: initialCategories, preferences };
+  const widgetDataProps = { products, categories: initialCategories, preferences, savePreferences };
 
   return (
     <div className="flex flex-col h-full relative">
@@ -127,7 +131,7 @@ export default function Dashboard() {
                 isEditingWidgets={preferences.isEditingWidgets}
                 hasPremium={!!premium}
                 activeWidgets={preferences.activeWidgets}
-                widgetDataProps={{ ...widgetDataProps, listProducts: productsForAI, savePreferences }}
+                widgetDataProps={{ ...widgetDataProps, listProducts: productsForAI }}
                 onAddWidget={addWidget}
                 onRemoveWidget={removeWidget}
                 onDragEnd={handleWidgetDragEnd}

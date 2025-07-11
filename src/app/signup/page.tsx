@@ -4,37 +4,22 @@
 import { useState } from "react";
 import type { User as FirebaseUser } from 'firebase/auth';
 import { useAuth } from "@/contexts/AuthContext";
-import { createUserProfile } from "@/services/userService";
 
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { UserPlus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const { currentUser } = useAuth();
-  const { toast } = useToast();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   
-  const handleAuthSuccess = async (user: FirebaseUser | null) => {
+  const handleAuthSuccess = (user: FirebaseUser | null) => {
     if (!user) return;
+    // The AuthProvider will now handle creating the profile if it doesn't exist.
+    // We just need to set the loading state to allow ProtectedRoute to redirect.
     setIsAuthenticating(true);
-    try {
-      // This is the key fix: create the profile document right after successful auth.
-      await createUserProfile(user.uid, {
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL || undefined,
-      });
-      // Now, ProtectedRoute will handle redirection to a dashboard
-      // where the user profile is guaranteed to exist.
-    } catch (error) {
-       console.error("Failed to create user profile during signup", error);
-       toast({ variant: "destructive", title: "Erro ao criar perfil", description: "Não foi possível finalizar seu cadastro." });
-       setIsAuthenticating(false);
-    }
   };
   
   if (currentUser || isAuthenticating) {

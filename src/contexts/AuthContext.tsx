@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signOut as firebaseSignOut } from '@/lib/firebase';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { getUserProfile, type UserProfile } from '@/services/userService';
+import { getUserProfile, createUserProfile, type UserProfile } from '@/services/userService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -37,10 +37,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(user);
       if (user) {
         try {
-          const profile = await getUserProfile(user.uid);
+          let profile = await getUserProfile(user.uid);
+          // If profile doesn't exist, create it. This is the crucial fix.
+          if (!profile) {
+            console.log(`Profile not found for user ${user.uid}. Creating a new one.`);
+            await createUserProfile(user.uid, {
+                displayName: user.displayName,
+                email: user.email,
+                photoURL: user.photoURL || undefined,
+            });
+            // Fetch the newly created profile to ensure the state is up-to-date
+            profile = await getUserProfile(user.uid);
+          }
           setUserProfile(profile);
         } catch (error) {
-          console.error("Failed to fetch user profile in AuthContext:", error);
+          console.error("Failed to fetch or create user profile in AuthContext:", error);
           setUserProfile(null);
         }
       } else {
@@ -53,8 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const logout = async () => {
     await firebaseSignOut(auth);
-    setCurrentUser(null);
-    setUserProfile(null);
+    // Setting states to null is handled by the onAuthStateChanged listener
   };
   
   const hasPremium = useCallback(() => {
@@ -74,13 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hasPremium,
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {loading ? <LoadingSpinner fullPage /> : children}
     </AuthContext.Provider>
   );
 }

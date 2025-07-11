@@ -54,12 +54,12 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
     soundEnabled: true, 
     language: 'pt-BR',
     columnVisibility: {
-      'id': true,
+      'id': false,
       'produto': true,
       'marca': true,
       'qtde': true,
       'validade': true,
-      'preco': true,
+      'preco': false,
       'categoria': true,
       'status': true,
     },
@@ -79,20 +79,21 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
   const existingProfile = await getDoc(userRef);
 
   if (!existingProfile.exists()) {
-    const newUserProfile = {
+    const newUserProfile: UserProfile = {
       ...defaultProfile,
       uid,
       displayName: data.displayName || null,
       email: data.email || null,
-      photoURL: data.photoURL || null,
+      photoURL: data.photoURL || undefined,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      ...data,
-      stats: { ...defaultProfile.stats, ...data.stats },
+      // Ensure nested objects from 'data' are merged correctly if provided
+      stats: { ...defaultProfile.stats, ...(data.stats || {}) },
       achievements: data.achievements || defaultProfile.achievements,
-      notifications: { ...defaultProfile.notifications, ...data.notifications },
-      preferences: { ...defaultProfile.preferences, ...data.preferences },
-      privacy: { ...defaultProfile.privacy, ...data.privacy }
+      notifications: { ...defaultProfile.notifications, ...(data.notifications || {}) },
+      preferences: { ...defaultProfile.preferences, ...(data.preferences || {}) },
+      privacy: { ...defaultProfile.privacy, ...(data.privacy || {}) },
+      premium: data.premium || defaultProfile.premium,
     };
     await setDoc(userRef, newUserProfile);
   }

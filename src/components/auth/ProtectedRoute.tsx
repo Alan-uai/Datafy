@@ -14,43 +14,38 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Wait until authentication state is fully loaded before making decisions.
     if (authLoading) {
-      return; // Wait until authentication state is loaded
+      return; 
     }
 
     const isAuthRoute = unprotectedRoutes.includes(pathname);
 
-    // If user is logged in...
-    if (currentUser) {
-      // and they are on a login/signup page, redirect to dashboard
-      if (isAuthRoute) {
-        router.push('/dashboard');
-      }
-    } 
-    // If user is NOT logged in...
-    else {
-      // and they are on a protected page, redirect to login
-      if (!isAuthRoute) {
-        router.push('/login');
-      }
+    // If there is no logged-in user and they are on a protected page,
+    // redirect them to the login page.
+    if (!currentUser && !isAuthRoute) {
+      router.push('/login');
+    }
+
+    // If a user is logged in and they are on a login/signup page,
+    // redirect them to the dashboard.
+    if (currentUser && isAuthRoute) {
+      router.push('/dashboard');
     }
   }, [currentUser, authLoading, router, pathname]);
 
-  // While auth is loading, show a spinner unless we are already on an auth page
+  // While auth is loading, show a full-page spinner.
   if (authLoading) {
      return <LoadingSpinner fullPage />;
   }
   
-  // If user is logged in, show the protected content
-  if (currentUser && !unprotectedRoutes.includes(pathname)) {
+  // If the user is authenticated, or if they are on a public route,
+  // show the page content. The useEffect above handles the redirection logic.
+  // This prevents content flashing.
+  if ((currentUser && !unprotectedRoutes.includes(pathname)) || (!currentUser && unprotectedRoutes.includes(pathname))) {
     return <>{children}</>;
   }
 
-  // If user is not logged in, show the public login/signup pages
-  if (!currentUser && unprotectedRoutes.includes(pathname)) {
-    return <>{children}</>;
-  }
-
-  // Fallback loading spinner during redirects
+  // This fallback spinner covers the brief moment during redirection.
   return <LoadingSpinner fullPage />;
 }
