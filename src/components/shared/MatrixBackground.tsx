@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useRef, useEffect, useCallback } from 'react';
@@ -143,5 +142,3 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     </div>
   );
 };
-
-    
