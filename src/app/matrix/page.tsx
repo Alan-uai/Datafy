@@ -1,28 +1,58 @@
+
 "use client";
 
-import MatrixBackground from '@/components/shared/MatrixBackground';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot } from 'lucide-react';
+import Dashboard from "@/app/dashboard/page";
+import { Header } from "@/components/shared/Header";
+import MatrixBackground from "@/components/shared/MatrixBackground";
+import { useEffect, useState } from "react";
+
+const getCookie = (name: string): string | undefined => {
+  if (typeof document === 'undefined') return undefined;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+};
 
 export default function MatrixPage() {
+  const [theme, setTheme] = useState<'dark' | 'matrix'>('dark');
+  const [matrixConfig, setMatrixConfig] = useState({ mode: 'padrão' as 'padrão' | 'merge', speed: 100 });
+
+  useEffect(() => {
+    // Force matrix theme for this test page
+    const themeCookie = 'matrix';
+    const modeCookie = getCookie('matrixMode') as 'padrão' | 'merge' || 'padrão';
+    const speedCookie = Number(getCookie('matrixSpeed')) || 100;
+    
+    setTheme(themeCookie);
+    setMatrixConfig({ mode: modeCookie, speed: speedCookie });
+
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const newTheme = 'matrix';
+                const newMode = (getCookie('matrixMode') as 'padrão' | 'merge') || 'padrão';
+                const newSpeed = Number(getCookie('matrixSpeed')) || 100;
+                setTheme(newTheme);
+                setMatrixConfig({ mode: newMode, speed: newSpeed });
+            }
+        });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => observer.disconnect();
+
+  }, []);
+
   return (
-    <div className="relative min-h-screen">
-      <MatrixBackground mode="padrão" speed={100} />
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-        <Card className="bg-black/60 backdrop-blur-sm border-green-500/50 text-green-400">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Bot />
-                    Matrix Page
-                </CardTitle>
-                <CardDescription className="text-green-400/70">
-                    Esta é uma página de teste para o efeito de fundo Matrix.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p>The Matrix has you...</p>
-            </CardContent>
-        </Card>
+    <div className="relative min-h-screen flex flex-col">
+      {theme === 'matrix' && <MatrixBackground key={`${matrixConfig.mode}-${matrixConfig.speed}`} {...matrixConfig} />}
+      
+      <div className="relative z-10 flex flex-col flex-1 bg-transparent">
+        <Header />
+        <main className="flex-1">
+          <Dashboard />
+        </main>
       </div>
     </div>
   );
