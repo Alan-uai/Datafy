@@ -31,7 +31,7 @@ interface ProductListTabsProps {
 
 export function ProductListTabs({ productLists, activeListId, onListChange, onManageList, onDeleteList, dashboardScale }: ProductListTabsProps) {
   return (
-    <div className="px-4 md:px-6 py-4">
+    <div className="px-4 md:px-6 pt-4">
       <ScrollArea className={cn("w-full", dashboardScale === 'compact' && 'sm:overflow-x-hidden')}>
         <div className={cn("flex items-center gap-1 pb-2", dashboardScale === 'compact' && 'sm:flex-wrap')}>
           {productLists.map(list => (

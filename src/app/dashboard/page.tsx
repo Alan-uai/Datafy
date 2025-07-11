@@ -51,6 +51,8 @@ export default function Dashboard() {
     filteredProducts
   } = useProductTableControls(products);
 
+  const productsForAI = useMemo(() => products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name })), [products]);
+
   const {
     selectedProductIds,
     isMultiSelectMode,
@@ -70,8 +72,6 @@ export default function Dashboard() {
     closeDialogs
   } = useDialogs();
   
-  const productsForAI = useMemo(() => products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name })), [products]);
-
   const isLoading = isProfileLoading || isProductDataLoading;
 
   // Widget Preferences Handlers
@@ -110,7 +110,7 @@ export default function Dashboard() {
   const widgetDataProps = { products, categories: initialCategories, savePreferences, preferences };
 
   return (
-    <div className="flex flex-col h-full relative bg-transparent">
+    <div className="flex flex-col h-full relative">
         <div className="p-4 md:p-6">
             <DashboardHeader
                 isEditingWidgets={preferences.isEditingWidgets}
@@ -130,7 +130,7 @@ export default function Dashboard() {
             />
         </div>
         
-        <div className="flex-1 flex flex-col border-t">
+        <div className="flex-1 flex flex-col border-t border-white/10 bg-card/20 backdrop-blur-sm rounded-t-xl">
             <ProductListTabs
                 productLists={productLists}
                 activeListId={activeListId}

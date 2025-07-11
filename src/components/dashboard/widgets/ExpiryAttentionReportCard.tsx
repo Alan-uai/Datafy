@@ -48,6 +48,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       let expiringSoonCount = 0;
 
       productsToAnalyze.forEach(p => {
+        // This is a simple representation of a Product for AI, not the full type from types.ts
         const productForAnalysis = {
             ...p,
             validade: p.expiryDate.toISOString(),
@@ -119,7 +120,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   const isOverallLoading = isLoadingStats || isLoadingAttentionReport;
 
   return (
-    <Card className="mb-6 shadow-md">
+    <Card className="shadow-md bg-card/50 backdrop-blur-sm">
       <CardHeader className="p-3 sm:p-4">
         <CardTitle className="text-md sm:text-lg font-semibold flex items-center gap-2">
           <ShieldAlert className="h-5 w-5 text-primary" />
@@ -134,12 +135,12 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
           {isLoadingStats ? (
             <>
               <div>
-                <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                <div className="h-3 w-20 sm:w-24 mx-auto bg-muted/50 rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted/50 rounded animate-pulse"></div>
               </div>
               <div>
-                <div className="h-3 w-12 sm:w-16 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+                <div className="h-3 w-12 sm:w-16 mx-auto bg-muted/50 rounded animate-pulse mb-1.5 sm:mb-2"></div>
+                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted/50 rounded animate-pulse"></div>
               </div>
             </>
           ) : listStats ? (
@@ -163,12 +164,12 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
 
         {isLoadingAttentionReport ? (
           <div className="space-y-3 pt-3">
-            <div className="h-4 w-3/4 bg-muted rounded animate-pulse"></div>
+            <div className="h-4 w-3/4 bg-muted/50 rounded animate-pulse"></div>
             <div className="space-y-2">
-              <div className="h-3 w-full bg-muted rounded animate-pulse"></div>
-              <div className="h-3 w-5/6 bg-muted rounded animate-pulse"></div>
+              <div className="h-3 w-full bg-muted/50 rounded animate-pulse"></div>
+              <div className="h-3 w-5/6 bg-muted/50 rounded animate-pulse"></div>
             </div>
-             <div className="h-3 w-1/2 bg-muted rounded animate-pulse"></div>
+             <div className="h-3 w-1/2 bg-muted/50 rounded animate-pulse"></div>
           </div>
         ) : expiryAttentionReport ? (
           <div className="pt-3 space-y-2">
@@ -178,8 +179,8 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
             {expiryAttentionReport.criticalItems.length > 0 && (
               <ul className="space-y-2 text-sm pl-1">
                 {expiryAttentionReport.criticalItems.map(item => (
-                    <li key={item.productName + item.expiryDate} className="p-2 border rounded-md bg-amber-50 dark:bg-amber-900/30">
-                      <p className="font-semibold text-amber-700 dark:text-amber-400">
+                    <li key={item.productName + item.expiryDate} className="p-2 border rounded-md bg-amber-900/30">
+                      <p className="font-semibold text-amber-400">
                         {item.productName} {item.brand ? `(${item.brand})` : ''}
                       </p>
                       <p>Qtde: {item.quantity} | Vence em: {format(parseISO(item.expiryDate), 'dd/MM/yyyy')} {formatDaysRemainingText(item.expiryDate)}</p>

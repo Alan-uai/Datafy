@@ -62,7 +62,7 @@ export function Header() {
 
   return (
     <TooltipProvider>
-      <header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-background/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-card/50 backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <Link href="/dashboard">
             <AppLogo />

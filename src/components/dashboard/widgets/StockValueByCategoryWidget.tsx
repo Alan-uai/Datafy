@@ -31,7 +31,7 @@ export const StockValueByCategoryWidget: React.FC<WidgetProps> = ({ products, ca
 
   if (chartData.length === 0) {
     return (
-        <Card>
+        <Card className="bg-card/50 backdrop-blur-sm">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Icon className="h-5 w-5 text-primary" />
@@ -47,7 +47,7 @@ export const StockValueByCategoryWidget: React.FC<WidgetProps> = ({ products, ca
   }
 
   return (
-    <Card>
+    <Card className="bg-card/50 backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5 text-primary" />

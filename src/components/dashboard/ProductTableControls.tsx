@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Search, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FilterType } from '@/app/dashboard/page';
+import type { FilterType } from '@/hooks/useProductTableControls';
 
 const filterOptions = ['all', 'today', 'expired', 'next7', 'next14', 'thisMonth', 'nextMonth'] as const;
 const filterLabels: Record<FilterType, string> = {
@@ -33,11 +33,11 @@ export function ProductTableControls({ searchQuery, onSearchChange, activeFilter
     <div className="flex flex-row items-center gap-4 p-4 md:px-6">
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar produtos..." className={cn('pl-10 w-full', dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10')} value={searchQuery} onChange={onSearchChange} />
+        <Input placeholder="Buscar produtos..." className={cn('pl-10 w-full bg-transparent', dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10')} value={searchQuery} onChange={onSearchChange} />
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className={cn('shrink-0', dashboardScale === 'compact' ? 'h-9 px-3 text-xs' : 'h-10')}>
+          <Button variant="outline" className={cn('shrink-0 bg-transparent', dashboardScale === 'compact' ? 'h-9 px-3 text-xs' : 'h-10')}>
             <Filter className="mr-2 h-4 w-4" />
             {filterLabels[activeFilter]}
           </Button>

@@ -43,7 +43,7 @@ export function MultiSelectBar({ selectedCount, productLists, activeListId, onMo
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-      className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto bg-background border rounded-lg shadow-2xl flex items-center gap-2 p-2 z-50"
+      className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto bg-card/80 backdrop-blur-sm border rounded-lg shadow-2xl flex items-center gap-2 p-2 z-50"
     >
       <Button variant="ghost" size="icon" onClick={onReset}>
         <XCircle className="h-5 w-5" />

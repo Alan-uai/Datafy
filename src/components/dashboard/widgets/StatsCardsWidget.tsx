@@ -16,7 +16,7 @@ export const StatsCardsWidget: React.FC<WidgetProps> = ({ products }) => {
   const Icon = widgetInfo.Icon;
 
   return (
-    <Card>
+    <Card className="bg-card/50 backdrop-blur-sm">
         <CardHeader>
             <CardTitle className="flex items-center gap-2">
                 <Icon className="h-5 w-5 text-primary" />
@@ -26,7 +26,7 @@ export const StatsCardsWidget: React.FC<WidgetProps> = ({ products }) => {
         </CardHeader>
         <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+                <Card className="bg-card/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Valor Total do Estoque</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -36,7 +36,7 @@ export const StatsCardsWidget: React.FC<WidgetProps> = ({ products }) => {
                         <p className="text-xs text-muted-foreground">Valor total de todos os produtos</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-card/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Itens Totais</CardTitle>
                         <Archive className="h-4 w-4 text-muted-foreground" />
@@ -46,7 +46,7 @@ export const StatsCardsWidget: React.FC<WidgetProps> = ({ products }) => {
                         <p className="text-xs text-muted-foreground">Soma de todas as quantidades</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-card/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Categorias</CardTitle>
                         <Shapes className="h-4 w-4 text-muted-foreground" />
