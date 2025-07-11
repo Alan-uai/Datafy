@@ -138,7 +138,11 @@
     @apply bg-background text-foreground;
   }
 
-  .matrix body,
+  html.dark body {
+    background-color: hsl(var(--background));
+  }
+
+  html.matrix body,
   html.padrão body,
   html.verão body,
   html.espaço body,
@@ -148,12 +152,12 @@
   }
 
   .animate-cintilate *,
-  .animate-cintilate body {
+  .animate-cintilate {
      animation: cintilate-effect 4s linear infinite;
   }
   
   .animate-rotate *,
-  .animate-rotate body {
+  .animate-rotate {
     animation: rotate-effect 4s linear infinite;
   }
   
