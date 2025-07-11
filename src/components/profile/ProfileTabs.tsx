@@ -10,7 +10,7 @@ import type { UserProfile } from '@/services/userService';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserProfile } from '@/services/userService';
 import { useAuth } from '@/contexts/AuthContext';
-import { PersonalInfoForm } from './PersonalnfoForm';
+import { PersonalInfoForm } from './PersonalInfoForm';
 import { AchievementList } from './AchievementList';
 import { PremiumTab } from './PremiumTab';
 

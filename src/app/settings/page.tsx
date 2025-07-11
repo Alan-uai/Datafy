@@ -78,7 +78,7 @@ export default function SettingsPage() {
   const { dashboardScale } = userProfile.preferences;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-transparent">
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
           <motion.div
@@ -196,13 +196,13 @@ export default function SettingsPage() {
                             >
                                 <div className="flex-1">
                                     <RadioGroupItem value="padrão" id="mode-padrão" className="peer sr-only" />
-                                    <Label htmlFor="padrão" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                                    <Label htmlFor="mode-padrão" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
                                         <Sparkles className="mb-3 h-6 w-6" /> Padrão (2 Canvas)
                                     </Label>
                                 </div>
                                 <div className="flex-1">
                                     <RadioGroupItem value="merge" id="mode-merge" className="peer sr-only" />
-                                    <Label htmlFor="merge" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                                    <Label htmlFor="mode-merge" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
                                         <Bot className="mb-3 h-6 w-6" /> Merge (1 Canvas)
                                     </Label>
                                 </div>
@@ -270,5 +270,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

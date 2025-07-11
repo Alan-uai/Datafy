@@ -6,7 +6,7 @@ import { CategoryDistributionWidget } from './CategoryDistributionWidget';
 import { StockValueByCategoryWidget } from './StockValueByCategoryWidget';
 import { LowStockItemsWidget } from './LowStockItemsWidget';
 import { PriceRangeDistributionWidget } from './PriceRangeDistributionWidget';
-import { ExpiryAttentionReportCard } from '@/components/dashboard/ExpiryAttentionReportCard';
+import { ExpiryAttentionReportCard } from './ExpiryAttentionReportCard';
 
 export type WidgetProps = {
   products: Product[];

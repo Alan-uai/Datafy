@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-transparent">
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">
