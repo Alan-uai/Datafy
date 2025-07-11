@@ -40,5 +40,3 @@ export const ThemeManager = () => {
 
   return theme === 'matrix' ? <MatrixBackground key={`${mode}-${speed}`} mode={mode} speed={speed} /> : null;
 };
-
-    
