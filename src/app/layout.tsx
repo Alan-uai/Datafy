@@ -14,14 +14,14 @@ export const metadata: Metadata = {
   description: 'Gerencie seu estoque e validade de produtos.',
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
-  const themeCookie = cookies().get('theme')?.value || 'dark';
-  const animationCookie = cookies().get('matrixAnimation')?.value || 'cintilar';
+  const cookieStore = cookies();
+  const themeCookie = cookieStore.get('theme')?.value || 'dark';
+  const animationCookie = cookieStore.get('matrixAnimation')?.value || 'cintilar';
 
   return (
     <html lang="pt-BR" className={cn(
@@ -45,5 +45,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
-    
