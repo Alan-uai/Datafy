@@ -8,41 +8,61 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Minimize2, Maximize2, Settings, Palette, Bot, Sparkles, Film } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+
+// Helper to read cookies on the client side
+const getCookie = (name: string): string | undefined => {
+  if (typeof document === 'undefined') return undefined;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+};
 
 export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
 
+  // Local state for theme settings, initialized from cookies for instant UI feedback.
+  const [currentTheme, setCurrentTheme] = useState<'dark' | 'matrix'>(() => (getCookie('theme') as 'dark' | 'matrix') || 'dark');
+  const [currentAnimation, setCurrentAnimation] = useState<'cintilar' | 'girar'>(() => (getCookie('matrixAnimation') as 'cintilar' | 'girar') || 'cintilar');
+
   const handleThemeChange = (theme: 'dark' | 'matrix') => {
+    setCurrentTheme(theme);
     // Save to Firestore via the hook
     savePreferences({ theme });
     // Also save to a cookie for instant server-side rendering
     document.cookie = `theme=${theme};path=/;max-age=31536000`; // Expires in 1 year
     
     // Update the class on the html element immediately for visual feedback
-    const animation = userProfile?.preferences.matrixAnimation || 'cintilar';
-    document.documentElement.className = cn(theme, theme === 'matrix' && `animate-${animation}`);
+    document.documentElement.className = cn(theme, theme === 'matrix' && `animate-${currentAnimation}`);
   };
   
   const handleAnimationChange = (animation: 'cintilar' | 'girar') => {
-    if (!userProfile || userProfile.preferences.theme !== 'matrix') return;
+    if (currentTheme !== 'matrix') return;
     
+    setCurrentAnimation(animation);
     // Save to Firestore via the hook
     savePreferences({ matrixAnimation: animation });
     // Also save to a cookie
     document.cookie = `matrixAnimation=${animation};path=/;max-age=31536000`;
 
     // Update the class on the html element immediately
-    const theme = userProfile.preferences.theme;
-    document.documentElement.className = cn(theme, `animate-${animation}`);
+    document.documentElement.className = cn(currentTheme, `animate-${animation}`);
   };
+  
+  useEffect(() => {
+    // Sync with profile when it loads, but cookie is the source of truth for initial render.
+    if (userProfile) {
+        setCurrentTheme(userProfile.preferences.theme as 'dark' | 'matrix');
+        setCurrentAnimation(userProfile.preferences.matrixAnimation);
+    }
+  }, [userProfile]);
 
   if (isLoading || !userProfile) {
     return <LoadingSpinner />;
   }
 
-  const { theme, dashboardScale, matrixAnimation } = userProfile.preferences;
+  const { dashboardScale } = userProfile.preferences;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -119,7 +139,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                   <RadioGroup
-                    value={theme || 'dark'}
+                    value={currentTheme}
                     onValueChange={(value) => handleThemeChange(value as 'dark' | 'matrix')}
                     className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                   >
@@ -145,7 +165,7 @@ export default function SettingsPage() {
                     </div>
                   </RadioGroup>
 
-                  {theme === 'matrix' && (
+                  {currentTheme === 'matrix' && (
                      <motion.div 
                         initial={{ opacity: 0, y: -10 }} 
                         animate={{ opacity: 1, y: 0 }}
@@ -156,7 +176,7 @@ export default function SettingsPage() {
                            Escolha o efeito visual para as bordas dos componentes no tema Matrix.
                         </p>
                         <RadioGroup
-                          value={matrixAnimation || 'cintilar'}
+                          value={currentAnimation}
                           onValueChange={(value) => handleAnimationChange(value as 'cintilar' | 'girar')}
                           className="flex flex-col sm:flex-row gap-4"
                         >
