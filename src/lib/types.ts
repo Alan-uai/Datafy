@@ -1,3 +1,4 @@
+
 import type {LucideProps} from 'lucide-react';
 import type {ForwardRefExoticComponent, RefAttributes} from 'react';
 
@@ -39,6 +40,8 @@ export interface UserPreferences {
     dashboardScale: 'normal' | 'compact';
     attentionHorizonDays: number;
     matrixAnimation: 'cintilar' | 'girar';
+    matrixMode: 'padrão' | 'merge';
+    matrixSpeed: number;
 }
 
     

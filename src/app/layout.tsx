@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +8,7 @@ import { getUserProfile } from '@/services/userService';
 import { auth } from '@/lib/firebase';
 import { cookies } from 'next/headers';
 import { cn } from '@/lib/utils';
+import { MatrixBackground } from '@/components/shared/MatrixBackground';
 
 
 export const metadata: Metadata = {
@@ -25,6 +27,8 @@ export default async function RootLayout({
   // on initial load, as the server can render the correct theme immediately.
   const theme = cookies().get('theme')?.value || 'dark';
   const animation = cookies().get('matrixAnimation')?.value || 'cintilar';
+  const matrixMode = (cookies().get('matrixMode')?.value as 'padrão' | 'merge') || 'padrão';
+  const matrixSpeed = Number(cookies().get('matrixSpeed')?.value) || 100;
 
 
   return (
@@ -38,6 +42,7 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background">
+        {theme === 'matrix' && <MatrixBackground mode={matrixMode} speed={matrixSpeed} />}
         <AuthProvider>
           <ProtectedRoute>
             {children}

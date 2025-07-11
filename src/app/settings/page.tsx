@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Minimize2, Maximize2, Settings, Palette, Bot, Sparkles, Film } from 'lucide-react';
+import { Minimize2, Maximize2, Settings, Palette, Bot, Sparkles, Film, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
 
 // Helper to read cookies on the client side
 const getCookie = (name: string): string | undefined => {
@@ -25,36 +26,52 @@ export default function SettingsPage() {
   // Local state for theme settings, initialized from cookies for instant UI feedback.
   const [currentTheme, setCurrentTheme] = useState<'dark' | 'matrix'>(() => (getCookie('theme') as 'dark' | 'matrix') || 'dark');
   const [currentAnimation, setCurrentAnimation] = useState<'cintilar' | 'girar'>(() => (getCookie('matrixAnimation') as 'cintilar' | 'girar') || 'cintilar');
+  const [currentMatrixMode, setCurrentMatrixMode] = useState<'padrão' | 'merge'>(() => (getCookie('matrixMode') as 'padrão' | 'merge') || 'padrão');
+  const [currentMatrixSpeed, setCurrentMatrixSpeed] = useState<number>(() => Number(getCookie('matrixSpeed')) || 100);
+
+  const saveCookie = (name: string, value: string | number) => {
+    document.cookie = `${name}=${value};path=/;max-age=31536000`; // Expires in 1 year
+  };
 
   const handleThemeChange = (theme: 'dark' | 'matrix') => {
     setCurrentTheme(theme);
-    // Save to Firestore via the hook
     savePreferences({ theme });
-    // Also save to a cookie for instant server-side rendering
-    document.cookie = `theme=${theme};path=/;max-age=31536000`; // Expires in 1 year
-    
-    // Update the class on the html element immediately for visual feedback
+    saveCookie('theme', theme);
     document.documentElement.className = cn(theme, theme === 'matrix' && `animate-${currentAnimation}`);
+    // Reload to apply background component if needed
+    window.location.reload();
   };
   
   const handleAnimationChange = (animation: 'cintilar' | 'girar') => {
     if (currentTheme !== 'matrix') return;
     
     setCurrentAnimation(animation);
-    // Save to Firestore via the hook
     savePreferences({ matrixAnimation: animation });
-    // Also save to a cookie
-    document.cookie = `matrixAnimation=${animation};path=/;max-age=31536000`;
-
-    // Update the class on the html element immediately
+    saveCookie('matrixAnimation', animation);
     document.documentElement.className = cn(currentTheme, `animate-${animation}`);
+  };
+
+  const handleMatrixModeChange = (mode: 'padrão' | 'merge') => {
+    setCurrentMatrixMode(mode);
+    savePreferences({ matrixMode: mode });
+    saveCookie('matrixMode', mode);
+    window.location.reload();
+  };
+
+  const handleSpeedChange = (value: number[]) => {
+    const newSpeed = value[0];
+    setCurrentMatrixSpeed(newSpeed);
+    savePreferences({ matrixSpeed: newSpeed });
+    saveCookie('matrixSpeed', newSpeed);
+    // No reload needed for speed, handled by component state
   };
   
   useEffect(() => {
-    // Sync with profile when it loads, but cookie is the source of truth for initial render.
     if (userProfile) {
         setCurrentTheme(userProfile.preferences.theme as 'dark' | 'matrix');
         setCurrentAnimation(userProfile.preferences.matrixAnimation);
+        setCurrentMatrixMode(userProfile.preferences.matrixMode);
+        setCurrentMatrixSpeed(userProfile.preferences.matrixSpeed);
     }
   }, [userProfile]);
 
@@ -135,7 +152,7 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Tema Visual</CardTitle>
-                <CardDescription>Mude o esquema de cores do aplicativo.</CardDescription>
+                <CardDescription>Mude o esquema de cores e os efeitos do aplicativo.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                   <RadioGroup
@@ -169,38 +186,84 @@ export default function SettingsPage() {
                      <motion.div 
                         initial={{ opacity: 0, y: -10 }} 
                         animate={{ opacity: 1, y: 0 }}
-                        className="pt-4 border-t"
+                        className="pt-6 border-t space-y-8"
                       >
-                        <Label className="text-base font-medium">Animação de Borda (Matrix)</Label>
-                         <p className="text-sm text-muted-foreground mb-3">
-                           Escolha o efeito visual para as bordas dos componentes no tema Matrix.
-                        </p>
-                        <RadioGroup
-                          value={currentAnimation}
-                          onValueChange={(value) => handleAnimationChange(value as 'cintilar' | 'girar')}
-                          className="flex flex-col sm:flex-row gap-4"
-                        >
-                          <div className="flex-1">
-                            <RadioGroupItem value="cintilar" id="anim-cintilar" className="peer sr-only" />
-                            <Label 
-                              htmlFor="anim-cintilar" 
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                        <div>
+                            <Label className="text-base font-medium">Modo do Tema Matrix</Label>
+                            <p className="text-sm text-muted-foreground mb-3">
+                                Padrão usa 2 camadas para melhor performance, Merge usa 1 camada para um efeito mesclado.
+                            </p>
+                            <RadioGroup
+                            value={currentMatrixMode}
+                            onValueChange={(value) => handleMatrixModeChange(value as 'padrão' | 'merge')}
+                            className="flex flex-col sm:flex-row gap-4"
                             >
-                              <Sparkles className="mb-3 h-6 w-6" />
-                              Cintilar
-                            </Label>
-                          </div>
-                          <div className="flex-1">
-                            <RadioGroupItem value="girar" id="anim-girar" className="peer sr-only" />
-                            <Label 
-                              htmlFor="anim-girar" 
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                <div className="flex-1">
+                                    <RadioGroupItem value="padrão" id="mode-padrão" className="peer sr-only" />
+                                    <Label htmlFor="padrão" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                                        <Sparkles className="mb-3 h-6 w-6" /> Padrão (2 Canvas)
+                                    </Label>
+                                </div>
+                                <div className="flex-1">
+                                    <RadioGroupItem value="merge" id="mode-merge" className="peer sr-only" />
+                                    <Label htmlFor="merge" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                                        <Bot className="mb-3 h-6 w-6" /> Merge (1 Canvas)
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                        
+                        <div>
+                            <Label className="text-base font-medium">Animação de Borda (Matrix)</Label>
+                            <p className="text-sm text-muted-foreground mb-3">
+                            Escolha o efeito visual para as bordas dos componentes no tema Matrix.
+                            </p>
+                            <RadioGroup
+                            value={currentAnimation}
+                            onValueChange={(value) => handleAnimationChange(value as 'cintilar' | 'girar')}
+                            className="flex flex-col sm:flex-row gap-4"
                             >
-                                <Film className="mb-3 h-6 w-6" />
-                                Girar
-                            </Label>
-                          </div>
-                        </RadioGroup>
+                            <div className="flex-1">
+                                <RadioGroupItem value="cintilar" id="anim-cintilar" className="peer sr-only" />
+                                <Label 
+                                htmlFor="anim-cintilar" 
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                >
+                                <Sparkles className="mb-3 h-6 w-6" />
+                                Cintilar
+                                </Label>
+                            </div>
+                            <div className="flex-1">
+                                <RadioGroupItem value="girar" id="anim-girar" className="peer sr-only" />
+                                <Label 
+                                htmlFor="anim-girar" 
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                >
+                                    <Film className="mb-3 h-6 w-6" />
+                                    Girar
+                                </Label>
+                            </div>
+                            </RadioGroup>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="speed-slider" className="text-base font-medium">Velocidade da Animação de Fundo</Label>
+                            <p className="text-sm text-muted-foreground mb-3">
+                                Ajuste a velocidade da "chuva digital".
+                            </p>
+                            <div className="flex items-center gap-4">
+                               <SlidersHorizontal className="h-5 w-5 text-muted-foreground"/>
+                               <Slider
+                                 id="speed-slider"
+                                 min={1}
+                                 max={100}
+                                 step={1}
+                                 value={[currentMatrixSpeed]}
+                                 onValueChange={handleSpeedChange}
+                               />
+                               <span className="text-sm font-mono w-12 text-center">{currentMatrixSpeed}%</span>
+                            </div>
+                        </div>
                     </motion.div>
                   )}
               </CardContent>

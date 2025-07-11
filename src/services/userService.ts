@@ -1,3 +1,4 @@
+
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { UserPreferences } from '@/lib/types';
@@ -69,6 +70,8 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
     dashboardScale: 'normal',
     attentionHorizonDays: 7,
     matrixAnimation: 'cintilar',
+    matrixMode: 'padrão',
+    matrixSpeed: 100,
   },
   privacy: { showEmail: false, showActivity: true },
 };
