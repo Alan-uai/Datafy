@@ -74,7 +74,7 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
   privacy: { showEmail: false, showActivity: true },
 };
 
-export const createUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<void> => {
+export const createUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<UserProfile> => {
   const userRef = doc(db, 'users', uid);
   const existingProfile = await getDoc(userRef);
 
@@ -87,7 +87,6 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
       photoURL: data.photoURL || undefined,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      // Ensure nested objects from 'data' are merged correctly if provided
       stats: { ...defaultProfile.stats, ...(data.stats || {}) },
       achievements: data.achievements || defaultProfile.achievements,
       notifications: { ...defaultProfile.notifications, ...(data.notifications || {}) },
@@ -96,7 +95,10 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
       premium: data.premium || defaultProfile.premium,
     };
     await setDoc(userRef, newUserProfile);
+    return newUserProfile;
   }
+  // This case should ideally not be hit if called correctly, but as a fallback, return existing.
+  return (await getUserProfile(uid))!;
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {

@@ -35,9 +35,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   const isAuthRoute = unprotectedRoutes.includes(pathname);
 
+  // If the user is authenticated and on a protected route,
+  // or if they are not authenticated and on a public route, show the children.
   if ((currentUser && !isAuthRoute) || (!currentUser && isAuthRoute)) {
     return <>{children}</>;
   }
 
+  // Otherwise, the useEffect hook is handling redirection. Show a loading spinner.
+  // This covers the case where an authenticated user is on an auth route (e.g., /login)
+  // and is being redirected to the dashboard.
   return <LoadingSpinner fullPage />;
 }
