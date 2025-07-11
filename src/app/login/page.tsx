@@ -12,6 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { createUserProfile } from "@/services/userService";
+import type { User as FirebaseUser } from 'firebase/auth';
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,12 +23,12 @@ export default function LoginPage() {
 
   const handleAuthSuccess = () => {
     // O ProtectedRoute irá gerenciar o redirecionamento automaticamente.
-    // O router.push aqui pode ser removido para evitar conflitos.
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSuccess = async (user: FirebaseUser | null) => {
+    if (!user) return;
     setIsGoogleLoading(true);
-    // O GoogleSignInButton vai gerenciar o loading internamente
+    // O ProtectedRoute irá gerenciar a criação do perfil e o redirecionamento
   };
   
   // Se o usuário já estiver logado, o ProtectedRoute cuidará do redirecionamento.
@@ -149,8 +152,7 @@ export default function LoginPage() {
               >
                 <GoogleSignInButton 
                   isGoogleLoading={isGoogleLoading}
-                  onClick={handleGoogleSignIn}
-                  onSuccess={handleAuthSuccess}
+                  onSuccess={(userCredential) => handleGoogleSuccess(userCredential.user)}
                 />
               </motion.div>
 
