@@ -77,7 +77,7 @@ export default function MatrixPage() {
 
         drops[i]++;
       }
-       animationFrameId = window.requestAnimationFrame(draw);
+      //  animationFrameId = window.requestAnimationFrame(draw);
     };
 
     draw();
