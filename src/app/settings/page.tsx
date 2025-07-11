@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Header } from '@/components/shared/Header';
 import { Minimize2, Maximize2, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -19,7 +18,6 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
           <motion.div
