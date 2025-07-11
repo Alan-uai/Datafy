@@ -19,9 +19,15 @@ export default function MatrixPage() {
 
     // Characters used for the rain
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
-    const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const hiragana = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
+    const kanji = '日一国会人年大十二本中長出三同時政事自行社見月分議後前民生連五発間対上部東者党地員切動';
+    const latinUpper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const latinLower = 'abcdefghijklmnopqrstuvwxyz';
+    const specialChars = '@#$€£¥§%&/()=?*<>|!çéàèùâêîôûëïü';
     const numerals = '0123456789';
-    const characters = katakana + latin + numerals;
+
+    const latin = latinUpper + latinLower + specialChars;
+    const characters = katakana + hiragana + kanji + latin + numerals;
 
     const fontSize = 16;
     const columns = Math.floor(canvas.width / fontSize);
