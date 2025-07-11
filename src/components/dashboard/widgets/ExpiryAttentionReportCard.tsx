@@ -24,9 +24,8 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
 }) => {
   const { toast } = useToast();
   const [listStats, setListStats] = useState<{ expiringSoon: number; expired: number } | null>(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
-  const [isLoadingAttentionReport, setIsLoadingAttentionReport] = useState(false);
   const [attentionHorizon, setAttentionHorizon] = useState(preferences?.attentionHorizonDays || 7);
 
   const handleHorizonChange = (newHorizon: number) => {
@@ -37,18 +36,16 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   };
 
   const calculateStatsAndReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
-    setIsLoadingStats(true);
-    setIsLoadingAttentionReport(true);
-    setListStats(null);
+    setIsLoading(true);
     setExpiryAttentionReport(null);
 
+    // Calculate simple stats first
     try {
       const today = startOfDay(new Date());
       let expiredCount = 0;
       let expiringSoonCount = 0;
 
       productsToAnalyze.forEach(p => {
-        // This is a simple representation of a Product for AI, not the full type from types.ts
         const productForAnalysis = {
             ...p,
             validade: p.expiryDate.toISOString(),
@@ -73,11 +70,10 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       setListStats({ expiringSoon: expiringSoonCount, expired: expiredCount });
     } catch (error) {
       console.error("Error calculating list stats:", error);
-      toast({ variant: "destructive", title: "Erro ao calcular estatísticas", description: "Não foi possível carregar as estatísticas da lista." });
-    } finally {
-      setIsLoadingStats(false);
+      toast({ variant: "destructive", title: "Erro ao calcular estatísticas" });
     }
 
+    // Generate AI report
     try {
       if (productsToAnalyze.length > 0) {
         const plainProductsForAI = productsToAnalyze.map(p => ({
@@ -97,7 +93,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       toast({ variant: "destructive", title: "Erro na Análise IA", description: `Não foi possível gerar o relatório de atenção: ${error.message}` });
       setExpiryAttentionReport(null);
     } finally {
-      setIsLoadingAttentionReport(false);
+      setIsLoading(false);
     }
   }, [toast]);
 
@@ -112,12 +108,9 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     }
   }, [preferences?.attentionHorizonDays, attentionHorizon]);
 
-
   const handleAnalyzeAgain = () => {
       calculateStatsAndReport(listProducts, attentionHorizon);
   };
-
-  const isOverallLoading = isLoadingStats || isLoadingAttentionReport;
 
   return (
     <Card className="shadow-md bg-card/50 backdrop-blur-sm">
@@ -132,37 +125,22 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       </CardHeader>
       <CardContent className="p-3 sm:p-4 pt-0 space-y-3">
         <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center mb-3">
-          {isLoadingStats ? (
             <>
               <div>
-                <div className="h-3 w-20 sm:w-24 mx-auto bg-muted/50 rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted/50 rounded animate-pulse"></div>
-              </div>
-              <div>
-                <div className="h-3 w-12 sm:w-16 mx-auto bg-muted/50 rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted/50 rounded animate-pulse"></div>
-              </div>
-            </>
-          ) : listStats ? (
-            <>
-              <div>
-                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={handleHorizonChange} isLoading={isOverallLoading} />
+                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={handleHorizonChange} isLoading={isLoading} />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>
-                <p className={`text-xl sm:text-2xl font-bold ${listStats.expired > 0 ? 'text-destructive' : 'text-foreground'}`}>
-                  {listStats.expired}
+                <p className={`text-xl sm:text-2xl font-bold ${listStats && listStats.expired > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                  {isLoading ? '-' : listStats?.expired ?? 0}
                 </p>
               </div>
             </>
-          ) : (
-            <p className="col-span-2 text-sm text-muted-foreground text-center">Estatísticas não disponíveis.</p>
-          )}
         </div>
 
         <Separator />
 
-        {isLoadingAttentionReport ? (
+        {isLoading ? (
           <div className="space-y-3 pt-3">
             <div className="h-4 w-3/4 bg-muted/50 rounded animate-pulse"></div>
             <div className="space-y-2">
@@ -201,9 +179,9 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
             size="sm"
             className="mt-3 w-full sm:w-auto"
             onClick={handleAnalyzeAgain}
-            disabled={isOverallLoading || listProducts.length === 0}
+            disabled={isLoading || listProducts.length === 0}
         >
-            <RefreshCw className={cn("mr-2 h-4 w-4", isOverallLoading && "animate-spin")} />
+            <RefreshCw className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")} />
             Analisar Novamente
         </Button>
       </CardContent>

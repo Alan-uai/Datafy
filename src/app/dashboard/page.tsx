@@ -75,7 +75,11 @@ export default function Dashboard() {
   const isLoading = isProfileLoading || isProductDataLoading;
 
   // Widget Preferences Handlers
-  const handleWidgetEditing = () => savePreferences({ isEditingWidgets: !userProfile?.preferences.isEditingWidgets });
+  const handleWidgetEditing = () => {
+    if (!userProfile) return;
+    savePreferences({ isEditingWidgets: !userProfile.preferences.isEditingWidgets });
+  }
+
   const handleColumnVisibilityChange = (key: string, value: boolean) => {
     if (!userProfile) return;
     const newVisibility = { ...userProfile.preferences.columnVisibility, [key]: value };
@@ -107,7 +111,7 @@ export default function Dashboard() {
   }
   
   const { preferences, premium } = userProfile;
-  const widgetDataProps = { products, categories: initialCategories, savePreferences, preferences };
+  const widgetDataProps = { products, categories: initialCategories, preferences };
 
   return (
     <div className="flex flex-col h-full relative">
@@ -123,7 +127,7 @@ export default function Dashboard() {
                 isEditingWidgets={preferences.isEditingWidgets}
                 hasPremium={!!premium}
                 activeWidgets={preferences.activeWidgets}
-                widgetDataProps={{ ...widgetDataProps, listProducts: productsForAI }}
+                widgetDataProps={{ ...widgetDataProps, listProducts: productsForAI, savePreferences }}
                 onAddWidget={addWidget}
                 onRemoveWidget={removeWidget}
                 onDragEnd={handleWidgetDragEnd}

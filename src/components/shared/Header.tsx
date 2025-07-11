@@ -14,24 +14,11 @@ import {
 } from "@/components/ui/tooltip"
 import { LogOut, BarChart3, Settings } from 'lucide-react';
 import { AppLogo } from './AppLogo';
-import React, { useState, useEffect } from 'react';
-import { checkPremiumStatus } from '@/services/userService';
 
 export function Header() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, hasPremium } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [hasPremium, setHasPremium] = useState(false);
-
-  useEffect(() => {
-    const fetchPremiumStatus = async () => {
-      if (currentUser) {
-        const status = await checkPremiumStatus(currentUser.uid);
-        setHasPremium(status);
-      }
-    };
-    fetchPremiumStatus();
-  }, [currentUser]);
 
   const handleLogout = async () => {
     await logout();
@@ -52,9 +39,9 @@ export function Header() {
     <Button 
       variant="ghost" 
       size="icon" 
-      onClick={() => hasPremium && router.push('/analytics')}
-      disabled={!hasPremium}
-      className={!hasPremium ? 'opacity-50 cursor-not-allowed' : ''}
+      onClick={() => hasPremium() && router.push('/analytics')}
+      disabled={!hasPremium()}
+      className={!hasPremium() ? 'opacity-50 cursor-not-allowed' : ''}
     >
       <BarChart3 className="h-5 w-5" />
     </Button>
@@ -90,7 +77,7 @@ export function Header() {
                    <AnalyticsButton/>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Análise {hasPremium ? '' : '(Premium)'}</p>
+                  <p>Análise {hasPremium() ? '' : '(Premium)'}</p>
                 </TooltipContent>
               </Tooltip>
 

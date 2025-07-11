@@ -4,7 +4,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { cookies } from 'next/headers';
 import { cn } from '@/lib/utils';
 import { ThemeManager } from '@/components/shared/ThemeManager';
 
@@ -14,35 +13,29 @@ export const metadata: Metadata = {
   description: 'Gerencie seu estoque e validade de produtos.',
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const themeCookie = cookieStore.get('theme')?.value || 'dark';
-  const animationCookie = cookieStore.get('matrixAnimation')?.value || 'cintilar';
 
   return (
-    <html lang="pt-BR" className={cn(
-        themeCookie,
-        themeCookie === 'matrix' && `animate-${animationCookie}`
-      )}>
+    <html lang="pt-BR" className='dark'>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <ThemeManager />
-        <div className="relative z-10">
-          <AuthProvider>
-            <ProtectedRoute>
-              {children}
-            </ProtectedRoute>
-          </AuthProvider>
-        </div>
-        <Toaster />
+        <AuthProvider>
+            <ThemeManager />
+            <div className="relative z-10">
+                <ProtectedRoute>
+                {children}
+                </ProtectedRoute>
+            </div>
+            <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

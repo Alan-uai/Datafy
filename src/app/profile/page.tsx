@@ -63,7 +63,8 @@ export default function ProfilePage() {
     if (currentUser?.uid) {
       loadUserProfile();
     } else {
-      setIsLoading(false);
+        // If there's no user, stop loading. The ProtectedRoute will handle redirection.
+        setIsLoading(false);
     }
   }, [currentUser, loadUserProfile]);
 
@@ -76,8 +77,12 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading || !userProfile) {
+  if (isLoading) {
     return <LoadingSpinner />;
+  }
+  
+  if (!userProfile) {
+     return <div className="p-4 md:p-6">Nenhum perfil encontrado. Faça login para ver seu perfil.</div>;
   }
 
   return (
