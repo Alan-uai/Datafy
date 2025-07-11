@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useRef, useEffect } from 'react';
@@ -44,7 +43,7 @@ export default function MatrixPage() {
       drops[i] = 1;
     }
 
-    let animationFrameId: number;
+    let animationTimeoutId: number;
 
     const draw = () => {
       // --- Trail Canvas ---
@@ -77,7 +76,7 @@ export default function MatrixPage() {
 
         drops[i]++;
       }
-      //  animationFrameId = window.requestAnimationFrame(draw);
+      animationTimeoutId = window.setTimeout(draw, 500); // Drastically slow down the animation
     };
 
     draw();
@@ -91,7 +90,7 @@ export default function MatrixPage() {
     window.addEventListener('resize', handleResize);
 
     return () => {
-        window.cancelAnimationFrame(animationFrameId);
+        window.clearTimeout(animationTimeoutId);
         window.removeEventListener('resize', handleResize);
     };
   }, []);
