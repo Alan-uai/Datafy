@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo } from "react";
@@ -110,7 +109,7 @@ export default function Dashboard() {
   const widgetDataProps = { products, categories: initialCategories, savePreferences, preferences };
 
   return (
-    <div className="flex flex-col h-full relative bg-transparent">
+    <div className="flex flex-col h-full relative">
         <div className="p-4 md:p-6">
             <DashboardHeader
                 isEditingWidgets={preferences.isEditingWidgets}

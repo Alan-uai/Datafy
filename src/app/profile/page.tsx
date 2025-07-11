@@ -91,7 +91,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center justify-center gap-3 mb-4">
             <User className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold text-white">Meu Perfil</h1>
+            <h1 className="text-4xl font-bold">Meu Perfil</h1>
           </div>
           <p className="text-muted-foreground text-lg">
             Gerencie suas informações, conquistas e preferências.

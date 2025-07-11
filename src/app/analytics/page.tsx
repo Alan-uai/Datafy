@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:w-auto lg:inline-flex bg-card">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
               {productLists.map(list => (
                 <TabsTrigger key={list.id} value={list.id}>{list.name}</TabsTrigger>
