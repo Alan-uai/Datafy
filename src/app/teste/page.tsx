@@ -3,12 +3,11 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Terminal } from 'lucide-react';
 
-const MatrixTest = () => {
+export default function TestePage() {
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   const leaderCanvasRef = useRef<HTMLCanvasElement>(null);
+  const uiCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
 
   const draw = useCallback(() => {
@@ -18,12 +17,15 @@ const MatrixTest = () => {
     const leaderCanvas = leaderCanvasRef.current;
     const leaderCtx = leaderCanvas?.getContext('2d');
 
-    if (!trailCanvas || !trailCtx || !leaderCanvas || !leaderCtx) return;
+    const uiCanvas = uiCanvasRef.current;
+    const uiCtx = uiCanvas?.getContext('2d');
 
+    if (!trailCanvas || !trailCtx || !leaderCanvas || !leaderCtx || !uiCanvas || !uiCtx) return;
+
+    // --- Draw Matrix Rain (Background Canvases) ---
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
     const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const nums = '0123456789';
-
     const alphabet = katakana + latin + nums;
     const fontSize = 16;
     const columns = Math.floor(trailCanvas.width / fontSize);
@@ -56,6 +58,46 @@ const MatrixTest = () => {
         drops[i]++;
     }
 
+    // --- Draw UI Card (Foreground Canvas) ---
+    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height); // Clear UI canvas before redrawing
+
+    const cardWidth = 400;
+    const cardHeight = 150;
+    const cardX = (uiCanvas.width - cardWidth) / 2;
+    const cardY = (uiCanvas.height - cardHeight) / 2;
+    const cornerRadius = 8;
+
+    // Card Background
+    uiCtx.fillStyle = 'rgba(20, 20, 25, 0.85)'; // Semi-transparent dark background
+    uiCtx.strokeStyle = 'rgba(120, 255, 120, 0.5)'; // Greenish border
+    uiCtx.lineWidth = 1;
+
+    uiCtx.beginPath();
+    uiCtx.moveTo(cardX + cornerRadius, cardY);
+    uiCtx.lineTo(cardX + cardWidth - cornerRadius, cardY);
+    uiCtx.quadraticCurveTo(cardX + cardWidth, cardY, cardX + cardWidth, cardY + cornerRadius);
+    uiCtx.lineTo(cardX + cardWidth, cardY + cardHeight - cornerRadius);
+    uiCtx.quadraticCurveTo(cardX + cardWidth, cardY + cardHeight, cardX + cardWidth - cornerRadius, cardY + cardHeight);
+    uiCtx.lineTo(cardX + cornerRadius, cardY + cardHeight);
+    uiCtx.quadraticCurveTo(cardX, cardY + cardHeight, cardX, cardY + cardHeight - cornerRadius);
+    uiCtx.lineTo(cardX, cardY + cornerRadius);
+    uiCtx.quadraticCurveTo(cardX, cardY, cardX + cornerRadius, cardY);
+    uiCtx.closePath();
+    
+    uiCtx.fill();
+    uiCtx.stroke();
+    
+    // Card Title
+    uiCtx.fillStyle = 'hsl(120, 100%, 75%)'; // Bright green for text
+    uiCtx.font = 'bold 18px Inter, sans-serif';
+    uiCtx.fillText('Card de Teste (em Canvas)', cardX + 20, cardY + 40);
+
+    // Card Description
+    uiCtx.fillStyle = 'hsl(120, 80%, 85%)';
+    uiCtx.font = '14px Inter, sans-serif';
+    uiCtx.fillText('Este card foi desenhado em um terceiro canvas,', cardX + 20, cardY + 70);
+    uiCtx.fillText('posicionado sobre a animação de fundo.', cardX + 20, cardY + 90);
+
   }, []);
 
   useEffect(() => {
@@ -71,7 +113,7 @@ const MatrixTest = () => {
     }
     
     const setup = () => {
-        const canvases = [trailCanvasRef.current, leaderCanvasRef.current];
+        const canvases = [trailCanvasRef.current, leaderCanvasRef.current, uiCanvasRef.current];
         
         canvases.forEach(canvas => {
             if (canvas) {
@@ -79,6 +121,8 @@ const MatrixTest = () => {
                 canvas.height = window.innerHeight;
             }
         });
+        
+        (trailCanvasRef.current as any).drops = []; // Reset drops on resize
 
         if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = requestAnimationFrame(animate);
@@ -100,37 +144,20 @@ const MatrixTest = () => {
   }, [draw]);
 
   return (
-    <div className="fixed inset-0 -z-10 bg-black">
-      <canvas 
-        ref={trailCanvasRef} 
-        className="absolute inset-0 z-10"
-      />
-      <canvas 
-        ref={leaderCanvasRef} 
-        className="absolute inset-0 z-20"
-      />
-    </div>
-  );
-};
-
-
-export default function TestePage() {
-  return (
-    <div className={cn('matrix relative min-h-screen flex items-center justify-center p-4')}>
-      <MatrixTest />
-      <div className="relative z-30">
-        <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Terminal />
-              Card de Teste
-            </CardTitle>
-            <CardDescription>Este card está sobre o fundo Matrix.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>O conteúdo da interface deve ser legível e aparecer na frente da animação de fundo.</p>
-          </CardContent>
-        </Card>
+    <div className={cn('matrix relative min-h-screen')}>
+      <div className="fixed inset-0 -z-10 bg-black">
+        <canvas 
+          ref={trailCanvasRef} 
+          className="absolute inset-0 z-10"
+        />
+        <canvas 
+          ref={leaderCanvasRef} 
+          className="absolute inset-0 z-20"
+        />
+        <canvas
+          ref={uiCanvasRef}
+          className="absolute inset-0 z-30"
+        />
       </div>
     </div>
   );
