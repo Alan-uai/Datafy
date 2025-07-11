@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, Info, Wand2, RefreshCw, Loader2 } from 'lucide-react';
+import { ShieldAlert, Info, Wand2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { generateExpiryAttentionReport, type ExpiryAttentionReport } from '@/ai/flows/generate-expiry-attention-report-flow';
@@ -27,9 +27,10 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
   const [isLoadingAttentionReport, setIsLoadingAttentionReport] = useState(false);
-  const attentionHorizon = preferences?.attentionHorizonDays || 7;
+  const [attentionHorizon, setAttentionHorizon] = useState(preferences?.attentionHorizonDays || 7);
 
   const handleHorizonChange = (newHorizon: number) => {
+    setAttentionHorizon(newHorizon);
     if (savePreferences) {
       savePreferences({ attentionHorizonDays: newHorizon });
     }
@@ -47,7 +48,6 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       let expiringSoonCount = 0;
 
       productsToAnalyze.forEach(p => {
-        // This is a simple representation of a Product for AI, not the full type from types.ts
         const productForAnalysis = {
             ...p,
             validade: p.expiryDate.toISOString(),
@@ -103,6 +103,14 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   useEffect(() => {
     calculateStatsAndReport(listProducts, attentionHorizon);
   }, [listProducts, attentionHorizon, calculateStatsAndReport]);
+  
+  // Update local state if preferences from props change
+  useEffect(() => {
+    if (preferences?.attentionHorizonDays && preferences.attentionHorizonDays !== attentionHorizon) {
+      setAttentionHorizon(preferences.attentionHorizonDays);
+    }
+  }, [preferences?.attentionHorizonDays, attentionHorizon]);
+
 
   const handleAnalyzeAgain = () => {
       calculateStatsAndReport(listProducts, attentionHorizon);
@@ -137,7 +145,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
           ) : listStats ? (
             <>
               <div>
-                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={handleHorizonChange} isLoading={isLoadingStats} />
+                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={handleHorizonChange} isLoading={isOverallLoading} />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>

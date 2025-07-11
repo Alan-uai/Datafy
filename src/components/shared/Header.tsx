@@ -64,7 +64,7 @@ export function Header() {
     <TooltipProvider>
       <header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-background/95 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <Link href="/">
+          <Link href="/dashboard">
             <AppLogo />
           </Link>
         </div>
@@ -72,7 +72,7 @@ export function Header() {
         <div className="flex items-center gap-1 sm:gap-2">
           {currentUser && (
             <>
-              {pathname === '/' && (
+              {pathname.startsWith('/dashboard') && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>
