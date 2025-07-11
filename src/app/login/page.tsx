@@ -17,12 +17,14 @@ export default function LoginPage() {
 
   const handleAuthSuccess = () => {
     // ProtectedRoute will handle the redirect.
+    setIsGoogleLoading(true);
   };
 
-  const handleGoogleSuccess = async (user: FirebaseUser | null) => {
+  const handleGoogleSuccess = (user: FirebaseUser | null) => {
      if (!user) return;
-    setIsGoogleLoading(true);
-    // ProtectedRoute will handle redirect after successful sign-in
+    // On the login page, we just need to sign the user in.
+    // The AuthProvider and ProtectedRoute will handle the rest.
+    handleAuthSuccess();
   };
   
   if (currentUser) {

@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { User as FirebaseUser } from 'firebase/auth';
 import { useAuth } from "@/contexts/AuthContext";
 import { createUserProfile } from "@/services/userService";
@@ -23,12 +22,14 @@ export default function SignupPage() {
     if (!user) return;
     setIsAuthenticating(true);
     try {
+      // This is the key fix: create the profile document right after successful auth.
       await createUserProfile(user.uid, {
         displayName: user.displayName,
         email: user.email,
         photoURL: user.photoURL || undefined,
       });
-      // ProtectedRoute will handle redirection to dashboard
+      // Now, ProtectedRoute will handle redirection to a dashboard
+      // where the user profile is guaranteed to exist.
     } catch (error) {
        console.error("Failed to create user profile during signup", error);
        toast({ variant: "destructive", title: "Erro ao criar perfil", description: "Não foi possível finalizar seu cadastro." });
