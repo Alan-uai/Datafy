@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { LayoutDashboard, Package, PieChart, BarChart, CircleDollarSign, ShieldAlert } from 'lucide-react';
-import type { Product, Category } from '@/lib/types';
+import type { Product, Category, UserPreferences } from '@/lib/types';
 import { StatsCardsWidget } from './StatsCardsWidget';
 import { CategoryDistributionWidget } from './CategoryDistributionWidget';
 import { StockValueByCategoryWidget } from './StockValueByCategoryWidget';
@@ -11,10 +11,14 @@ import { ExpiryAttentionReportCard } from '@/components/dashboard/ExpiryAttentio
 export type WidgetProps = {
   products: Product[];
   categories: Category[];
+  preferences: UserPreferences;
+  savePreferences: (newPreferences: Partial<UserPreferences>) => void;
 };
 
 export type ExpiryWidgetProps = {
   listProducts: Product[];
+  preferences: UserPreferences;
+  savePreferences: (newPreferences: Partial<UserPreferences>) => void;
 }
 
 export type WidgetConfig = {

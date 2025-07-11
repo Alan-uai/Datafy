@@ -18,13 +18,6 @@ export type Product = {
   price: number;
   category: string;
   listId: string;
-  // AI fields
-  originalId?: string;
-  produto?: string;
-  marca?: string;
-  unidade?: string;
-  validade?: string;
-  isExploding?: boolean;
 };
 
 export type ProductList = {
@@ -35,4 +28,14 @@ export type ProductList = {
     createdAt: any; // Firestore Timestamp
 };
 
-    
+export interface UserPreferences {
+    theme: 'dark' | 'light' | 'system';
+    soundEnabled: boolean;
+    language: 'pt-BR' | 'en-US';
+    columnVisibility: Record<string, boolean>;
+    activeWidgets: any[]; // Using any to avoid circular dependency with widget-map
+    lastActiveListId?: string;
+    isEditingWidgets: boolean;
+    dashboardScale: 'normal' | 'compact';
+    attentionHorizonDays: number;
+}

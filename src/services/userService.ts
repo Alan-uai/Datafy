@@ -1,6 +1,7 @@
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AllWidgetType } from '@/components/dashboard/widgets/widget-map';
+import type { UserPreferences } from '@/lib/types';
+
 
 export interface Achievement {
   id: string;
@@ -9,17 +10,6 @@ export interface Achievement {
   iconType: string;
   color: string;
   unlockedAt: Date | null;
-}
-
-export interface UserPreferences {
-    theme: 'dark' | 'light' | 'system';
-    soundEnabled: boolean;
-    language: 'pt-BR' | 'en-US';
-    columnVisibility: Record<string, boolean>;
-    activeWidgets: AllWidgetType[];
-    lastActiveListId?: string;
-    isEditingWidgets: boolean;
-    dashboardScale: 'normal' | 'compact';
 }
 
 export interface UserProfile {
@@ -76,6 +66,7 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
     activeWidgets: ['expiryAttention', 'statsCards'],
     isEditingWidgets: false,
     dashboardScale: 'normal',
+    attentionHorizonDays: 7,
   },
   privacy: { showEmail: false, showActivity: true },
 };

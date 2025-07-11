@@ -8,22 +8,30 @@ import { useToast } from '@/hooks/use-toast';
 import { generateExpiryAttentionReport, type ExpiryAttentionReport } from '@/ai/flows/generate-expiry-attention-report-flow';
 import { formatDaysRemainingText } from '@/utils/dateUtils';
 import { isToday, isPast, isWithinInterval, addDays, startOfDay, parseISO, isValid, format } from 'date-fns';
-import type { Product } from '@/types';
+import type { Product, UserPreferences } from '@/types';
 import AttentionHorizonSelect from '@/components/dashboard/AttentionHorizonSelect';
 
 interface ExpiryAttentionReportCardProps {
   listProducts: Product[];
+  preferences: UserPreferences;
+  savePreferences: (newPreferences: Partial<UserPreferences>) => void;
 }
 
 export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps> = ({
   listProducts,
+  preferences,
+  savePreferences,
 }) => {
   const { toast } = useToast();
   const [listStats, setListStats] = useState<{ expiringSoon: number; expired: number } | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
   const [isLoadingAttentionReport, setIsLoadingAttentionReport] = useState(false);
-  const [attentionHorizon, setAttentionHorizon] = useState(7);
+  const attentionHorizon = preferences.attentionHorizonDays || 7;
+
+  const handleHorizonChange = (newHorizon: number) => {
+    savePreferences({ attentionHorizonDays: newHorizon });
+  };
 
   const calculateStatsAndReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
     setIsLoadingStats(true);
@@ -37,9 +45,15 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       let expiringSoonCount = 0;
 
       productsToAnalyze.forEach(p => {
-        if (p.isExploding) return;
-        if (p.validade && isValid(parseISO(p.validade))) {
-          const productDate = startOfDay(parseISO(p.validade));
+        // This is a simple representation of a Product for AI, not the full type from types.ts
+        const productForAnalysis = {
+            ...p,
+            validade: p.expiryDate.toISOString(),
+            produto: p.name,
+        }
+        if (productForAnalysis.isExploding) return;
+        if (productForAnalysis.validade && isValid(parseISO(productForAnalysis.validade))) {
+          const productDate = startOfDay(parseISO(productForAnalysis.validade));
           if (isPast(productDate) && !isToday(productDate)) {
             expiredCount++;
           } else if (
@@ -63,15 +77,12 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
 
     try {
       if (productsToAnalyze.length > 0) {
-        const plainProductsForAI: Product[] = productsToAnalyze.map(p => ({
+        const plainProductsForAI = productsToAnalyze.map(p => ({
           id: p.id,
-          originalId: p.originalId,
-          listId: p.listId,
-          produto: p.produto,
-          marca: p.marca,
-          unidade: p.unidade,
-          validade: p.validade,
-          isExploding: p.isExploding,
+          produto: p.name,
+          marca: p.brand,
+          unidade: p.quantity.toString(),
+          validade: p.expiryDate.toISOString(),
         }));
         const report = await generateExpiryAttentionReport({ products: plainProductsForAI, attentionHorizonDays: horizon, topNProducts: 3 });
         setExpiryAttentionReport(report);
@@ -105,7 +116,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
           Radar de Validade
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Análise de itens críticos próximos da validade e com estoque considerável.
+          Análise de itens críticos próximos da validade.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-3 sm:p-4 pt-0 space-y-3">
@@ -124,7 +135,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
           ) : listStats ? (
             <>
               <div>
-                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={setAttentionHorizon} isLoading={isLoadingStats} />
+                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={handleHorizonChange} isLoading={isLoadingStats} />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>

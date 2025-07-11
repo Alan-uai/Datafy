@@ -49,12 +49,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import { DynamicIcon } from "@/components/shared/DynamicIcon";
 import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
@@ -62,7 +56,6 @@ import { debounce } from 'lodash';
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-
 
 const columnNames: Record<string, string> = {
     'produto': 'Produto',
@@ -77,6 +70,16 @@ const columnNames: Record<string, string> = {
 type ColumnVisibility = Record<string, boolean>;
 type SortDirection = 'asc' | 'desc';
 type SortKey = keyof Product | '';
+
+const filterOptions = ['all', 'today', 'expired', 'next7'] as const;
+type FilterType = typeof filterOptions[number];
+const filterLabels: Record<FilterType, string> = {
+    all: "Filtro: Todos",
+    today: "Filtro: Vence Hoje",
+    expired: "Filtro: Vencidos",
+    next7: "Filtro: Próximos 7 dias",
+};
+
 
 const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetType, isEditing: boolean, onRemove: (id: AllWidgetType) => void, children: React.ReactNode }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -124,7 +127,7 @@ export default function Dashboard() {
   const [editingList, setEditingList] = useState<ProductList | null>(null);
   
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [sortKey, setSortKey] = useState<SortKey>('');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
@@ -132,12 +135,18 @@ export default function Dashboard() {
   const [isSuggestingIcon, setIsSuggestingIcon] = useState<boolean>(false);
   const newListNameRef = useRef<HTMLInputElement>(null);
 
-  // State for multi-select
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const dashboardScale = useMemo(() => userProfile?.preferences?.dashboardScale || 'normal', [userProfile]);
+
+  const handleCycleFilter = () => {
+    const currentIndex = filterOptions.indexOf(activeFilter);
+    const nextIndex = (currentIndex + 1) % filterOptions.length;
+    setActiveFilter(filterOptions[nextIndex]);
+  };
+
 
   const debouncedIconSuggestion = useCallback(
     debounce(async (name: string) => {
@@ -233,17 +242,15 @@ export default function Dashboard() {
         );
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
 
     if (activeFilter === 'today') {
-        tempProducts = tempProducts.filter(p => new Date(p.expiryDate).setHours(0,0,0,0) === today.getTime());
+        tempProducts = tempProducts.filter(p => isSameDay(startOfDay(p.expiryDate), today));
     } else if (activeFilter === 'expired') {
-        tempProducts = tempProducts.filter(p => new Date(p.expiryDate) < today);
+        tempProducts = tempProducts.filter(p => isPast(p.expiryDate) && !isToday(startOfDay(p.expiryDate)));
     } else if (activeFilter === 'next7') {
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 7);
-        tempProducts = tempProducts.filter(p => new Date(p.expiryDate) > today && new Date(p.expiryDate) <= nextWeek);
+        const nextWeek = addDays(today, 8); // To include the 7th day
+        tempProducts = tempProducts.filter(p => p.expiryDate > today && p.expiryDate < nextWeek);
     }
 
     if (sortKey) {
@@ -431,7 +438,6 @@ export default function Dashboard() {
       savePreferences({ isEditingWidgets: isEditing });
   };
 
-  // Multi-select handlers
   const resetSelection = () => {
     setIsMultiSelectMode(false);
     setSelectedProductIds(new Set());
@@ -499,15 +505,15 @@ export default function Dashboard() {
     const today = startOfDay(new Date());
     const expiry = startOfDay(product.expiryDate);
 
-    if (expiry <= today) {
-        return 'bg-red-500/20'; // Venceu ou vence hoje
+    if (isPast(expiry) || isSameDay(expiry, today)) {
+        return 'bg-red-500/20';
     }
     
     const tomorrow = addDays(today, 1);
     const dayAfterTomorrow = addDays(today, 2);
 
     if (isSameDay(expiry, tomorrow) || isSameDay(expiry, dayAfterTomorrow)) {
-        return 'bg-orange-500/20'; // Vence amanhã ou depois de amanhã
+        return 'bg-orange-500/20';
     }
 
     return '';
@@ -522,7 +528,7 @@ export default function Dashboard() {
       );
   }
 
-  const widgetDataProps = { products, categories };
+  const widgetDataProps = { products, categories, savePreferences, preferences: userProfile.preferences };
   const { isEditingWidgets, columnVisibility } = userProfile.preferences;
 
   const renderSortIcon = (key: SortKey) => {
@@ -616,7 +622,7 @@ export default function Dashboard() {
                             
                             const WidgetComponent = widgetInfo.component;
                             const widgetProps = widgetInfo.id === 'expiryAttention' 
-                                ? { listProducts: productsForAI } 
+                                ? { listProducts: productsForAI, savePreferences, preferences: userProfile.preferences } 
                                 : widgetDataProps;
 
                             return (
@@ -696,31 +702,15 @@ export default function Dashboard() {
             
             {activeListId && (
             <div className="flex-1 flex flex-col">
-                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 md:px-6">
-                    <div className="relative flex-1 w-full">
+                 <div className="flex flex-row items-center gap-4 p-4 md:px-6">
+                    <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                         <Input placeholder="Buscar produtos..." className={cn('pl-10 w-full', dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className={cn('shrink-0 w-full sm:w-auto', dashboardScale === 'compact' ? 'h-9 px-3' : 'h-10')}>
-                                <Filter className="mr-2 h-4 w-4"/>
-                                Filtro
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 max-h-60 overflow-y-auto">
-                                <DropdownMenuLabel>Filtrar por validade</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
-                                <DropdownMenuRadioItem value="all">Todos</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="today">Vence Hoje</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="expired">Vencidos</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="next7">Próximos 7 dias</DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
+                    <Button variant="outline" onClick={handleCycleFilter} className={cn('shrink-0', dashboardScale === 'compact' ? 'h-9 px-3 text-xs' : 'h-10')}>
+                      <Filter className="mr-2 h-4 w-4"/>
+                      {filterLabels[activeFilter]}
+                    </Button>
                 </div>
 
                  <div className={cn("flex-1", dashboardScale === 'compact' ? 'overflow-hidden' : 'overflow-x-auto')}>
@@ -743,9 +733,10 @@ export default function Dashboard() {
                                     <TableRow
                                         data-state={selectedProductIds.has(product.id) ? 'selected' : 'unselected'}
                                         className={cn(
+                                            'cursor-pointer',
                                             dashboardScale === 'compact' ? 'h-10' : '', 
-                                            'cursor-pointer data-[state=selected]:bg-primary/20',
-                                            getRowClass(product)
+                                            getRowClass(product),
+                                            'data-[state=selected]:bg-primary/20'
                                         )}
                                         onPointerDown={() => handleProductPointerDown(product.id)}
                                         onPointerUp={handleProductPointerUp}
