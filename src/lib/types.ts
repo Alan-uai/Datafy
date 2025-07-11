@@ -29,6 +29,12 @@ export type ProductList = {
     createdAt: any; // Firestore Timestamp
 };
 
+export type PremiumPlan = {
+  type: 'I' | 'II' | 'III';
+  startedAt: any; // Firestore Timestamp
+  expiresAt?: any; // Firestore Timestamp for future use
+}
+
 export interface UserPreferences {
     theme: 'dark' | 'matrix';
     soundEnabled: boolean;

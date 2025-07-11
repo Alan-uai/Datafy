@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface WidgetManagerProps {
   isEditingWidgets: boolean;
-  isPremium: boolean;
+  hasPremium: boolean;
   activeWidgets: AllWidgetType[];
   widgetDataProps: WidgetProps & ExpiryWidgetProps;
   onAddWidget: (id: AllWidgetType) => void;
@@ -52,7 +52,7 @@ const AvailableWidgetCard = ({ widgetId, onAdd, isLocked, dashboardScale }: { wi
     );
 };
 
-export function WidgetManager({ isEditingWidgets, isPremium, activeWidgets, widgetDataProps, onAddWidget, onRemoveWidget, onDragEnd }: WidgetManagerProps) {
+export function WidgetManager({ isEditingWidgets, hasPremium, activeWidgets, widgetDataProps, onAddWidget, onRemoveWidget, onDragEnd }: WidgetManagerProps) {
   const { toast } = useToast();
   const availableWidgets = useMemo(() => {
     const allWidgetKeys = Object.keys(WIDGET_MAP) as AllWidgetType[];
@@ -63,7 +63,7 @@ export function WidgetManager({ isEditingWidgets, isPremium, activeWidgets, widg
 
   const handleAddWidget = (widgetId: AllWidgetType) => {
     const widgetInfo = WIDGET_MAP[widgetId];
-    if (widgetInfo.premium && !isPremium) {
+    if (widgetInfo.premium && !hasPremium) {
       toast({ variant: "destructive", title: "Recurso Premium", description: `O widget '${widgetInfo.title}' requer uma assinatura Premium.` });
       return;
     }
@@ -82,7 +82,7 @@ export function WidgetManager({ isEditingWidgets, isPremium, activeWidgets, widg
                   key={widgetId} 
                   widgetId={widgetId} 
                   onAdd={() => handleAddWidget(widgetId)}
-                  isLocked={WIDGET_MAP[widgetId].premium && !isPremium}
+                  isLocked={WIDGET_MAP[widgetId].premium && !hasPremium}
                   dashboardScale={dashboardScale}
                 />
               ))}
@@ -97,7 +97,7 @@ export function WidgetManager({ isEditingWidgets, isPremium, activeWidgets, widg
           <div className={cn("grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6", dashboardScale === 'compact' && 'grid-cols-2 md:grid-cols-2')}>
             {activeWidgets.map(widgetId => {
               const widgetInfo = WIDGET_MAP[widgetId];
-              if (!widgetInfo || (widgetInfo.premium && !isPremium)) return null;
+              if (!widgetInfo || (widgetInfo.premium && !hasPremium)) return null;
               
               const WidgetComponent = widgetInfo.component;
               const props = widgetInfo.id === 'expiryAttention' ? { ...widgetDataProps, listProducts: widgetDataProps.listProducts } : widgetDataProps;

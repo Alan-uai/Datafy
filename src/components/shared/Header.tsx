@@ -21,13 +21,13 @@ export function Header() {
   const { currentUser, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isPremium, setIsPremium] = useState(false);
+  const [hasPremium, setHasPremium] = useState(false);
 
   useEffect(() => {
     const fetchPremiumStatus = async () => {
       if (currentUser) {
         const status = await checkPremiumStatus(currentUser.uid);
-        setIsPremium(status);
+        setHasPremium(status);
       }
     };
     fetchPremiumStatus();
@@ -52,9 +52,9 @@ export function Header() {
     <Button 
       variant="ghost" 
       size="icon" 
-      onClick={() => isPremium && router.push('/analytics')}
-      disabled={!isPremium}
-      className={!isPremium ? 'opacity-50 cursor-not-allowed' : ''}
+      onClick={() => hasPremium && router.push('/analytics')}
+      disabled={!hasPremium}
+      className={!hasPremium ? 'opacity-50 cursor-not-allowed' : ''}
     >
       <BarChart3 className="h-5 w-5" />
     </Button>
@@ -90,7 +90,7 @@ export function Header() {
                    <AnalyticsButton/>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Análise {isPremium ? '' : '(Premium)'}</p>
+                  <p>Análise {hasPremium ? '' : '(Premium)'}</p>
                 </TooltipContent>
               </Tooltip>
 

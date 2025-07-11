@@ -104,7 +104,7 @@ export default function Dashboard() {
     return <LoadingSpinner />;
   }
   
-  const { preferences, isPremium } = userProfile;
+  const { preferences, premium } = userProfile;
   const widgetDataProps = { products, categories: initialCategories, savePreferences, preferences };
   const productsForAI = useMemo(() => products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name })), [products]);
 
@@ -120,7 +120,7 @@ export default function Dashboard() {
 
             <WidgetManager
                 isEditingWidgets={preferences.isEditingWidgets}
-                isPremium={isPremium}
+                hasPremium={!!premium}
                 activeWidgets={preferences.activeWidgets}
                 widgetDataProps={{ ...widgetDataProps, listProducts: productsForAI }}
                 onAddWidget={addWidget}

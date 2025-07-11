@@ -1,9 +1,7 @@
 
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { UserPreferences } from '@/lib/types';
-import { products } from '@/lib/data';
-
+import type { UserPreferences, PremiumPlan } from '@/lib/types';
 
 export interface Achievement {
   id: string;
@@ -24,8 +22,7 @@ export interface UserProfile {
   phone?: string;
   website?: string;
   bio?: string;
-  isPremium?: boolean;
-  premiumExpiresAt?: string;
+  premium: PremiumPlan | null;
   stats: {
     productsCount: number;
     listsCount: number;
@@ -48,7 +45,7 @@ export interface UserProfile {
 }
 
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {
-  isPremium: false,
+  premium: null,
   stats: { productsCount: 0, listsCount: 0, daysActive: 0, efficiencyScore: 0 },
   achievements: [],
   notifications: { email: true, push: true, expiryWarnings: true },
@@ -178,12 +175,12 @@ export const updateUserPreferences = async (uid: string, preferences: Partial<Us
 
 export const checkPremiumStatus = async (uid: string): Promise<boolean> => {
     const profile = await getUserProfile(uid);
-    if (!profile?.isPremium) return false;
+    if (!profile?.premium) return false;
     
     // Check for expiration if premiumExpiresAt exists
-    if (profile.premiumExpiresAt && new Date(profile.premiumExpiresAt) < new Date()) {
+    if (profile.premium.expiresAt && new Date(profile.premium.expiresAt) < new Date()) {
         // Expiration date has passed, update profile to non-premium
-        await updateUserProfile(uid, { isPremium: false, premiumExpiresAt: undefined });
+        await updateUserProfile(uid, { premium: null });
         return false;
     }
 

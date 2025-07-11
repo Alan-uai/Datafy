@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Mail, Camera } from 'lucide-react';
+import { Mail, Camera, Crown } from 'lucide-react';
 import type { UserProfile } from '@/services/userService';
 import { ProfileStats } from './ProfileStats';
 import { LevelIndicator } from './LevelIndicator';
@@ -49,8 +49,10 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ userProfile }) => {
 
           <div className="flex justify-center gap-2 pt-2">
             <Badge variant="secondary">Verificado</Badge>
-            {userProfile.isPremium && (
-              <Badge variant="default" className="bg-yellow-500 text-black">Premium</Badge>
+            {userProfile.premium && (
+              <Badge variant="default" className="bg-yellow-500 text-black flex items-center gap-1">
+                <Crown className="w-3 h-3"/> Premium {userProfile.premium.type}
+              </Badge>
             )}
           </div>
         </CardHeader>
