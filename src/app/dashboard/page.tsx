@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
-import { format } from "date-fns";
+import { format, isToday, isPast, addDays, isSameDay, startOfDay } from "date-fns";
 import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, Settings, Edit, Trash2, RefreshCw, LayoutGrid, Crown, Lock, Move, XCircle } from "lucide-react";
 import {
   AlertDialog,
@@ -495,6 +495,25 @@ export default function Dashboard() {
     }
   };
   
+  const getRowClass = (product: Product): string => {
+    const today = startOfDay(new Date());
+    const expiry = startOfDay(product.expiryDate);
+
+    if (expiry <= today) {
+        return 'bg-red-500/20'; // Venceu ou vence hoje
+    }
+    
+    const tomorrow = addDays(today, 1);
+    const dayAfterTomorrow = addDays(today, 2);
+
+    if (isSameDay(expiry, tomorrow) || isSameDay(expiry, dayAfterTomorrow)) {
+        return 'bg-orange-500/20'; // Vence amanhã ou depois de amanhã
+    }
+
+    return '';
+  };
+
+
   if (isLoading || !userProfile) {
       return (
         <div className="flex items-center justify-center h-screen">
@@ -723,7 +742,11 @@ export default function Dashboard() {
                                 <PopoverTrigger asChild>
                                     <TableRow
                                         data-state={selectedProductIds.has(product.id) ? 'selected' : 'unselected'}
-                                        className={cn(dashboardScale === 'compact' ? 'h-10' : '', 'cursor-pointer data-[state=selected]:bg-primary/20')}
+                                        className={cn(
+                                            dashboardScale === 'compact' ? 'h-10' : '', 
+                                            'cursor-pointer data-[state=selected]:bg-primary/20',
+                                            getRowClass(product)
+                                        )}
                                         onPointerDown={() => handleProductPointerDown(product.id)}
                                         onPointerUp={handleProductPointerUp}
                                         onClick={() => handleProductClick(product)}
