@@ -1,5 +1,5 @@
 
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { UserPreferences, PremiumPlan } from '@/lib/types';
 
@@ -114,6 +114,11 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
       photoURL: data.photoURL,
       createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
       updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+      premium: data.premium ? {
+          ...data.premium,
+          startedAt: data.premium.startedAt?.toDate ? data.premium.startedAt.toDate() : null,
+          expiresAt: data.premium.expiresAt?.toDate ? data.premium.expiresAt.toDate() : null,
+      } : null,
       achievements: (data.achievements || []).map((ach: any) => ({
         ...ach,
         unlockedAt: ach.unlockedAt?.toDate ? ach.unlockedAt.toDate() : null
@@ -135,35 +140,41 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 export const updateUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<void> => {
   const userRef = doc(db, 'users', uid);
   
-  // Custom merge for nested objects to avoid overwriting
-  const updates: any = { ...data, updatedAt: serverTimestamp() };
-  
-  if (data.preferences) {
-      const existingProfile = await getUserProfile(uid);
-      updates.preferences = {
-          ...existingProfile?.preferences,
-          ...data.preferences
-      };
-  }
-   if (data.stats) {
-      const existingProfile = await getUserProfile(uid);
-      updates.stats = {
-          ...existingProfile?.stats,
-          ...data.stats
-      };
-  }
-   if (data.achievements) {
-      // For achievements, we usually want to overwrite the whole array
-      updates.achievements = data.achievements;
-  }
+  const updates: Record<string, any> = { ...data, updatedAt: serverTimestamp() };
 
+  // Convert nested objects to dot notation for atomic updates
+  if (data.preferences) {
+    for (const [key, value] of Object.entries(data.preferences)) {
+        updates[`preferences.${key}`] = value;
+    }
+    delete updates.preferences; // Remove the object to avoid overwriting
+  }
+  if (data.stats) {
+      for (const [key, value] of Object.entries(data.stats)) {
+        updates[`stats.${key}`] = value;
+      }
+      delete updates.stats;
+  }
+  if (data.notifications) {
+      for (const [key, value] of Object.entries(data.notifications)) {
+        updates[`notifications.${key}`] = value;
+      }
+      delete updates.notifications;
+  }
+  if (data.privacy) {
+      for (const [key, value] of Object.entries(data.privacy)) {
+        updates[`privacy.${key}`] = value;
+      }
+      delete updates.privacy;
+  }
+  
   await updateDoc(userRef, updates);
 };
+
 
 export const updateUserPreferences = async (uid: string, preferences: Partial<UserPreferences>): Promise<void> => {
   const userRef = doc(db, 'users', uid);
   
-  // To avoid overwriting the whole preferences object, we need to use dot notation for nested fields.
   const updates: Record<string, any> = { 'updatedAt': serverTimestamp() };
   for (const [key, value] of Object.entries(preferences)) {
       updates[`preferences.${key}`] = value;

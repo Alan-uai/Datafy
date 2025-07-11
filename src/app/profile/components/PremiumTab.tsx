@@ -6,9 +6,12 @@ import type { UserProfile } from '@/services/userService';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, BarChart3, Bot, Cloud, Check } from 'lucide-react';
 import { PremiumPlanCard, type Plan } from './PremiumPlanCard';
+import { updateUserProfile } from '@/services/userService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PremiumTabProps {
   userProfile: UserProfile;
+  setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
 
 const PLANS: Plan[] = [
@@ -52,11 +55,29 @@ const PLANS: Plan[] = [
   }
 ];
 
-export const PremiumTab: React.FC<PremiumTabProps> = ({ userProfile }) => {
+export const PremiumTab: React.FC<PremiumTabProps> = ({ userProfile, setUserProfile }) => {
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
-  const handlePremiumUpgrade = () => {
-    toast({ title: "Premium em breve!", description: "A funcionalidade de assinatura será lançada em breve." });
+  const handleSelectPlan = async (planLevel: 'I' | 'II' | 'III') => {
+    if (!currentUser) {
+      toast({ variant: "destructive", title: "Usuário não encontrado" });
+      return;
+    }
+
+    const newPremiumStatus = {
+      type: planLevel,
+      startedAt: new Date(),
+    };
+
+    try {
+      await updateUserProfile(currentUser.uid, { premium: newPremiumStatus });
+      setUserProfile(prev => prev ? { ...prev, premium: newPremiumStatus } : null);
+      toast({ title: `Bem-vindo ao Premium ${planLevel}!`, description: "Seu plano foi ativado com sucesso." });
+    } catch (error) {
+      console.error("Failed to upgrade premium plan:", error);
+      toast({ variant: "destructive", title: "Erro na Assinatura", description: "Não foi possível atualizar seu plano." });
+    }
   };
 
   return (
@@ -68,9 +89,9 @@ export const PremiumTab: React.FC<PremiumTabProps> = ({ userProfile }) => {
       {userProfile.premium ? (
         <div className="py-8">
           <p className="text-green-400 text-lg mb-2">Você é um usuário Premium {userProfile.premium.type}!</p>
-          {userProfile.premium.expiresAt && (
+          {userProfile.premium.startedAt && (
             <p className="text-muted-foreground">
-              Válido até: {new Date(userProfile.premium.expiresAt).toLocaleDateString('pt-BR')}
+              Assinante desde: {new Date(userProfile.premium.startedAt).toLocaleDateString('pt-BR')}
             </p>
           )}
         </div>
@@ -84,7 +105,7 @@ export const PremiumTab: React.FC<PremiumTabProps> = ({ userProfile }) => {
               <PremiumPlanCard 
                 key={plan.level}
                 plan={plan}
-                onSelect={handlePremiumUpgrade}
+                onSelect={() => handleSelectPlan(plan.level)}
                 currentPlan={userProfile.premium?.type}
               />
             ))}
