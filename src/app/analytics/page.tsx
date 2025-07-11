@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getProductLists, getProductsByList, getProductsByUser } from '@/services/productService';
 import type { Product, ProductList, Category } from '@/lib/types';
 import { categories as initialCategories } from '@/lib/data';
-import { Header } from '@/components/shared/Header';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, List } from 'lucide-react';
@@ -75,7 +74,6 @@ export default function AnalyticsPage() {
   if (!currentUser) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Header />
         <main className="flex-1 flex items-center justify-center">
           <p>Por favor, faça login para ver as análises.</p>
         </main>
@@ -85,7 +83,6 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">
