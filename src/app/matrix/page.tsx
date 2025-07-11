@@ -6,7 +6,7 @@ import { Bot } from 'lucide-react';
 
 export default function MatrixPage() {
   return (
-    <div className="min-h-screen bg-transparent text-white">
+    <div className="relative min-h-screen">
       <MatrixBackground mode="padrão" speed={100} />
       <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
         <Card className="bg-black/60 backdrop-blur-sm border-green-500/50 text-green-400">
