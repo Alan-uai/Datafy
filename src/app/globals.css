@@ -104,7 +104,7 @@
   .matrix {
     --background: 0 0% 2%;
     --foreground: 120 100% 75%;
-    --card: 140 10% 6%;
+    --card: 140 10% 6% / 0.8;
     --card-foreground: 120 100% 75%;
     --popover: 140 10% 2% / 0.9;
     --popover-foreground: 120 100% 75%;
@@ -142,7 +142,12 @@
     background-color: hsl(var(--background));
   }
   
-  .matrix body {
+  .matrix body,
+  .padrão body,
+  .verão body,
+  .espaço body,
+  .sakura body,
+  .dia-noite body {
     background-color: transparent;
   }
 

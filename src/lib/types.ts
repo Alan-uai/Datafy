@@ -35,8 +35,10 @@ export type PremiumPlan = {
   expiresAt?: any; // Firestore Timestamp for future use
 }
 
+export type ThemeName = 'dark' | 'matrix' | 'padrão' | 'verão' | 'espaço' | 'sakura' | 'dia-noite';
+
 export interface UserPreferences {
-    theme: 'dark' | 'matrix';
+    theme: ThemeName;
     soundEnabled: boolean;
     language: 'pt-BR' | 'en-US';
     columnVisibility: Record<string, boolean>;

@@ -49,6 +49,8 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   Carrot: Icons.Carrot,
   Milk: Icons.Milk,
   Bot: Icons.Bot,
+  Space: Icons.Sparkles, // Using Sparkles as a placeholder for Space
+  Cherry: Icons.Leaf, // Using Leaf as a placeholder for Cherry
   // Add other icons as needed
 };
 

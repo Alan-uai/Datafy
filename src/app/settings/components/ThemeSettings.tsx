@@ -5,25 +5,22 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Palette, Bot, Sparkles, Film, SlidersHorizontal } from 'lucide-react';
+import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import type { UserPreferences } from '@/lib/types';
 
-// Helper to read cookies on the client side
-const getCookie = (name: string): string | undefined => {
-  if (typeof document === 'undefined') return undefined;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-};
+const THEME_OPTIONS = [
+    { value: 'dark', label: 'Padrão', icon: Palette },
+    { value: 'matrix', label: 'Matrix', icon: Bot },
+    { value: 'verão', label: 'Verão', icon: Sun },
+    { value: 'espaço', label: 'Espaço', icon: Space },
+    { value: 'sakura', label: 'Sakura', icon: Cherry },
+    { value: 'dia-noite', label: 'Dia/Noite', icon: Moon },
+] as const;
 
-const saveCookie = (name: string, value: string | number, days = 365) => {
-    if (typeof document === 'undefined') return;
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
-};
+type ThemeValue = typeof THEME_OPTIONS[number]['value'];
 
 interface ThemeSettingsProps {
     preferences: UserPreferences;
@@ -31,22 +28,21 @@ interface ThemeSettingsProps {
 }
 
 export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPreferencesChange }) => {
-    const [currentTheme, setCurrentTheme] = useState(preferences.theme);
+    const [currentTheme, setCurrentTheme] = useState<ThemeValue>(preferences.theme as ThemeValue);
     const [currentAnimation, setCurrentAnimation] = useState(preferences.matrixAnimation);
     const [currentMatrixMode, setCurrentMatrixMode] = useState(preferences.matrixMode);
     const [currentMatrixSpeed, setCurrentMatrixSpeed] = useState(preferences.matrixSpeed);
 
     useEffect(() => {
-        setCurrentTheme(preferences.theme);
+        setCurrentTheme(preferences.theme as ThemeValue);
         setCurrentAnimation(preferences.matrixAnimation);
         setCurrentMatrixMode(preferences.matrixMode);
         setCurrentMatrixSpeed(preferences.matrixSpeed);
     }, [preferences]);
 
-    const handleThemeChange = (theme: 'dark' | 'matrix') => {
+    const handleThemeChange = (theme: ThemeValue) => {
         setCurrentTheme(theme);
         onPreferencesChange({ theme });
-        saveCookie('theme', theme);
         document.documentElement.className = cn(theme, theme === 'matrix' && `animate-${currentAnimation}`);
     };
 
@@ -54,21 +50,18 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
         if (currentTheme !== 'matrix') return;
         setCurrentAnimation(animation);
         onPreferencesChange({ matrixAnimation: animation });
-        saveCookie('matrixAnimation', animation);
         document.documentElement.className = cn(currentTheme, `animate-${animation}`);
     };
 
     const handleMatrixModeChange = (mode: 'padrão' | 'merge') => {
         setCurrentMatrixMode(mode);
         onPreferencesChange({ matrixMode: mode });
-        saveCookie('matrixMode', mode);
     };
   
     const handleSpeedChange = (value: number[]) => {
         const newSpeed = value[0];
         setCurrentMatrixSpeed(newSpeed);
         onPreferencesChange({ matrixSpeed: newSpeed });
-        saveCookie('matrixSpeed', newSpeed);
     };
 
     return (
@@ -80,29 +73,21 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
             <CardContent className="space-y-6">
                 <RadioGroup
                     value={currentTheme}
-                    onValueChange={(value) => handleThemeChange(value as 'dark' | 'matrix')}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                    onValueChange={(value) => handleThemeChange(value as ThemeValue)}
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                 >
-                    <div>
-                        <RadioGroupItem value="dark" id="theme-dark" className="peer sr-only" />
-                        <Label
-                        htmlFor="theme-dark"
-                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24"
-                        >
-                        <Palette className="mb-2 h-6 w-6" />
-                        Padrão
-                        </Label>
-                    </div>
-                    <div>
-                        <RadioGroupItem value="matrix" id="theme-matrix" className="peer sr-only" />
-                        <Label
-                        htmlFor="theme-matrix"
-                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24"
-                        >
-                            <Bot className="mb-2 h-6 w-6" />
-                            Matrix
-                        </Label>
-                    </div>
+                    {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                        <div key={value}>
+                            <RadioGroupItem value={value} id={`theme-${value}`} className="peer sr-only" />
+                            <Label
+                            htmlFor={`theme-${value}`}
+                            className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24"
+                            >
+                            <Icon className="mb-2 h-6 w-6" />
+                            {label}
+                            </Label>
+                        </div>
+                    ))}
                 </RadioGroup>
 
                 {currentTheme === 'matrix' && (
