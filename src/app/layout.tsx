@@ -3,7 +3,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { useUserProfile } from '@/hooks/useUserProfile';
 import { getUserProfile } from '@/services/userService';
 import { auth } from '@/lib/firebase';
 import { cookies } from 'next/headers';
@@ -22,8 +21,8 @@ export default async function RootLayout({
 }>) {
 
   // We can't use the useUserProfile hook here because this is a server component.
-  // We will read the theme from a cookie instead. This would ideally be done
-  // by fetching the user profile server-side, but that's a more complex setup.
+  // We will read the theme from a cookie instead. This is faster and ensures no flicker
+  // on initial load, as the server can render the correct theme immediately.
   const theme = cookies().get('theme')?.value || 'dark';
   const animation = cookies().get('matrixAnimation')?.value || 'cintilar';
 
@@ -49,5 +48,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
-    

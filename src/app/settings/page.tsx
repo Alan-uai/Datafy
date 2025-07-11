@@ -15,17 +15,26 @@ export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
 
   const handleThemeChange = (theme: 'dark' | 'matrix') => {
+    // Save to Firestore via the hook
     savePreferences({ theme });
-    document.cookie = `theme=${theme};path=/;max-age=31536000`;
-    document.documentElement.className = theme;
+    // Also save to a cookie for instant server-side rendering
+    document.cookie = `theme=${theme};path=/;max-age=31536000`; // Expires in 1 year
+    
+    // Update the class on the html element immediately for visual feedback
+    const animation = userProfile?.preferences.matrixAnimation || 'cintilar';
+    document.documentElement.className = cn(theme, theme === 'matrix' && `animate-${animation}`);
   };
   
   const handleAnimationChange = (animation: 'cintilar' | 'girar') => {
     if (!userProfile || userProfile.preferences.theme !== 'matrix') return;
+    
+    // Save to Firestore via the hook
     savePreferences({ matrixAnimation: animation });
-    // This is a bit of a hack to update the class on the html element immediately
-    const theme = userProfile.preferences.theme;
+    // Also save to a cookie
     document.cookie = `matrixAnimation=${animation};path=/;max-age=31536000`;
+
+    // Update the class on the html element immediately
+    const theme = userProfile.preferences.theme;
     document.documentElement.className = cn(theme, `animate-${animation}`);
   };
 
@@ -182,5 +191,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
