@@ -30,7 +30,7 @@ export type ProductList = {
 };
 
 export interface UserPreferences {
-    theme: 'dark' | 'light' | 'system' | 'matrix';
+    theme: 'dark' | 'matrix';
     soundEnabled: boolean;
     language: 'pt-BR' | 'en-US';
     columnVisibility: Record<string, boolean>;
@@ -43,5 +43,3 @@ export interface UserPreferences {
     matrixMode: 'padrão' | 'merge';
     matrixSpeed: number;
 }
-
-    
