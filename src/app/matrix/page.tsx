@@ -48,8 +48,8 @@ export default function MatrixPage() {
         // The y-position of the drop
         const y = drops[i] * fontSize;
 
-        // The first character of the drop is white, the rest are green
-        if (drops[i] === 1) {
+        // The character is white only if it's a latin character, otherwise it's green.
+        if (latin.includes(text)) {
             ctx.fillStyle = '#cceeff'; // Brighter color for the leading character
         } else {
             ctx.fillStyle = '#0F0'; // Green color for the trail
