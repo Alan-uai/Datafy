@@ -35,12 +35,14 @@ export default async function RootLayout({
       </head>
       <body>
         <ThemeManager />
-        <AuthProvider>
-          <ProtectedRoute>
-            {children}
-          </ProtectedRoute>
-        </AuthProvider>
-        <Toaster />
+        <div className="relative z-10">
+          <AuthProvider>
+            <ProtectedRoute>
+              {children}
+            </ProtectedRoute>
+          </AuthProvider>
+          <Toaster />
+        </div>
       </body>
     </html>
   );
