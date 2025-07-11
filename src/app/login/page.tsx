@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { User as FirebaseUser } from 'firebase/auth';
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,7 +9,6 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { EmailPasswordLoginForm } from "@/components/auth/EmailPasswordLoginForm";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import Link from "next/link";
 import { Lock } from "lucide-react";
 
 export default function LoginPage() {
@@ -22,9 +20,9 @@ export default function LoginPage() {
   };
 
   const handleGoogleSuccess = async (user: FirebaseUser | null) => {
-    if (!user) return;
+     if (!user) return;
     setIsGoogleLoading(true);
-    // ProtectedRoute will handle profile creation and redirect.
+    // ProtectedRoute will handle redirect after successful sign-in
   };
   
   if (currentUser) {
@@ -43,6 +41,7 @@ export default function LoginPage() {
         <GoogleSignInButton 
           isGoogleLoading={isGoogleLoading}
           onSuccess={(userCredential) => handleGoogleSuccess(userCredential.user)}
+          onError={() => setIsGoogleLoading(false)}
         />
         <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">

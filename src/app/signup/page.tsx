@@ -12,9 +12,11 @@ import { SignupForm } from "@/components/auth/SignupForm";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { UserPlus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   
   const handleAuthSuccess = async (user: FirebaseUser | null) => {
@@ -26,8 +28,11 @@ export default function SignupPage() {
         email: user.email,
         photoURL: user.photoURL || undefined,
       });
+      // ProtectedRoute will handle redirection to dashboard
     } catch (error) {
        console.error("Failed to create user profile during signup", error);
+       toast({ variant: "destructive", title: "Erro ao criar perfil", description: "Não foi possível finalizar seu cadastro." });
+       setIsAuthenticating(false);
     }
   };
   
@@ -49,6 +54,7 @@ export default function SignupPage() {
     >
       <GoogleSignInButton 
         onSuccess={(userCredential) => handleAuthSuccess(userCredential.user)}
+        onError={() => setIsAuthenticating(false)}
         className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg"
       />
       <div className="relative my-4">

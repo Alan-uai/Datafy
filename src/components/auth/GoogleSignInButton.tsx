@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 
 interface GoogleSignInButtonProps {
   onSuccess: (userCredential: UserCredential) => void;
+  onError?: () => void;
   onClick?: () => void;
   className?: string;
   isGoogleLoading?: boolean;
 }
 
-export function GoogleSignInButton({ onSuccess, onClick, className, isGoogleLoading }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ onSuccess, onError, onClick, className, isGoogleLoading }: GoogleSignInButtonProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -26,11 +27,14 @@ export function GoogleSignInButton({ onSuccess, onClick, className, isGoogleLoad
       const result = await signInWithPopup(auth, provider);
       onSuccess(result);
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao entrar com Google',
-        description: error.message,
-      });
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao entrar com Google',
+          description: "Ocorreu um erro. Por favor, tente novamente.",
+        });
+      }
+      onError?.();
       setIsLoading(false);
     }
   };

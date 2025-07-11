@@ -3,9 +3,8 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { createUserProfile } from '@/services/userService';
 
 const unprotectedRoutes = ['/login', '/signup'];
 
@@ -13,67 +12,45 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isVerifyingProfile, setIsVerifyingProfile] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return; // Wait for Firebase Auth to initialize
+    if (authLoading) {
+      return; // Wait until authentication state is loaded
+    }
 
-    const verifyAndRedirect = async () => {
-      if (currentUser) {
-        // User is logged in, check if profile exists and create if not
-        try {
-          // This also handles first-time Google sign-ins which act as signups
-          await createUserProfile(currentUser.uid, {
-            displayName: currentUser.displayName,
-            email: currentUser.email,
-            photoURL: currentUser.photoURL || undefined,
-          });
-        } catch (error) {
-          console.error("Failed to ensure user profile exists", error);
-          // Handle error, maybe log out user
-        }
-        
-        setIsVerifyingProfile(false); // Profile is verified/created
+    const isAuthRoute = unprotectedRoutes.includes(pathname);
 
-        const isUnprotected = unprotectedRoutes.includes(pathname);
-        if (isUnprotected) {
-          router.push('/');
-        }
-      } else {
-        // User is not logged in
-        setIsVerifyingProfile(false);
-        const isUnprotected = unprotectedRoutes.includes(pathname);
-        if (!isUnprotected) {
-          router.push('/login');
-        }
+    // If user is logged in...
+    if (currentUser) {
+      // and they are on a login/signup page, redirect to dashboard
+      if (isAuthRoute) {
+        router.push('/dashboard');
       }
-    };
-
-    verifyAndRedirect();
+    } 
+    // If user is NOT logged in...
+    else {
+      // and they are on a protected page, redirect to login
+      if (!isAuthRoute) {
+        router.push('/login');
+      }
+    }
   }, [currentUser, authLoading, router, pathname]);
 
-  const loading = authLoading || isVerifyingProfile;
-  const isUnprotected = unprotectedRoutes.includes(pathname);
-
-  if (loading) {
-    // Show a spinner during auth check or profile verification, except on public routes if no user is detected yet
-    if (isUnprotected && !currentUser) {
-       // Allows login/signup page to render immediately without spinner flicker
-    } else {
-      return <LoadingSpinner />;
-    }
+  // While auth is loading, show a spinner unless we are already on an auth page
+  if (authLoading) {
+     return <LoadingSpinner fullPage />;
   }
-
-  // Allow access to unprotected routes if user is not logged in
-  if (!currentUser && isUnprotected) {
+  
+  // If user is logged in, show the protected content
+  if (currentUser && !unprotectedRoutes.includes(pathname)) {
     return <>{children}</>;
   }
 
-  // Allow access to protected routes if user is logged in and profile is verified
-  if (currentUser && !isUnprotected) {
+  // If user is not logged in, show the public login/signup pages
+  if (!currentUser && unprotectedRoutes.includes(pathname)) {
     return <>{children}</>;
   }
 
-  // Fallback, should be covered by loading spinner during redirection
-  return <LoadingSpinner />;
+  // Fallback loading spinner during redirects
+  return <LoadingSpinner fullPage />;
 }

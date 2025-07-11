@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -113,7 +114,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   };
 
   return (
-    <Card className="shadow-md bg-card/50 backdrop-blur-sm">
+    <Card className="shadow-md bg-card/80 backdrop-blur-sm">
       <CardHeader className="p-3 sm:p-4">
         <CardTitle className="text-md sm:text-lg font-semibold flex items-center gap-2">
           <ShieldAlert className="h-5 w-5 text-primary" />
