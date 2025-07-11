@@ -47,9 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: user.email,
                 photoURL: user.photoURL || undefined,
             };
-            // Create the profile and then get the created profile data to set it
-            await createUserProfile(user.uid, newProfileData);
-            profile = await getUserProfile(user.uid); // Fetch the newly created profile
+            // Create the profile and get the created profile data to set it
+            profile = await createUserProfile(user.uid, newProfileData);
           }
           setUserProfile(profile);
         } catch (error) {

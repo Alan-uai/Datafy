@@ -74,16 +74,18 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
   privacy: { showEmail: false, showActivity: true },
 };
 
-export const createUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<void> => {
+export const createUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<UserProfile> => {
   const userRef = doc(db, 'users', uid);
+  const now = serverTimestamp();
+  
   const newUserProfile: UserProfile = {
     ...defaultProfile,
     uid,
     displayName: data.displayName || null,
     email: data.email || null,
     photoURL: data.photoURL || undefined,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
     stats: { ...defaultProfile.stats, ...(data.stats || {}) },
     achievements: data.achievements || defaultProfile.achievements,
     notifications: { ...defaultProfile.notifications, ...(data.notifications || {}) },
@@ -91,7 +93,12 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
     privacy: { ...defaultProfile.privacy, ...(data.privacy || {}) },
     premium: data.premium || defaultProfile.premium,
   };
+
   await setDoc(userRef, newUserProfile);
+  
+  // Fetch and return the just-created profile to have consistent data (with server timestamp converted to Date)
+  const docSnap = await getDoc(userRef);
+  return docSnap.data() as UserProfile;
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
