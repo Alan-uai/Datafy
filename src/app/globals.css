@@ -26,6 +26,24 @@
   }
 }
 
+@keyframes rotate-border-colors {
+  0% {
+    border-image-source: conic-gradient(from 0deg, hsl(120, 100%, 25%), hsl(120, 100%, 75%), hsl(0, 0%, 100%), hsl(120, 100%, 25%));
+  }
+  25% {
+    border-image-source: conic-gradient(from 90deg, hsl(120, 100%, 25%), hsl(120, 100%, 75%), hsl(0, 0%, 100%), hsl(120, 100%, 25%));
+  }
+  50% {
+    border-image-source: conic-gradient(from 180deg, hsl(120, 100%, 25%), hsl(120, 100%, 75%), hsl(0, 0%, 100%), hsl(120, 100%, 25%));
+  }
+  75% {
+     border-image-source: conic-gradient(from 270deg, hsl(120, 100%, 25%), hsl(120, 100%, 75%), hsl(0, 0%, 100%), hsl(120, 100%, 25%));
+  }
+  100% {
+    border-image-source: conic-gradient(from 360deg, hsl(120, 100%, 25%), hsl(120, 100%, 75%), hsl(0, 0%, 100%), hsl(120, 100%, 25%));
+  }
+}
+
 
 @layer base {
   :root {
@@ -119,7 +137,7 @@
   }
   .matrix body {
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden; <- This was causing the scroll lock */
   }
   .matrix body::before {
     content: '';
@@ -135,7 +153,17 @@
     animation: matrix-rain 15s linear infinite;
     will-change: background-position;
   }
-  .matrix [class*="border"] {
+
+  .matrix.animate-cintilate .border-border {
      animation: cintilate-border 4s linear infinite;
   }
+
+  .matrix.animate-rotate .border-border {
+    border-style: solid;
+    border-width: 1px;
+    border-image-slice: 1;
+    animation: rotate-border-colors 4s linear infinite;
+  }
 }
+
+    

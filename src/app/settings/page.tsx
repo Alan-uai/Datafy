@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Minimize2, Maximize2, Settings, Palette, Bot } from 'lucide-react';
+import { Minimize2, Maximize2, Settings, Palette, Bot, Sparkles, Film } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
@@ -18,12 +19,21 @@ export default function SettingsPage() {
     document.cookie = `theme=${theme};path=/;max-age=31536000`;
     document.documentElement.className = theme;
   };
+  
+  const handleAnimationChange = (animation: 'cintilar' | 'girar') => {
+    if (!userProfile || userProfile.preferences.theme !== 'matrix') return;
+    savePreferences({ matrixAnimation: animation });
+    // This is a bit of a hack to update the class on the html element immediately
+    const theme = userProfile.preferences.theme;
+    document.cookie = `matrixAnimation=${animation};path=/;max-age=31536000`;
+    document.documentElement.className = cn(theme, `animate-${animation}`);
+  };
 
   if (isLoading || !userProfile) {
     return <LoadingSpinner />;
   }
 
-  const { theme, dashboardScale } = userProfile.preferences;
+  const { theme, dashboardScale, matrixAnimation } = userProfile.preferences;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -98,7 +108,7 @@ export default function SettingsPage() {
                 <CardTitle>Tema Visual</CardTitle>
                 <CardDescription>Mude o esquema de cores do aplicativo.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
                   <RadioGroup
                     value={theme || 'dark'}
                     onValueChange={(value) => handleThemeChange(value as 'dark' | 'matrix')}
@@ -125,6 +135,45 @@ export default function SettingsPage() {
                       </Label>
                     </div>
                   </RadioGroup>
+
+                  {theme === 'matrix' && (
+                     <motion.div 
+                        initial={{ opacity: 0, y: -10 }} 
+                        animate={{ opacity: 1, y: 0 }}
+                        className="pt-4 border-t"
+                      >
+                        <Label className="text-base font-medium">Animação de Borda (Matrix)</Label>
+                         <p className="text-sm text-muted-foreground mb-3">
+                           Escolha o efeito visual para as bordas dos componentes no tema Matrix.
+                        </p>
+                        <RadioGroup
+                          value={matrixAnimation || 'cintilar'}
+                          onValueChange={(value) => handleAnimationChange(value as 'cintilar' | 'girar')}
+                          className="flex flex-col sm:flex-row gap-4"
+                        >
+                          <div className="flex-1">
+                            <RadioGroupItem value="cintilar" id="anim-cintilar" className="peer sr-only" />
+                            <Label 
+                              htmlFor="anim-cintilar" 
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                              <Sparkles className="mb-3 h-6 w-6" />
+                              Cintilar
+                            </Label>
+                          </div>
+                          <div className="flex-1">
+                            <RadioGroupItem value="girar" id="anim-girar" className="peer sr-only" />
+                            <Label 
+                              htmlFor="anim-girar" 
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                                <Film className="mb-3 h-6 w-6" />
+                                Girar
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                    </motion.div>
+                  )}
               </CardContent>
             </Card>
           </motion.div>
@@ -133,3 +182,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

@@ -38,4 +38,7 @@ export interface UserPreferences {
     isEditingWidgets: boolean;
     dashboardScale: 'normal' | 'compact';
     attentionHorizonDays: number;
+    matrixAnimation: 'cintilar' | 'girar';
 }
+
+    

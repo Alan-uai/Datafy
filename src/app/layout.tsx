@@ -7,6 +7,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { getUserProfile } from '@/services/userService';
 import { auth } from '@/lib/firebase';
 import { cookies } from 'next/headers';
+import { cn } from '@/lib/utils';
 
 
 export const metadata: Metadata = {
@@ -24,10 +25,14 @@ export default async function RootLayout({
   // We will read the theme from a cookie instead. This would ideally be done
   // by fetching the user profile server-side, but that's a more complex setup.
   const theme = cookies().get('theme')?.value || 'dark';
+  const animation = cookies().get('matrixAnimation')?.value || 'cintilar';
 
 
   return (
-    <html lang="pt-BR" className={theme}>
+    <html lang="pt-BR" className={cn(
+        theme,
+        theme === 'matrix' && `animate-${animation}`
+      )}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -44,3 +49,5 @@ export default async function RootLayout({
     </html>
   );
 }
+
+    

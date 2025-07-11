@@ -68,6 +68,7 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
     isEditingWidgets: false,
     dashboardScale: 'normal',
     attentionHorizonDays: 7,
+    matrixAnimation: 'cintilar',
   },
   privacy: { showEmail: false, showActivity: true },
 };
