@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
-import { checkPremiumStatus } from "@/services/userService";
+import { checkPremiumStatus, getUserProfile } from "@/services/userService";
 import { getProductLists, getProductsByList, addProductList, addProduct, updateProduct, updateProductList, deleteProductList, deleteProduct, deleteMultipleProducts, moveMultipleProducts } from "@/services/productService";
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
