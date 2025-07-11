@@ -3,18 +3,17 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 
-interface MatrixBackgroundProps {
-  mode?: 'padrão' | 'merge';
-  speed?: number; // Percentage from 1 to 100
-}
-
-export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ 
+export default function MatrixBackground({ 
   mode = 'padrão', 
   speed = 100 
-}) => {
+}: { 
+  mode?: 'padrão' | 'merge';
+  speed?: number; 
+}) {
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   const leaderCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
+  const dropsRef = useRef<number[]>([]);
 
   const draw = useCallback(() => {
     const trailCanvas = trailCanvasRef.current;
@@ -36,17 +35,10 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     
     const leadingChars = latinUpper + latinLower + specialChars;
     const trailChars = katakana + hiragana + kanji + numerals;
+    const alphabet = leadingChars + trailChars;
 
     const fontSize = 16;
-    const columns = Math.floor(trailCanvas.width / fontSize);
-
-    const drops = (trailCanvas as any).drops || [];
-    if (drops.length === 0) {
-      for (let i = 0; i < columns; i++) {
-        drops[i] = 1;
-      }
-      (trailCanvas as any).drops = drops;
-    }
+    const drops = dropsRef.current;
 
     trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     trailCtx.fillRect(0, 0, trailCanvas.width, trailCanvas.height);
@@ -61,9 +53,10 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
         const x = i * fontSize;
         const y = drops[i] * fontSize;
         
-        const trailText = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
+        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        
         trailCtx.fillStyle = '#0F0';
-        trailCtx.fillText(trailText, x, y);
+        trailCtx.fillText(text, x, y);
 
         const leaderText = leadingChars.charAt(Math.floor(Math.random() * leadingChars.length));
         
@@ -83,7 +76,6 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
 
   }, [mode]);
 
-
   useEffect(() => {
     let lastTime = 0;
     const baseInterval = 50; 
@@ -91,31 +83,32 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     const interval = baseInterval * speedMultiplier;
 
     const animate = (timestamp: number) => {
+      if (trailCanvasRef.current) { // Only animate if canvas exists
         if (timestamp - lastTime >= interval) {
             draw();
             lastTime = timestamp;
         }
         animationFrameId.current = requestAnimationFrame(animate);
-    }
+      }
+    };
     
     const setup = () => {
-        const trailCanvas = trailCanvasRef.current;
-        const leaderCanvas = leaderCanvasRef.current;
+      const canvases = [trailCanvasRef.current, leaderCanvasRef.current];
+      const fontSize = 16;
 
-        const setCanvasSize = (canvas: HTMLCanvasElement) => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            (canvas as any).drops = [];
-        }
-        
-        if (trailCanvas) setCanvasSize(trailCanvas);
-        if (mode === 'padrão' && leaderCanvas) setCanvasSize(leaderCanvas);
-
-        if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = requestAnimationFrame(animate);
-    }
+      canvases.forEach(canvas => {
+          if (canvas) {
+              canvas.width = window.innerWidth;
+              canvas.height = window.innerHeight;
+              const columns = Math.floor(canvas.width / fontSize);
+              dropsRef.current = Array(columns).fill(1).map((_, i) => Math.floor(Math.random() * canvas.height));
+          }
+      });
+      
+      if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = requestAnimationFrame(animate); 
+    };
     
-    // Run setup only on the client
     if (typeof window !== 'undefined') {
         setup();
         window.addEventListener('resize', setup);

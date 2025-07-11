@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { MatrixBackground } from '@/components/shared/MatrixBackground';
+import MatrixBackground from '@/components/shared/MatrixBackground';
 
 const getCookie = (name: string): string | undefined => {
   if (typeof document === 'undefined') return undefined;
