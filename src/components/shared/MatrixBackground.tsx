@@ -26,7 +26,6 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     if (!trailCanvas || !trailCtx) return;
     if (mode === 'padrão' && (!leaderCanvas || !leaderCtx)) return;
 
-    // Shared setup
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
     const hiragana = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
     const kanji = '日一国会人年大十二本中長出三同時政事自行社見月分議後前民生連五発間対上部東者党地員切動';
@@ -49,7 +48,6 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
       (trailCanvas as any).drops = drops;
     }
 
-    // --- Drawing Logic ---
     trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     trailCtx.fillRect(0, 0, trailCanvas.width, trailCanvas.height);
     trailCtx.font = `${fontSize}px monospace`;
@@ -63,12 +61,10 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
         const x = i * fontSize;
         const y = drops[i] * fontSize;
         
-        // Always draw a green trail character first.
         const trailText = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
         trailCtx.fillStyle = '#0F0';
         trailCtx.fillText(trailText, x, y);
 
-        // Leader (bright) character is drawn at the tip of the drop.
         const leaderText = leadingChars.charAt(Math.floor(Math.random() * leadingChars.length));
         
         if (mode === 'padrão' && leaderCtx) {
@@ -90,14 +86,12 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
 
   useEffect(() => {
     let lastTime = 0;
-    // Base interval for 100% speed, e.g., 50ms.
-    // Slower speeds will have a larger interval.
     const baseInterval = 50; 
-    const speedMultiplier = 100 / Math.max(1, speed); // Inverse relationship: higher speed % = smaller multiplier
+    const speedMultiplier = 100 / Math.max(1, speed);
     const interval = baseInterval * speedMultiplier;
 
     const animate = (timestamp: number) => {
-        if (timestamp - lastTime > interval) {
+        if (timestamp - lastTime >= interval) {
             draw();
             lastTime = timestamp;
         }
@@ -111,7 +105,7 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
         const setCanvasSize = (canvas: HTMLCanvasElement) => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            (canvas as any).drops = []; // Reset drops on resize
+            (canvas as any).drops = [];
         }
         
         if (trailCanvas) setCanvasSize(trailCanvas);
@@ -149,3 +143,5 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     </div>
   );
 };
+
+    

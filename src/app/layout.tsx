@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { cookies } from 'next/headers';
 import { cn } from '@/lib/utils';
-import { MatrixBackground } from '@/components/shared/MatrixBackground';
+import { ThemeManager } from '@/components/shared/ThemeManager';
 
 
 export const metadata: Metadata = {
@@ -20,18 +20,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  // We read the theme from a cookie. This is faster and ensures no flicker
-  // on initial load, as the server can render the correct theme immediately.
-  const theme = cookies().get('theme')?.value || 'dark';
-  const animation = cookies().get('matrixAnimation')?.value || 'cintilar';
-  const matrixMode = (cookies().get('matrixMode')?.value as 'padrão' | 'merge') || 'padrão';
-  const matrixSpeed = Number(cookies().get('matrixSpeed')?.value) || 100;
-
+  const themeCookie = cookies().get('theme')?.value || 'dark';
+  const animationCookie = cookies().get('matrixAnimation')?.value || 'cintilar';
 
   return (
     <html lang="pt-BR" className={cn(
-        theme,
-        theme === 'matrix' && `animate-${animation}`
+        themeCookie,
+        themeCookie === 'matrix' && `animate-${animationCookie}`
       )}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,7 +34,7 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background">
-        {theme === 'matrix' && <MatrixBackground mode={matrixMode} speed={matrixSpeed} />}
+        <ThemeManager />
         <AuthProvider>
           <ProtectedRoute>
             {children}
@@ -50,3 +45,5 @@ export default async function RootLayout({
     </html>
   );
 }
+
+    
