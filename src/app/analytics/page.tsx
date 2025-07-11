@@ -14,13 +14,16 @@ import { WIDGET_MAP, AllWidgetType } from '@/components/dashboard/widgets/widget
 
 const AnalyticsDashboard: React.FC<{ products: Product[]; categories: Category[] }> = ({ products, categories }) => {
   const widgetDataProps = { products, categories };
-  const allWidgets = Object.keys(WIDGET_MAP) as AllWidgetType[];
+  const allWidgets = (Object.keys(WIDGET_MAP) as AllWidgetType[]).filter(
+    // Exclude interactive widgets from the analytics page
+    (id) => id !== 'expiryAttention'
+  );
 
   return (
     <div className="space-y-6">
       {allWidgets.map(widgetId => {
         const WidgetComponent = WIDGET_MAP[widgetId].component;
-        return <WidgetComponent key={widgetId} {...widgetDataProps} />;
+        return <WidgetComponent key={widgetId} {...widgetDataProps as any} />;
       })}
     </div>
   );

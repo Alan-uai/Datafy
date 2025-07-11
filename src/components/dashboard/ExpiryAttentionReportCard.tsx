@@ -13,8 +13,8 @@ import AttentionHorizonSelect from '@/components/dashboard/AttentionHorizonSelec
 
 interface ExpiryAttentionReportCardProps {
   listProducts: Product[];
-  preferences: UserPreferences;
-  savePreferences: (newPreferences: Partial<UserPreferences>) => void;
+  preferences?: UserPreferences;
+  savePreferences?: (newPreferences: Partial<UserPreferences>) => void;
 }
 
 export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps> = ({
@@ -27,10 +27,12 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
   const [isLoadingAttentionReport, setIsLoadingAttentionReport] = useState(false);
-  const attentionHorizon = preferences.attentionHorizonDays || 7;
+  const attentionHorizon = preferences?.attentionHorizonDays || 7;
 
   const handleHorizonChange = (newHorizon: number) => {
-    savePreferences({ attentionHorizonDays: newHorizon });
+    if (savePreferences) {
+      savePreferences({ attentionHorizonDays: newHorizon });
+    }
   };
 
   const calculateStatsAndReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
