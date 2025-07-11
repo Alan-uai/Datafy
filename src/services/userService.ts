@@ -55,6 +55,7 @@ const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photo
     soundEnabled: true, 
     language: 'pt-BR',
     columnVisibility: {
+      'id': true,
       'produto': true,
       'marca': true,
       'qtde': true,
@@ -179,3 +180,5 @@ export const checkPremiumStatus = async (uid: string): Promise<boolean> => {
     // Is premium and not expired
     return true;
 }
+
+    

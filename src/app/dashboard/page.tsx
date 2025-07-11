@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { AddProductDialog } from "@/components/add-product-dialog";
 import { categories as initialCategories } from "@/lib/data";
 import type { Product, Category, ProductList } from "@/lib/types";
-import { format, isToday, isPast, addDays, isSameDay, startOfDay } from "date-fns";
+import { format, isToday, isPast, addDays, isSameDay, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { Plus, Search, Filter, ArrowUp, ArrowDown, X, Loader2, Settings, Edit, Trash2, RefreshCw, LayoutGrid, Crown, Lock, Move, XCircle } from "lucide-react";
 import {
   AlertDialog,
@@ -49,6 +49,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { DynamicIcon } from "@/components/shared/DynamicIcon";
 import { suggestListIcon } from "@/ai/flows/suggest-list-icon-flow";
@@ -58,6 +60,7 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 
 const columnNames: Record<string, string> = {
+    'id': '#',
     'produto': 'Produto',
     'marca': 'Marca',
     'qtde': 'Qtde',
@@ -71,13 +74,16 @@ type ColumnVisibility = Record<string, boolean>;
 type SortDirection = 'asc' | 'desc';
 type SortKey = keyof Product | '';
 
-const filterOptions = ['all', 'today', 'expired', 'next7'] as const;
+const filterOptions = ['all', 'today', 'expired', 'next7', 'next14', 'thisMonth', 'nextMonth'] as const;
 type FilterType = typeof filterOptions[number];
 const filterLabels: Record<FilterType, string> = {
-    all: "Filtro: Todos",
-    today: "Filtro: Vence Hoje",
-    expired: "Filtro: Vencidos",
-    next7: "Filtro: Próximos 7 dias",
+    all: "Todos",
+    today: "Vence Hoje",
+    expired: "Vencidos",
+    next7: "Próximos 7 dias",
+    next14: "Próximos 14 dias",
+    thisMonth: "Este Mês",
+    nextMonth: "Próximo Mês",
 };
 
 
@@ -140,13 +146,6 @@ export default function Dashboard() {
   const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const dashboardScale = useMemo(() => userProfile?.preferences?.dashboardScale || 'normal', [userProfile]);
-
-  const handleCycleFilter = () => {
-    const currentIndex = filterOptions.indexOf(activeFilter);
-    const nextIndex = (currentIndex + 1) % filterOptions.length;
-    setActiveFilter(filterOptions[nextIndex]);
-  };
-
 
   const debouncedIconSuggestion = useCallback(
     debounce(async (name: string) => {
@@ -243,14 +242,33 @@ export default function Dashboard() {
     }
 
     const today = startOfDay(new Date());
+    const currentMonthStart = startOfMonth(today);
+    const currentMonthEnd = endOfMonth(today);
+    const nextMonthStart = startOfMonth(addMonths(today, 1));
+    const nextMonthEnd = endOfMonth(addMonths(today, 1));
 
-    if (activeFilter === 'today') {
+    switch (activeFilter) {
+      case 'today':
         tempProducts = tempProducts.filter(p => isSameDay(startOfDay(p.expiryDate), today));
-    } else if (activeFilter === 'expired') {
+        break;
+      case 'expired':
         tempProducts = tempProducts.filter(p => isPast(p.expiryDate) && !isToday(startOfDay(p.expiryDate)));
-    } else if (activeFilter === 'next7') {
-        const nextWeek = addDays(today, 8); // To include the 7th day
-        tempProducts = tempProducts.filter(p => p.expiryDate > today && p.expiryDate < nextWeek);
+        break;
+      case 'next7':
+        tempProducts = tempProducts.filter(p => isWithinInterval(p.expiryDate, { start: today, end: addDays(today, 7) }));
+        break;
+      case 'next14':
+        tempProducts = tempProducts.filter(p => isWithinInterval(p.expiryDate, { start: today, end: addDays(today, 14) }));
+        break;
+      case 'thisMonth':
+        tempProducts = tempProducts.filter(p => isWithinInterval(p.expiryDate, { start: currentMonthStart, end: currentMonthEnd }));
+        break;
+      case 'nextMonth':
+        tempProducts = tempProducts.filter(p => isWithinInterval(p.expiryDate, { start: nextMonthStart, end: nextMonthEnd }));
+        break;
+      default:
+        // 'all' filter, do nothing
+        break;
     }
 
     if (sortKey) {
@@ -266,6 +284,13 @@ export default function Dashboard() {
 
     setFilteredProducts(tempProducts);
   }, [products, searchQuery, activeFilter, sortKey, sortDirection]);
+  
+  const productsWithRowIndex = useMemo(() => {
+    return filteredProducts.map((product, index) => ({
+      ...product,
+      rowIndex: index + 1,
+    }));
+  }, [filteredProducts]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -505,14 +530,21 @@ export default function Dashboard() {
     const today = startOfDay(new Date());
     const expiry = startOfDay(product.expiryDate);
 
-    if (isPast(expiry) || isSameDay(expiry, today)) {
+    if (isPast(expiry) && !isSameDay(expiry, today)) {
         return 'bg-red-500/20';
     }
     
-    const tomorrow = addDays(today, 1);
-    const dayAfterTomorrow = addDays(today, 2);
+    if(isSameDay(expiry, today)){
+        return 'bg-red-500/20'
+    }
 
-    if (isSameDay(expiry, tomorrow) || isSameDay(expiry, dayAfterTomorrow)) {
+    const tomorrow = addDays(today, 1);
+    if (isSameDay(expiry, tomorrow)) {
+        return 'bg-orange-500/20';
+    }
+
+    const dayAfterTomorrow = addDays(today, 2);
+    if (isSameDay(expiry, dayAfterTomorrow)) {
         return 'bg-orange-500/20';
     }
 
@@ -707,16 +739,30 @@ export default function Dashboard() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                         <Input placeholder="Buscar produtos..." className={cn('pl-10 w-full', dashboardScale === 'compact' ? 'h-9 text-sm' : 'h-10')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                     </div>
-                    <Button variant="outline" onClick={handleCycleFilter} className={cn('shrink-0', dashboardScale === 'compact' ? 'h-9 px-3 text-xs' : 'h-10')}>
-                      <Filter className="mr-2 h-4 w-4"/>
-                      {filterLabels[activeFilter]}
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className={cn('shrink-0', dashboardScale === 'compact' ? 'h-9 px-3 text-xs' : 'h-10')}>
+                            <Filter className="mr-2 h-4 w-4"/>
+                            {filterLabels[activeFilter]}
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuRadioGroup value={activeFilter} onValueChange={(value) => setActiveFilter(value as FilterType)}>
+                          {filterOptions.map(opt => (
+                            <DropdownMenuRadioItem key={opt} value={opt}>
+                              {filterLabels[opt]}
+                            </DropdownMenuRadioItem>
+                          ))}
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                  <div className={cn("flex-1", dashboardScale === 'compact' ? 'overflow-hidden' : 'overflow-x-auto')}>
                     <Table className={cn(dashboardScale === 'compact' ? 'text-sm table-fixed w-full' : '')}>
                         <TableHeader>
                             <TableRow className="border-b hover:bg-transparent">
+                                {columnVisibility['id'] && <TableHead>#</TableHead>}
                                 <TableHead><Button variant="ghost" onClick={() => handleSort('name')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Produto {renderSortIcon('name')}</Button></TableHead>
                                 {columnVisibility['marca'] && <TableHead><Button variant="ghost" onClick={() => handleSort('brand')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
                                 {columnVisibility['qtde'] && <TableHead><Button variant="ghost" onClick={() => handleSort('quantity')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
@@ -727,7 +773,7 @@ export default function Dashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredProducts.map((product) => (
+                            {productsWithRowIndex.map((product) => (
                              <Popover key={product.id}>
                                 <PopoverTrigger asChild>
                                     <TableRow
@@ -742,6 +788,7 @@ export default function Dashboard() {
                                         onPointerUp={handleProductPointerUp}
                                         onClick={() => handleProductClick(product)}
                                     >
+                                        {columnVisibility['id'] && <TableCell className={cn('font-mono text-xs text-muted-foreground', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.rowIndex}</TableCell>}
                                         <TableCell className={cn('font-medium truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
                                         {columnVisibility['marca'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.brand}</TableCell>}
                                         {columnVisibility['qtde'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.quantity}</TableCell>}
@@ -842,7 +889,7 @@ export default function Dashboard() {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-                    className="fixed bottom-4 left-1/2 -translate-x-1/2 w-auto bg-background border rounded-lg shadow-2xl flex items-center gap-2 p-2 z-50"
+                    className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto bg-background border rounded-lg shadow-2xl flex items-center gap-2 p-2 z-50"
                 >
                     <Button variant="ghost" size="icon" onClick={resetSelection}>
                         <XCircle className="h-5 w-5"/>
@@ -889,3 +936,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
