@@ -28,11 +28,9 @@ export default function RootLayout({
       <body>
         <AuthProvider>
             <ThemeManager />
-            <div className="relative z-10">
-                <ProtectedRoute>
-                  {children}
-                </ProtectedRoute>
-            </div>
+            <ProtectedRoute>
+              {children}
+            </ProtectedRoute>
             <Toaster />
         </AuthProvider>
       </body>
