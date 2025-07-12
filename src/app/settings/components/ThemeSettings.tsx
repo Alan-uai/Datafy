@@ -15,7 +15,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 
 const THEME_OPTIONS = [
     { value: 'padrão', label: 'Padrão', icon: Palette },
-    { value: 'matrix', label: 'Matrix', icon: Bot },
+    { value: 'matrix', label: 'Matrix', icon: Bot, isPremium: true },
     { value: 'verão', label: 'Verão', icon: Sun },
     { value: 'espaço', label: 'Espaço', icon: Space },
     { value: 'sakura', label: 'Sakura', icon: Cherry },
@@ -31,14 +31,21 @@ interface ThemeSettingsProps {
 }
 
 export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activeThemeConfig, onThemeChange, onThemeConfigChange }) => {
-    const { savePreferences } = useUserProfile();
+    const { savePreferences, userProfile } = useUserProfile();
+    const hasPremium = !!userProfile?.premium;
 
     const handleThemeSelection = (value: string) => {
+        const selectedOption = THEME_OPTIONS.find(opt => opt.value === value);
+        if (selectedOption?.isPremium && !hasPremium) {
+            // Maybe show a toast? For now, just prevent selection.
+            return;
+        }
+
         if (value === 'padrão') {
-            // When "Padrão" is selected, activate the light/dark mode preference
+            // When "Padrão" is selected, activate the configured light/dark mode
             onThemeChange(preferences.defaultThemeMode);
         } else {
-            // When a custom theme is selected, activate it
+            // When a custom theme is selected, activate it and set it as the last custom theme
             onThemeChange(value as ThemeName);
             savePreferences({ lastCustomTheme: value as ThemeName });
         }
@@ -80,15 +87,19 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                     onValueChange={handleThemeSelection}
                     className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                 >
-                    {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                    {THEME_OPTIONS.map(({ value, label, icon: Icon, isPremium }) => (
                         <div key={value}>
-                            <RadioGroupItem value={value} id={`theme-${value}`} className="peer sr-only" />
+                            <RadioGroupItem value={value} id={`theme-${value}`} className="peer sr-only" disabled={isPremium && !hasPremium} />
                             <Label
                             htmlFor={`theme-${value}`}
-                            className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24"
+                            className={cn(
+                                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24",
+                                isPremium && !hasPremium && "cursor-not-allowed opacity-50"
+                            )}
                             >
                             <Icon className="mb-2 h-6 w-6" />
                             {label}
+                             {isPremium && <span className="text-xs font-bold text-yellow-500">Premium</span>}
                             </Label>
                         </div>
                     ))}
