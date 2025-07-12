@@ -1,4 +1,6 @@
 
+@import 'd3-celestial/css/celestial.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
