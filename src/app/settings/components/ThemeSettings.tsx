@@ -76,6 +76,8 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
         astrologicalEvents = true 
     } = activeThemeConfig;
 
+    const isLightMode = preferences.defaultThemeMode === 'light';
+
     return (
         <Card>
             <CardHeader>
@@ -116,16 +118,24 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                          <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
                                 <Label htmlFor="default-mode" className="text-sm font-medium flex items-center gap-2">
-                                    <Sun className="w-4 h-4"/> Modo Claro
+                                     {isLightMode ? <Sun className="w-4 h-4 text-yellow-500" /> : <Moon className="w-4 h-4 text-blue-300" />}
+                                     Modo {isLightMode ? 'Claro' : 'Escuro'}
                                 </Label>
                                 <p className="text-xs text-muted-foreground">
-                                    Ative para usar o tema claro como padrão.
+                                    Alterne entre o tema claro e escuro como padrão.
                                 </p>
                             </div>
                             <Switch
                                 id="default-mode"
-                                checked={preferences.defaultThemeMode === 'light'}
+                                checked={isLightMode}
                                 onCheckedChange={handleDefaultModeToggle}
+                                icon={
+                                    isLightMode ? (
+                                        <Sun className="h-4 w-4 text-yellow-500" />
+                                    ) : (
+                                        <Moon className="h-4 w-4 text-blue-300" />
+                                    )
+                                }
                             />
                         </div>
                     </motion.div>
