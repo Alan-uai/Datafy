@@ -18,7 +18,8 @@ interface DayNightThemeProps {
  */
 const getMoonPhase = (date: Date = new Date()): { phase: number, name: string, isWaxing: boolean, age: number } => {
     const synodicMonth = 29.53058867;
-    const knownNewMoon = new Date('2000-01-06T18:14:00Z').getTime();
+    // A more recent and accurate known new moon date
+    const knownNewMoon = new Date('2024-07-05T22:57:00Z').getTime();
     const ageInDays = ((date.getTime() - knownNewMoon) / (1000 * 60 * 60 * 24)) % synodicMonth;
     const phase = ageInDays / synodicMonth;
 
@@ -29,6 +30,7 @@ const getMoonPhase = (date: Date = new Date()): { phase: number, name: string, i
     return { phase, name, isWaxing, age: ageInDays };
 };
 
+
 /**
  * Checks for eclipse conditions (simplified simulation).
  * An eclipse is plausible near equinoxes/solstices if the moon phase is correct.
@@ -38,15 +40,15 @@ const getEclipseType = (date: Date): 'solar' | 'lunar' | null => {
     const { phase, age } = getMoonPhase(date);
     const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
     
-    // Check if near an equinox or solstice (approx. days 80, 172, 265, 355)
+    // Check if near an equinox or solstice (approx. days 80, 172, 265, 355 for Northern Hemisphere)
     const isNearNode = [80, 172, 265, 355].some(nodeDay => Math.abs(dayOfYear - nodeDay) <= 2);
     
     if (!isNearNode) return null;
 
-    if (age < 1 || age > 28.5) { // Near New Moon
+    if (age < 1.5 || age > 28) { // Near New Moon
         return 'solar';
     }
-    if (age > 14 && age < 15.5) { // Near Full Moon
+    if (age > 14 && age < 16) { // Near Full Moon
         return 'lunar';
     }
     return null;
@@ -148,6 +150,14 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
     };
 
     const drawShootingStars = (ctx: CanvasRenderingContext2D, shootingStars: any[], sizeRatio: number, opacity: number) => {
+        const meteorChance = diurnoMode ? 0.0001 : 0.005; // Less frequent in real-time mode
+        if (astrologicalEvents && Math.random() < meteorChance * speedRatio && shootingStars.length < 3) {
+             shootingStars.push({
+                x: Math.random() * ctx.canvas.width, y: Math.random() * ctx.canvas.height * 0.2, len: Math.random() * 120 + 40,
+                speed: Math.random() * 3 + 4, width: Math.random() * 1.5 + 0.5,
+            });
+        }
+
         shootingStars.forEach(star => {
             const gradient = ctx.createLinearGradient(star.x, star.y, star.x - star.len, star.y + star.len);
             gradient.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
@@ -206,19 +216,19 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
 
             // Solar Eclipse
             if (p.eclipse === 'solar' && p.eclipseProgress > 0) {
+                const moonEclipseRadius = sunRadius * 1.05;
                 ctx.fillStyle = 'rgb(15, 23, 42)';
                 ctx.beginPath();
-                ctx.arc(x + (p.width * 0.01), y - (p.height * 0.01), sunRadius * 1.05, 0, 2 * Math.PI);
-                ctx.clip(); // clip sun body
-                ctx.beginPath();
-                ctx.arc(x - sunRadius*2 + p.eclipseProgress * sunRadius * 4, y, sunRadius * 1.05, 0, 2 * Math.PI);
+                // This simulates the moon moving over the sun
+                const eclipseX = x - moonEclipseRadius + (p.eclipseProgress * 2 * moonEclipseRadius);
+                ctx.arc(eclipseX, y, moonEclipseRadius, 0, 2 * Math.PI);
                 ctx.fill();
             }
 
         } else { // Moon
             const moonRadius = 35 * p.sizeRatio;
             const moonData = getMoonPhase(p.diurnoMode ? p.now : undefined);
-            const phase = p.diurnoMode ? moonData.phase : p.cycleProgress;
+            const phase = p.diurnoMode ? moonData.phase : p.cycleProgress % 0.5 * 2; // Simulate phases in non-diurno mode
 
             // Moon Glow
             const glowGradient = ctx.createRadialGradient(x, y, moonRadius, x, y, moonRadius * 2);
@@ -229,46 +239,52 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             ctx.arc(x, y, moonRadius * 2, 0, 2 * Math.PI);
             ctx.fill();
             
-            // Lunar Eclipse
-            let moonColor = [240, 240, 255];
+            // Lunar Eclipse color
+            let brightColor = [240, 240, 255];
             if (p.eclipse === 'lunar' && p.eclipseProgress > 0) {
                 const redColor = [150, 60, 40];
-                moonColor = lerpColor(moonColor, redColor, p.eclipseProgress);
+                brightColor = lerpColor(brightColor, redColor, p.eclipseProgress);
             }
-            ctx.fillStyle = `rgba(${moonColor.join(',')}, ${opacity})`;
-
-            // Draw Moon with realistic phase
+            
             ctx.save();
             ctx.translate(x, y);
+            
+            // 1. Draw the dark side of the moon (base)
+            ctx.fillStyle = `rgba(100, 100, 110, ${opacity * 0.8})`;
             ctx.beginPath();
             ctx.arc(0, 0, moonRadius, 0, Math.PI * 2);
             ctx.fill();
-
-            // Draw phase shadow
-            const angle = Math.PI - phase * Math.PI * 2;
-            const c = Math.cos(angle);
-            const s = Math.sin(angle);
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+            
+            // 2. Draw the illuminated part on top
+            ctx.fillStyle = `rgba(${brightColor.join(',')}, ${opacity})`;
             ctx.beginPath();
-            if (Math.abs(c) > 0.001) {
-                ctx.moveTo(0, -moonRadius);
-                ctx.arcTo(moonRadius / c, 0, 0, moonRadius, moonRadius);
-                ctx.lineTo(0, moonRadius);
+            // `p` goes from 0 (new) to 0.5 (full) to 1.0 (new)
+            const angle = phase * 2 * Math.PI; // Full 360-degree cycle
+            const illuminatedX = Math.cos(angle) * moonRadius;
+
+            if (phase < 0.01) { // New Moon
+              // Do nothing, just the dark side is visible
+            } else if (phase > 0.99) { // Also New Moon
+              // Do nothing
+            } else if (phase === 0.5) { // Full Moon
+              ctx.arc(0, 0, moonRadius, 0, Math.PI * 2);
+            } else if (phase < 0.5) { // Waxing (Crescente)
+              // Right half is always lit
+              ctx.arc(0, 0, moonRadius, -Math.PI / 2, Math.PI / 2);
+              // Curved part
+              ctx.bezierCurveTo(-illuminatedX, moonRadius, -illuminatedX, -moonRadius, 0, -moonRadius);
+            } else { // Waning (Minguante)
+              // Left half is always lit
+              ctx.arc(0, 0, moonRadius, Math.PI / 2, -Math.PI / 2);
+              // Curved part
+              ctx.bezierCurveTo(-illuminatedX, -moonRadius, -illuminatedX, moonRadius, 0, moonRadius);
             }
-            if (s > 0) ctx.arc(0, 0, moonRadius, Math.PI * 1.5, Math.PI * 0.5, true);
-            else ctx.arc(0, 0, moonRadius, Math.PI * 0.5, Math.PI * 1.5, true);
             ctx.fill();
             ctx.restore();
         }
     };
 
     const update = useCallback((width: number, height: number, speedRatio: number) => {
-        if (astrologicalEvents && Math.random() < 0.0005 * speedRatio && shootingStarsRef.current.length < 1) {
-            shootingStarsRef.current.push({
-                x: Math.random() * width, y: Math.random() * height * 0.2, len: Math.random() * 120 + 40,
-                speed: Math.random() * 3 + 4, width: Math.random() * 1.5 + 0.5,
-            });
-        }
         shootingStarsRef.current.forEach((star, index) => {
             star.x -= star.speed * speedRatio;
             star.y += star.speed / 4 * speedRatio;
@@ -276,7 +292,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
                 shootingStarsRef.current.splice(index, 1);
             }
         });
-    }, [astrologicalEvents]);
+    }, []);
     
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -290,7 +306,12 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
 
         const animate = () => {
             frameCount++;
-            if (!diurnoMode) update(canvas.width, canvas.height, speedRatio);
+            if (!diurnoMode) {
+              update(canvas.width, canvas.height, speedRatio);
+            } else if (astrologicalEvents) {
+              // In diurno mode, shooting stars are handled inside the draw function to link with night time
+              update(canvas.width, canvas.height, speedRatio);
+            }
             draw(ctx, frameCount, speedRatio, sizeRatio);
             animationFrameId.current = requestAnimationFrame(animate);
         };
@@ -317,7 +338,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             window.removeEventListener('resize', setup);
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         };
-    }, [draw, update, speed, size, diurnoMode]);
+    }, [draw, update, speed, size, diurnoMode, astrologicalEvents]);
 
     return (
         <div className="fixed inset-0 -z-10 bg-black">
@@ -327,5 +348,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
 };
 
 export default DayNightTheme;
+
+    
 
     
