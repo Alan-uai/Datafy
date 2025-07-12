@@ -54,7 +54,8 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
     const handleDefaultModeToggle = (isLight: boolean) => {
         const newMode = isLight ? 'light' : 'dark';
         savePreferences({ defaultThemeMode: newMode });
-        // If the current active theme is one of the default modes, update it
+        // If the current active theme is one of the default modes (meaning "Padrão" is selected),
+        // we must also update the active theme to reflect the change immediately.
         if (preferences.activeTheme === 'light' || preferences.activeTheme === 'dark') {
             onThemeChange(newMode);
         }
