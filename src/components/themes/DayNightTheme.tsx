@@ -10,19 +10,55 @@ interface DayNightThemeProps {
     astrologicalEvents?: boolean;
 }
 
+// --- Helper Functions ---
+
 // Simple function to get moon phase (0=New, 0.25=FirstQ, 0.5=Full, 0.75=LastQ)
 const getMoonPhase = (date: Date): number => {
     const K = 2451550.1; // Julian date of a known new moon
-    const T = (date.getTime() / 86400000 - 10957.5) / 365.25;
     const JD = date.getTime() / 86400000 - 0.5 + 2440588;
-    const M = (359.2242 + 29.105356 * T);
-    const Mprime = (306.0253 + 385.816918 * T);
-    const F = (21.2964 + 390.670506 * T);
-    let P = -0.4068 * Math.sin(Mprime * Math.PI/180) + (0.1734 - 0.000393*T) * Math.sin(M * Math.PI/180) + 0.0161*Math.sin(2*Mprime * Math.PI/180) - 0.0097*Math.sin(2*F * Math.PI/180) - 0.0073*Math.sin((Mprime-M) * Math.PI/180) + 0.0050*Math.sin((Mprime+M) * Math.PI/180);
     const age = (JD - K) % 29.530588853;
     return age / 29.530588853;
 };
 
+// Check for simulated eclipse days
+const getEclipseState = (date: Date): { type: 'solar' | 'lunar' | 'none', progress: number } => {
+    // Simulate eclipse on the first day of each quarter for fun
+    const day = date.getDate();
+    const month = date.getMonth();
+    const isEclipseDay = day === 1 && (month === 0 || month === 3 || month === 6 || month === 9);
+    
+    if (!isEclipseDay) {
+        return { type: 'none', progress: 0 };
+    }
+
+    const totalSeconds = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+    const cycleProgress = totalSeconds / 86400; // 0 to 1 over 24 hours
+
+    const isDayTime = cycleProgress > 0.25 && cycleProgress < 0.75; // Approx 6am to 6pm
+
+    if (isDayTime) { // Solar Eclipse
+        const eclipseStart = 0.48; // Near midday
+        const eclipseEnd = 0.52;
+        if (cycleProgress > eclipseStart && cycleProgress < eclipseEnd) {
+            const progress = (cycleProgress - eclipseStart) / (eclipseEnd - eclipseStart);
+            return { type: 'solar', progress: Math.sin(progress * Math.PI) }; // Use sin for smooth in/out
+        }
+    } else { // Lunar Eclipse (Blood Moon)
+        const eclipseStart = 0.98; // Near midnight
+        const eclipseEnd = 1.0; // Wraps around
+        if (cycleProgress > eclipseStart || cycleProgress < 0.02) {
+             let progress = cycleProgress > eclipseStart 
+                ? (cycleProgress - eclipseStart) / 0.04
+                : (cycleProgress + (1 - eclipseStart)) / 0.04;
+             return { type: 'lunar', progress: Math.sin(progress * Math.PI) };
+        }
+    }
+
+    return { type: 'none', progress: 0 };
+};
+
+
+// --- Component ---
 
 const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode = false, astrologicalEvents = true }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,72 +70,71 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
         const { width, height } = ctx.canvas;
         ctx.clearRect(0, 0, width, height);
 
-        let cycleProgress: number;
         const now = new Date();
+        const animationTotalFrames = 12000; // Longer cycle for better transitions
+        
+        // --- Cycle Progress ---
+        const cycleProgress = diurnoMode
+            ? (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400
+            : (frame % animationTotalFrames) / animationTotalFrames;
 
-        if (diurnoMode) {
-            const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-            cycleProgress = totalSeconds / 86400; // 86400 seconds in a day
-        } else {
-            const cycleDuration = 7200 / speedRatio;
-            cycleProgress = (frame % cycleDuration) / cycleDuration;
-        }
+        const eclipse = astrologicalEvents ? getEclipseState(now) : { type: 'none', progress: 0 };
+        
+        // --- Sky Colors ---
+        const sunriseStart = 0.23, dayStart = 0.28, sunsetStart = 0.72, nightStart = 0.77;
+        const colors = {
+            night: [15, 23, 42],
+            day: [135, 206, 250],
+            sunrise: [252, 182, 193],
+            sunset: [253, 186, 116],
+            eclipse: [51, 65, 85],
+            lunarEclipse: [127, 29, 29]
+        };
 
-        const sunriseStart = 0.20; // 4:48 AM
-        const dayStart = 0.30;     // 7:12 AM
-        const sunsetStart = 0.70;  // 5:12 PM
-        const nightStart = 0.80;   // 7:12 PM
-
-        const nightColor = [15, 23, 42]; // Slate 900
-        const dayColor = [135, 206, 235]; // Sky Blue
-        const sunsetColor = [251, 146, 60]; // Orange 400
-        const sunriseColor = [244, 114, 182]; // Pink 400
-
-        let bgColor1, bgColor2;
         let t = 0;
+        let bgColor1, bgColor2;
 
-        if (cycleProgress < sunriseStart) { // Deep Night
-            bgColor1 = `rgb(${nightColor.join(',')})`;
-            bgColor2 = `rgb(${nightColor.join(',')})`;
+        if (cycleProgress < sunriseStart || cycleProgress >= nightStart) { // Night
+            bgColor1 = colors.night;
+            bgColor2 = [colors.night[0] + 20, colors.night[1] + 20, colors.night[2] + 30]; // Lighter near horizon
         } else if (cycleProgress < dayStart) { // Sunrise
             t = (cycleProgress - sunriseStart) / (dayStart - sunriseStart);
-            bgColor1 = `rgb(${Math.round(nightColor[0] + (sunriseColor[0] - nightColor[0]) * t)}, ${Math.round(nightColor[1] + (sunriseColor[1] - nightColor[1]) * t)}, ${Math.round(nightColor[2] + (sunriseColor[2] - nightColor[2]) * t)})`;
-            bgColor2 = `rgb(${Math.round(nightColor[0] + (dayColor[0] - nightColor[0]) * t)}, ${Math.round(nightColor[1] + (dayColor[1] - nightColor[1]) * t)}, ${Math.round(nightColor[2] + (dayColor[2] - nightColor[2]) * t)})`;
+            bgColor1 = lerpColor(colors.night, colors.sunrise, t);
+            bgColor2 = lerpColor([colors.night[0] + 20, colors.night[1] + 20, colors.night[2] + 30], colors.day, t);
         } else if (cycleProgress < sunsetStart) { // Day
-            bgColor1 = `rgb(${dayColor.join(',')})`;
-            bgColor2 = `rgb(${dayColor.join(',')})`;
-        } else if (cycleProgress < nightStart) { // Sunset
+            bgColor1 = colors.day;
+            bgColor2 = [colors.day[0] + 20, colors.day[1] + 20, colors.day[2] + 5]; // Lighter blue at horizon
+        } else { // Sunset
             t = (cycleProgress - sunsetStart) / (nightStart - sunsetStart);
-            bgColor1 = `rgb(${Math.round(dayColor[0] + (sunsetColor[0] - dayColor[0]) * t)}, ${Math.round(dayColor[1] + (sunsetColor[1] - dayColor[1]) * t)}, ${Math.round(dayColor[2] + (sunsetColor[2] - dayColor[2]) * t)})`;
-            bgColor2 = `rgb(${Math.round(dayColor[0] + (nightColor[0] - dayColor[0]) * t)}, ${Math.round(dayColor[1] + (nightColor[1] - dayColor[1]) * t)}, ${Math.round(dayColor[2] + (nightColor[2] - nightColor[2]) * t)})`;
-        } else { // Night
-            bgColor1 = `rgb(${nightColor.join(',')})`;
-            bgColor2 = `rgb(${nightColor.join(',')})`;
+            bgColor1 = lerpColor(colors.day, colors.sunset, t);
+            bgColor2 = lerpColor([colors.day[0] + 20, colors.day[1] + 20, colors.day[2] + 5], colors.night, t);
+        }
+
+        // Apply eclipse overlay color
+        if (diurnoMode && eclipse.type === 'solar' && eclipse.progress > 0) {
+            bgColor1 = lerpColor(bgColor1, colors.eclipse, eclipse.progress);
+            bgColor2 = lerpColor(bgColor2, colors.eclipse, eclipse.progress);
+        }
+        if (diurnoMode && eclipse.type === 'lunar' && eclipse.progress > 0) {
+            bgColor1 = lerpColor(bgColor1, colors.lunarEclipse, eclipse.progress);
+            bgColor2 = lerpColor(bgColor2, colors.lunarEclipse, eclipse.progress);
         }
 
         const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-        bgGradient.addColorStop(0, bgColor1);
-        bgGradient.addColorStop(1, bgColor2);
+        bgGradient.addColorStop(0, `rgb(${bgColor1.join(',')})`);
+        bgGradient.addColorStop(1, `rgb(${bgColor2.join(',')})`);
         ctx.fillStyle = bgGradient;
         ctx.fillRect(0, 0, width, height);
-
-        // Night effects (stars, moon, meteors)
-        const isNight = cycleProgress < dayStart || cycleProgress > sunsetStart;
-        let nightOpacity = 0;
-        if (cycleProgress < sunriseStart) nightOpacity = 1;
-        else if (cycleProgress < dayStart) nightOpacity = 1 - t;
-        else if (cycleProgress > nightStart) nightOpacity = 1;
-        else if (cycleProgress > sunsetStart) nightOpacity = t;
-
-        if (isNight && nightOpacity > 0) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${nightOpacity * 0.7})`;
+        
+        // --- Night Effects ---
+        const nightOpacity = Math.max(0, 1 - (Math.abs(cycleProgress - 0.5) / 0.25));
+        if (nightOpacity > 0.1) {
             starsRef.current.forEach(star => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity * nightOpacity})`;
                 ctx.beginPath();
                 ctx.arc(star.x, star.y, star.r * sizeRatio, 0, Math.PI * 2);
                 ctx.fill();
             });
-
-            // Shooting stars
             if (astrologicalEvents) {
                 shootingStarsRef.current.forEach(star => {
                     const gradient = ctx.createLinearGradient(star.x, star.y, star.x - star.len, star.y + star.len);
@@ -115,88 +150,136 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             }
         }
         
-        // Celestial body (Sun/Moon) position calculation
-        const celestialPathY = height * 0.7;
+        // --- Celestial Bodies ---
+        const celestialY = height * 0.8;
         const celestialRadiusX = width / 2.1;
-        const celestialRadiusY = height / 2.2;
-        const dayAngle = (cycleProgress - dayStart) / (sunsetStart - dayStart) * Math.PI; // 0 to PI
-        const nightAngle = ((cycleProgress - nightStart + 1) % 1) / (1 - nightStart + dayStart) * Math.PI; // 0 to PI
-
-        const sunX = width / 2 - Math.cos(dayAngle) * celestialRadiusX;
-        const sunY = celestialPathY - Math.sin(dayAngle) * celestialRadiusY;
-        const moonX = width / 2 - Math.cos(nightAngle) * celestialRadiusX;
-        const moonY = celestialPathY - Math.sin(nightAngle) * celestialRadiusY;
+        const celestialRadiusY = height / 1.8;
+        const dayProgress = (cycleProgress - dayStart) / (sunsetStart - dayStart);
+        const sunAngle = dayProgress * Math.PI;
+        const sunX = width / 2 - Math.cos(sunAngle) * celestialRadiusX;
+        const sunY = celestialY - Math.sin(sunAngle) * celestialRadiusY;
+        const moonX = width / 2 - Math.cos(sunAngle + Math.PI) * celestialRadiusX;
+        const moonY = celestialY - Math.sin(sunAngle + Math.PI) * celestialRadiusY;
 
         // Sun
-        const sunRadius = 40 * sizeRatio;
-        const sunOpacity = 1 - nightOpacity;
-        if (sunOpacity > 0 && cycleProgress > sunriseStart && cycleProgress < nightStart) {
-            const middayProgress = Math.sin(dayAngle); // 0 -> 1 -> 0
-            const sunColor = lerpColor([253, 224, 71], [255, 255, 255], middayProgress * 0.5);
-
-            const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
-            sunGradient.addColorStop(0, `rgba(255, 255, 224, ${sunOpacity * 0.8})`);
-            sunGradient.addColorStop(0.5, `rgba(${sunColor.r},${sunColor.g},${sunColor.b}, ${sunOpacity * 0.6})`);
-            sunGradient.addColorStop(1, `rgba(251, 146, 60, 0)`);
-            ctx.fillStyle = sunGradient;
-            ctx.beginPath();
-            ctx.arc(sunX, sunY, sunRadius * (1.5 + middayProgress * 0.5), 0, 2 * Math.PI);
-            ctx.fill();
-
-            ctx.fillStyle = `rgba(${sunColor.r},${sunColor.g},${sunColor.b}, ${sunOpacity})`;
-            ctx.beginPath();
-            ctx.arc(sunX, sunY, sunRadius, 0, 2 * Math.PI);
-            ctx.fill();
+        const sunRadius = 45 * sizeRatio;
+        if (cycleProgress > sunriseStart && cycleProgress < nightStart) {
+            const sunOpacity = Math.sin(dayProgress * Math.PI);
+            if (sunOpacity > 0) {
+                // Corona / Rays
+                const coronaColor = diurnoMode && eclipse.type === 'solar' && eclipse.progress > 0.5 ? '255, 255, 255' : '253, 224, 71';
+                for (let i = 0; i < 12; i++) {
+                    const angle = (Math.PI / 6) * i + frame * 0.001 * speedRatio;
+                    const length = sunRadius * (1.8 + Math.sin(frame * 0.05 * speedRatio + i*2) * 0.3) * (1 - (diurnoMode ? eclipse.progress : 0));
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(${coronaColor}, ${0.1 * sunOpacity})`;
+                    ctx.lineWidth = 3 * sizeRatio;
+                    ctx.moveTo(sunX, sunY);
+                    ctx.lineTo(sunX + Math.cos(angle) * length, sunY + Math.sin(angle) * length);
+                    ctx.stroke();
+                }
+                // Sun body
+                const sunColor = `rgb(255, 235, 150)`;
+                const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
+                sunGradient.addColorStop(0, `rgba(255, 255, 240, ${sunOpacity})`);
+                sunGradient.addColorStop(0.8, `${sunColor}`);
+                sunGradient.addColorStop(1, `rgba(251, 146, 60, 0)`);
+                ctx.fillStyle = sunGradient;
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, sunRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                // Eclipse shadow
+                if (diurnoMode && eclipse.type === 'solar' && eclipse.progress > 0) {
+                    const shadowX = sunX + sunRadius * 1.5 * (1 - eclipse.progress * 2);
+                    ctx.fillStyle = `rgb(${colors.night.join(',')})`;
+                    ctx.beginPath();
+                    ctx.arc(shadowX, sunY, sunRadius, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
         }
-
+        
         // Moon
-        const moonRadius = 30 * sizeRatio;
-        if (nightOpacity > 0 && (cycleProgress < dayStart || cycleProgress > sunsetStart)) {
-            const moonPhase = getMoonPhase(now);
-            const midnightProgress = Math.sin(nightAngle); // 0 -> 1 -> 0
+        const moonRadius = 35 * sizeRatio;
+        if (cycleProgress < dayStart || cycleProgress > sunsetStart) {
+            const moonOpacity = 1 - Math.sin(dayProgress * Math.PI);
+            if (moonOpacity > 0) {
+                const moonPhase = getMoonPhase(now);
+                const moonColor = diurnoMode && eclipse.type === 'lunar' && eclipse.progress > 0.5 
+                    ? `rgba(255,100,100,${moonOpacity})` // Blood moon
+                    : `rgba(240, 240, 255, ${moonOpacity})`;
 
-            const moonGradient = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonRadius);
-            moonGradient.addColorStop(0, `rgba(241, 245, 249, ${nightOpacity * 0.8})`);
-            moonGradient.addColorStop(1, `rgba(241, 245, 249, 0)`);
-            ctx.fillStyle = moonGradient;
-            ctx.beginPath();
-            ctx.arc(moonX, moonY, moonRadius * (1.5 + midnightProgress * 0.5), 0, 2 * Math.PI);
-            ctx.fill();
-            
-            ctx.save();
-            ctx.translate(moonX, moonY);
-            ctx.beginPath();
-            ctx.fillStyle = `rgba(226, 232, 240, ${nightOpacity})`;
-            ctx.arc(0, 0, moonRadius, 0, 2 * Math.PI);
-            ctx.fill();
+                // Moon glow
+                const glowGradient = ctx.createRadialGradient(moonX, moonY, moonRadius, moonX, moonY, moonRadius * 2);
+                glowGradient.addColorStop(0, `rgba(200, 220, 255, ${moonOpacity * 0.2})`);
+                glowGradient.addColorStop(1, `rgba(200, 220, 255, 0)`);
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.arc(moonX, moonY, moonRadius * 2, 0, 2 * Math.PI);
+                ctx.fill();
 
-            // Phase shadow
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; // Dark side color
-            const phaseAngle = moonPhase * 2 * Math.PI;
-            const dir = (moonPhase > 0.5) ? -1 : 1;
-            const shadowX = dir * moonRadius * Math.cos(phaseAngle);
-            ctx.beginPath();
-            ctx.arc(shadowX, 0, moonRadius, 0, 2*Math.PI);
-            ctx.fill();
-            ctx.restore();
+                // Moon body
+                ctx.save();
+                ctx.translate(moonX, moonY);
+                // Craters (subtle texture)
+                if (!ctx.moonPattern) {
+                    const patternCanvas = document.createElement('canvas');
+                    patternCanvas.width = 100;
+                    patternCanvas.height = 100;
+                    const pctx = patternCanvas.getContext('2d')!;
+                    for(let i=0; i<30; i++) {
+                        pctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.08})`;
+                        pctx.beginPath();
+                        pctx.arc(Math.random() * 100, Math.random() * 100, Math.random() * 5 + 1, 0, Math.PI * 2);
+                        pctx.fill();
+                    }
+                    ctx.moonPattern = ctx.createPattern(patternCanvas, 'repeat')!;
+                }
+                ctx.fillStyle = moonColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, moonRadius, -Math.PI/2, Math.PI * 1.5);
+                ctx.fill();
+                ctx.fillStyle = ctx.moonPattern;
+                ctx.globalAlpha = 0.5 * moonOpacity;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Phase shadow
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+                const phaseAngle = moonPhase * 2 * Math.PI;
+                const dir = (moonPhase > 0.5) ? -1 : 1;
+                const shadowX = dir * moonRadius * Math.cos(phaseAngle);
+                ctx.beginPath();
+                ctx.arc(shadowX, 0, moonRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.restore();
+            }
         }
 
     }, [diurnoMode, astrologicalEvents]);
     
-    const lerpColor = (c1: number[], c2: number[], t: number) => ({
-        r: Math.round(c1[0] + (c2[0] - c1[0]) * t),
-        g: Math.round(c1[1] + (c2[1] - c1[1]) * t),
-        b: Math.round(c1[2] + (c2[2] - c1[2]) * t),
-    });
+    const lerpColor = (c1: number[], c2: number[], t: number): number[] => ([
+        Math.round(c1[0] + (c2[0] - c1[0]) * t),
+        Math.round(c1[1] + (c2[1] - c1[1]) * t),
+        Math.round(c1[2] + (c2[2] - c1[2]) * t),
+    ]);
 
     const update = useCallback((width: number, height: number, speedRatio: number) => {
-        if (astrologicalEvents && Math.random() < 0.02 * speedRatio && shootingStarsRef.current.length < 3) {
+        // Star twinkling
+        starsRef.current.forEach(star => {
+            if (Math.random() > 0.99) {
+                star.opacity = Math.random() * 0.7 + 0.3;
+            }
+        });
+        
+        // Less frequent shooting stars
+        if (astrologicalEvents && Math.random() < 0.001 * speedRatio && shootingStarsRef.current.length < 2) {
             shootingStarsRef.current.push({
                 x: Math.random() * width,
-                y: Math.random() * height * 0.5,
-                len: Math.random() * 80 + 20,
-                speed: Math.random() * 2 + 3,
-                width: Math.random() * 1 + 0.5,
+                y: Math.random() * height * 0.3,
+                len: Math.random() * 120 + 40,
+                speed: Math.random() * 3 + 4,
+                width: Math.random() * 1.5 + 0.5,
             });
         }
         shootingStarsRef.current.forEach((star, index) => {
@@ -211,7 +294,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d') as  CanvasRenderingContext2D & { moonPattern?: CanvasPattern | null };
         if (!ctx) return;
         
         let frameCount = 0;
@@ -220,7 +303,9 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
 
         const animate = () => {
             frameCount++;
-            update(canvas.width, canvas.height, speedRatio);
+            if (!diurnoMode) {
+                update(canvas.width, canvas.height, speedRatio);
+            }
             draw(ctx, frameCount, speedRatio, sizeRatio);
             animationFrameId.current = requestAnimationFrame(animate);
         };
@@ -229,13 +314,15 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             starsRef.current = [];
-            for (let i = 0; i < 200 * sizeRatio; i++) {
+            for (let i = 0; i < 300 * sizeRatio; i++) {
                 starsRef.current.push({
                     x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height * 0.8,
-                    r: Math.random() * 1.5,
+                    y: Math.random() * canvas.height * 0.9,
+                    r: Math.random() * 1.2,
+                    opacity: Math.random() * 0.7 + 0.3
                 });
             }
+            ctx.moonPattern = null;
             if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
             animate();
         }
@@ -252,10 +339,12 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
     }, [draw, update, speed, size, diurnoMode]);
 
     return (
-        <div className="fixed inset-0 -z-10">
-            <canvas ref={canvasRef} className="block" />
+        <div className="fixed inset-0 -z-10 bg-black">
+            <canvas ref={canvasRef} className="block w-full h-full" />
         </div>
     );
 };
 
 export default DayNightTheme;
+
+    
