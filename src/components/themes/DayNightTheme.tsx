@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 
 interface DayNightThemeProps {
     speed: number;
@@ -38,7 +38,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
 
         // Draw Sun and Moon
         drawCelestialBody(ctx, 'sun', { width, height, dayProgress, sizeRatio, frame, speedRatio });
-        drawCelestialBody(ctx, 'moon', { width, height, dayProgress, sizeRatio });
+        drawCelestialBody(ctx, 'moon', { width, height, dayProgress, sizeRatio, date: now });
 
     }, [diurnoMode]);
 
@@ -76,6 +76,16 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
         return { top: `rgb(${top.join(',')})`, middle: `rgb(${middle.join(',')})`, bottom: `rgb(${bottom.join(',')})` };
     };
     
+    // Calculates moon phase. Returns value from 0 (new) to 1 (full) to 0 (new)
+    const getMoonPhase = (date: Date) => {
+        // A known new moon (e.g., January 21, 2023)
+        const knownNewMoon = new Date('2023-01-21T20:53:00Z').getTime();
+        const lunarCycle = 29.530588853 * 24 * 60 * 60 * 1000; // milliseconds
+        const daysSinceNewMoon = (date.getTime() - knownNewMoon) / lunarCycle;
+        const currentPhase = daysSinceNewMoon - Math.floor(daysSinceNewMoon); // get the fractional part
+        return currentPhase;
+    };
+
     const drawCelestialBody = (ctx: CanvasRenderingContext2D, type: 'sun' | 'moon', p: any) => {
         const isDay = p.dayProgress > 0.5 && p.dayProgress < 1.5;
         let isVisible = (type === 'sun' && isDay) || (type === 'moon' && !isDay);
@@ -93,25 +103,33 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             ctx.fill();
         } else { // Moon
             const moonRadius = 35 * p.sizeRatio;
-            
+            const phase = getMoonPhase(p.date); // 0 = new, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
+
             ctx.save();
             ctx.translate(x, y);
-            
-            ctx.fillStyle = `rgba(100, 100, 110, 0.8)`;
+
+            // Draw dark side of the moon (always there)
+            ctx.fillStyle = 'rgba(100, 100, 110, 0.8)';
             ctx.beginPath();
-            ctx.arc(0, 0, moonRadius, 0, Math.PI * 2);
+            ctx.arc(0, 0, moonRadius, 0, 2 * Math.PI);
             ctx.fill();
-            
-            ctx.fillStyle = `rgb(240, 240, 255)`;
+
+            // Draw lit side of the moon
+            ctx.fillStyle = 'rgb(240, 240, 255)';
             ctx.beginPath();
-            // Simplified moon: just a crescent
-            ctx.arc(0, 0, moonRadius, 0, Math.PI * 2);
-            ctx.fill();
             
-            ctx.fillStyle = `rgba(100, 100, 110, 0.8)`;
-            ctx.beginPath();
-            ctx.arc(moonRadius * 0.4, 0, moonRadius * 0.9, 0, Math.PI * 2);
+            if (phase < 0.5) { // Waxing
+                const xOffset = moonRadius * (1 - (phase / 0.5) * 2);
+                ctx.arc(0, 0, moonRadius, -Math.PI / 2, Math.PI / 2); // Right lit semicircle
+                ctx.ellipse(0, 0, Math.abs(xOffset), moonRadius, 0, Math.PI/2, -Math.PI/2, xOffset < 0);
+            } else { // Waning
+                const xOffset = moonRadius * ((phase - 0.5) / 0.5 * 2 - 1);
+                ctx.arc(0, 0, moonRadius, Math.PI / 2, -Math.PI / 2); // Left lit semicircle
+                ctx.ellipse(0, 0, Math.abs(xOffset), moonRadius, 0, -Math.PI/2, Math.PI/2, xOffset < 0);
+            }
+            ctx.closePath();
             ctx.fill();
+
             ctx.restore();
         }
     };
