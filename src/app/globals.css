@@ -1,6 +1,4 @@
 
-@import 'd3-celestial/css/celestial.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,6 +42,39 @@
   inherits: false;
 }
 
+/* d3-celestial.css */
+.celestial-form, .celestial-map { position:relative; }
+.celestial-map { display:block; float:left; }
+.celestial-form { float:left; }
+#celestial-zoomin, #celestial-zoomout { position:absolute; top:2px; right:2px; width:22px; height:22px; z-index:9999; }
+#celestial-zoomin { top:2px; right:26px; }
+#celestial-zoomin:before, #celestial-zoomout:before { position:absolute; text-align:center; color:#fff; background-color:#333; opacity:0.8; border-radius:11px; width:22px; height:22px; font-size:18px; line-height:22px; }
+#celestial-zoomin:before { content:"+"; }
+#celestial-zoomout:before { content:"-"; }
+
+#celestial-info { position:absolute; top:0; left:0; height:1.3em; background-color:rgba(51,51,51,0.8); color: #fff; padding:0.1em 0.3em; font-family:sans-serif; font-size:0.9em; z-index:9998; }
+#celestial-info.celestial-hidden { display:none; }
+
+.celestial-tooltip { position:fixed; z-index:10000; padding:0.3em; background-color:#000; color:#fff; font-family:sans-serif; font-size:0.9em; text-align:center; opacity:0; -webkit-border-radius:3px; border-radius:3px; }
+.celestial-tooltip span { display:block; }
+
+.graticule { fill:none; stroke:#444; stroke-width:0.5px; stroke-opacity:0.8; }
+.graticule.minor { stroke-dasharray: 2, 2; }
+.hemisphere { fill:none; }
+.hemisphere.dark { fill:#000; fill-opacity:0.5; }
+.horizon { fill:none; stroke:#699; stroke-width:1.5px; }
+.ecliptic { stroke:#699; stroke-width:1px; stroke-dasharray: 4, 2; }
+.equator { stroke:#669; stroke-width:1px; stroke-dasharray: 4, 2; }
+
+.constellation_lines { stroke:#284; stroke-width:1px; }
+.constellation_bounds { stroke:#284; stroke-width:0.5px; stroke-dasharray: 4, 4; fill: none; }
+
+.mw { stroke:#009; stroke-width:1.5px; fill:none; }
+
+.planets { font-size:14px; }
+.messier, .ngc { fill:#f00; font-size:12px; }
+
+.point { fill:#fff; stroke: #fff; stroke-width:0.5px; }
 
 @layer base {
   :root {
