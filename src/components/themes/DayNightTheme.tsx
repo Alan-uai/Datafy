@@ -12,49 +12,37 @@ interface DayNightThemeProps {
 
 // --- Helper Functions ---
 
-// Simple function to get moon phase (0=New, 0.25=FirstQ, 0.5=Full, 0.75=LastQ)
-const getMoonPhase = (date: Date): number => {
-    const K = 2451550.1; // Julian date of a known new moon
-    const JD = date.getTime() / 86400000 - 0.5 + 2440588;
-    const age = (JD - K) % 29.530588853;
-    return age / 29.530588853;
+/**
+ * Calculates the phase of the moon.
+ * @param {Date} date The date to calculate the phase for.
+ * @returns {number} The phase of the moon, from 0 (New Moon) to 1.
+ * 0.0: New Moon
+ * 0.25: First Quarter
+ * 0.5: Full Moon
+ * 0.75: Last Quarter
+ */
+const getMoonPhase = (date: Date = new Date()): number => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    let r = year % 100;
+    r %= 19;
+    if (r > 9) { r -= 19; }
+    r = ((r * 11) % 30) + month + day;
+    if (month < 3) { r += 2; }
+    
+    r -= (year < 2000) ? 4 : 8.3;
+
+    r = Math.floor(r + 0.5) % 30;
+
+    return r < 0 ? r + 30 : r;
 };
 
-// Check for simulated eclipse days
-const getEclipseState = (date: Date): { type: 'solar' | 'lunar' | 'none', progress: number } => {
-    // Simulate eclipse on the first day of each quarter for fun
-    const day = date.getDate();
-    const month = date.getMonth();
-    const isEclipseDay = day === 1 && (month === 0 || month === 3 || month === 6 || month === 9);
-    
-    if (!isEclipseDay) {
-        return { type: 'none', progress: 0 };
-    }
-
-    const totalSeconds = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
-    const cycleProgress = totalSeconds / 86400; // 0 to 1 over 24 hours
-
-    const isDayTime = cycleProgress > 0.25 && cycleProgress < 0.75; // Approx 6am to 6pm
-
-    if (isDayTime) { // Solar Eclipse
-        const eclipseStart = 0.48; // Near midday
-        const eclipseEnd = 0.52;
-        if (cycleProgress > eclipseStart && cycleProgress < eclipseEnd) {
-            const progress = (cycleProgress - eclipseStart) / (eclipseEnd - eclipseStart);
-            return { type: 'solar', progress: Math.sin(progress * Math.PI) }; // Use sin for smooth in/out
-        }
-    } else { // Lunar Eclipse (Blood Moon)
-        const eclipseStart = 0.98; // Near midnight
-        const eclipseEnd = 1.0; // Wraps around
-        if (cycleProgress > eclipseStart || cycleProgress < 0.02) {
-             let progress = cycleProgress > eclipseStart 
-                ? (cycleProgress - eclipseStart) / 0.04
-                : (cycleProgress + (1 - eclipseStart)) / 0.04;
-             return { type: 'lunar', progress: Math.sin(progress * Math.PI) };
-        }
-    }
-
-    return { type: 'none', progress: 0 };
+const getNormalizedMoonPhase = (date: Date = new Date()): number => {
+    const age = getMoonPhase(date);
+    const synodicMonth = 29.53;
+    return age / synodicMonth;
 };
 
 
@@ -78,8 +66,6 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             ? (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400
             : (frame % animationTotalFrames) / animationTotalFrames;
 
-        const eclipse = astrologicalEvents ? getEclipseState(now) : { type: 'none', progress: 0 };
-        
         // --- Sky Colors ---
         const sunriseStart = 0.23, dayStart = 0.28, sunsetStart = 0.72, nightStart = 0.77;
         const colors = {
@@ -87,8 +73,6 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             day: [135, 206, 250],
             sunrise: [252, 182, 193],
             sunset: [253, 186, 116],
-            eclipse: [51, 65, 85],
-            lunarEclipse: [127, 29, 29]
         };
 
         let t = 0;
@@ -108,16 +92,6 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             t = (cycleProgress - sunsetStart) / (nightStart - sunsetStart);
             bgColor1 = lerpColor(colors.day, colors.sunset, t);
             bgColor2 = lerpColor([colors.day[0] + 20, colors.day[1] + 20, colors.day[2] + 5], colors.night, t);
-        }
-
-        // Apply eclipse overlay color
-        if (diurnoMode && eclipse.type === 'solar' && eclipse.progress > 0) {
-            bgColor1 = lerpColor(bgColor1, colors.eclipse, eclipse.progress);
-            bgColor2 = lerpColor(bgColor2, colors.eclipse, eclipse.progress);
-        }
-        if (diurnoMode && eclipse.type === 'lunar' && eclipse.progress > 0) {
-            bgColor1 = lerpColor(bgColor1, colors.lunarEclipse, eclipse.progress);
-            bgColor2 = lerpColor(bgColor2, colors.lunarEclipse, eclipse.progress);
         }
 
         const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -167,10 +141,10 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             const sunOpacity = Math.sin(dayProgress * Math.PI);
             if (sunOpacity > 0) {
                 // Corona / Rays
-                const coronaColor = diurnoMode && eclipse.type === 'solar' && eclipse.progress > 0.5 ? '255, 255, 255' : '253, 224, 71';
+                const coronaColor = '253, 224, 71';
                 for (let i = 0; i < 12; i++) {
                     const angle = (Math.PI / 6) * i + frame * 0.001 * speedRatio;
-                    const length = sunRadius * (1.8 + Math.sin(frame * 0.05 * speedRatio + i*2) * 0.3) * (1 - (diurnoMode ? eclipse.progress : 0));
+                    const length = sunRadius * (1.8 + Math.sin(frame * 0.05 * speedRatio + i*2) * 0.3);
                     ctx.beginPath();
                     ctx.strokeStyle = `rgba(${coronaColor}, ${0.1 * sunOpacity})`;
                     ctx.lineWidth = 3 * sizeRatio;
@@ -188,14 +162,6 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
                 ctx.beginPath();
                 ctx.arc(sunX, sunY, sunRadius, 0, 2 * Math.PI);
                 ctx.fill();
-                // Eclipse shadow
-                if (diurnoMode && eclipse.type === 'solar' && eclipse.progress > 0) {
-                    const shadowX = sunX + sunRadius * 1.5 * (1 - eclipse.progress * 2);
-                    ctx.fillStyle = `rgb(${colors.night.join(',')})`;
-                    ctx.beginPath();
-                    ctx.arc(shadowX, sunY, sunRadius, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
             }
         }
         
@@ -204,10 +170,8 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
         if (cycleProgress < dayStart || cycleProgress > sunsetStart) {
             const moonOpacity = 1 - Math.sin(dayProgress * Math.PI);
             if (moonOpacity > 0) {
-                const moonPhase = getMoonPhase(now);
-                const moonColor = diurnoMode && eclipse.type === 'lunar' && eclipse.progress > 0.5 
-                    ? `rgba(255,100,100,${moonOpacity})` // Blood moon
-                    : `rgba(240, 240, 255, ${moonOpacity})`;
+                const moonPhase = diurnoMode ? getNormalizedMoonPhase(now) : cycleProgress; // Use real phase in diurno
+                const moonColor = `rgba(240, 240, 255, ${moonOpacity})`;
 
                 // Moon glow
                 const glowGradient = ctx.createRadialGradient(moonX, moonY, moonRadius, moonX, moonY, moonRadius * 2);
@@ -247,10 +211,16 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
                 // Phase shadow
                 ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
                 const phaseAngle = moonPhase * 2 * Math.PI;
-                const dir = (moonPhase > 0.5) ? -1 : 1;
-                const shadowX = dir * moonRadius * Math.cos(phaseAngle);
                 ctx.beginPath();
-                ctx.arc(shadowX, 0, moonRadius, 0, 2 * Math.PI);
+                ctx.arc(0, 0, moonRadius, -Math.PI/2, Math.PI/2, false); // Right hemisphere
+                ctx.arc(0, 0, moonRadius, Math.PI/2, -Math.PI/2, true); // Left hemisphere
+                ctx.closePath();
+                ctx.clip();
+                
+                const shadowX = moonRadius * 2 * (0.5 - moonPhase);
+                ctx.translate(shadowX, 0);
+                ctx.beginPath();
+                ctx.arc(0, 0, moonRadius, 0, Math.PI*2);
                 ctx.fill();
                 ctx.restore();
             }
