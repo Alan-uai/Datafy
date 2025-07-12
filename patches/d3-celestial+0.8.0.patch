@@ -1,21 +1,12 @@
 diff --git a/node_modules/d3-celestial/package.json b/node_modules/d3-celestial/package.json
-index 548c792..d30132c 100644
+index 54249a5..5c44425 100644
 --- a/node_modules/d3-celestial/package.json
 +++ b/node_modules/d3-celestial/package.json
-@@ -6,6 +6,7 @@
-   "description": "A D3.js v4 plugin for drawing celestial maps",
-   "keywords": [
-     "d3",
-+    "d3-module",
-     "celestial",
-     "map",
-     "stars",
-@@ -20,6 +21,7 @@
-   ],
-   "homepage": "https://github.com/ofrohn/d3-celestial",
+@@ -3,6 +3,7 @@
+   "version": "0.8.0",
+   "description": "A D3.js plugin for drawing celestial maps",
    "main": "celestial.js",
 +  "module": "celestial.js",
-   "jsnext:main": "celestial.js",
-   "repository": {
-     "type": "git",
-
+   "directories": {
+     "doc": "doc",
+     "example": "example"
