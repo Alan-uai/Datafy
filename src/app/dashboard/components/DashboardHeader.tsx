@@ -66,7 +66,7 @@ interface DashboardHeaderProps extends DashboardActionsProps {
 export function DashboardHeader({ isEditingWidgets, onWidgetEditToggle, columnVisibility, onColumnVisibilityChange }: DashboardHeaderProps) {
   return (
     <header className="flex items-center justify-between gap-4 mb-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold border-none bg-transparent">Dashboard</h1>
       <DashboardActions
         isEditingWidgets={isEditingWidgets}
         onWidgetEditToggle={onWidgetEditToggle}

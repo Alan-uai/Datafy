@@ -25,7 +25,7 @@ export default function MatrixBackground({
     const alphabet = katakana + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     const fontSize = 16;
     
-    trailCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    trailCtx.fillStyle = 'rgba(0, 0, 0, 0.15)'; // Aumentada a opacidade para rastro mais visível
     trailCtx.fillRect(0, 0, trailCanvas.width, trailCanvas.height);
     trailCtx.font = `${fontSize}px monospace`;
     
@@ -43,7 +43,7 @@ export default function MatrixBackground({
         trailCtx.fillText(text, x, y);
 
         if (mode === 'padrão' && leaderCtx) {
-            leaderCtx.fillStyle = '#cceeff';
+            leaderCtx.fillStyle = '#ffffff'; // Cor do líder alterada para branco sólido
             leaderCtx.fillText(text, x, y);
         } else if (mode === 'merge') {
             trailCtx.fillStyle = '#cceeff';
@@ -83,7 +83,7 @@ export default function MatrixBackground({
         resizeCanvas();
         
         const columns = Math.floor(trailCanvas.width / 16);
-        const drops = Array(columns).fill(1).map((_, i) => Math.floor(Math.random() * trailCanvas.height));
+        const drops = Array(columns).fill(0); // Inicializado para 0 para o efeito de "chuva de cortina"
 
         let lastTime = 0;
         const baseInterval = 50;

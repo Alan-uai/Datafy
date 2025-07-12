@@ -78,8 +78,6 @@ function DashboardComponent() {
     closeDialogs
   } = useDialogs();
   
-  const isLoading = isProfileLoading || isProductDataLoading;
-
   // Widget Preferences Handlers
   const handleWidgetEditing = () => {
     if (!userProfile) return;
@@ -112,7 +110,7 @@ function DashboardComponent() {
     }
   };
 
-  if (isLoading || !userProfile) {
+  if (isProfileLoading || !userProfile) {
     return <LoadingSpinner />;
   }
   
@@ -172,6 +170,7 @@ function DashboardComponent() {
               onProductPointerUp={handleProductPointerUp}
               preferences={preferences}
               onOpenManageListDialog={() => openManageListDialog(null)}
+              isLoading={isProductDataLoading}
             />
         </div>
 

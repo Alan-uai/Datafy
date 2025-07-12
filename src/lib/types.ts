@@ -50,4 +50,5 @@ export interface UserPreferences {
     themeAnimation: 'cintilar' | 'girar' | 'nenhuma';
     themeSpeed: number;
     themeSize: number;
+    matrixMode?: 'padrão' | 'combinado'; // New property
 }

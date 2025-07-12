@@ -61,18 +61,16 @@ export function Header() {
         <div className="flex items-center gap-1 sm:gap-2">
           {currentUser && (
             <>
-              {(pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>
-                      <Settings className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Configurações</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configurações</p>
+                </TooltipContent>
+              </Tooltip>
             
               <Tooltip>
                 <TooltipTrigger asChild>

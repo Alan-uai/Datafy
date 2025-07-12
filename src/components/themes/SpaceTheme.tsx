@@ -11,35 +11,38 @@ interface SpaceThemeProps {
 const SpaceTheme: React.FC<SpaceThemeProps> = ({ speed, size }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
+    const initialAnimationProgress = useRef(0); // 0 to 1 for fade-in
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, stars: any[], shootingStars: any[], nebulas: any[]) => {
         const { width, height } = ctx.canvas;
+        const currentOpacity = initialAnimationProgress.current; // Current opacity for fade-in
+
         ctx.fillStyle = '#000010';
         ctx.fillRect(0, 0, width, height);
 
-        // Draw Nebulas
+        // Draw Nebulas with fade-in
         nebulas.forEach(nebula => {
             const gradient = ctx.createRadialGradient(nebula.x, nebula.y, 0, nebula.x, nebula.y, nebula.radius);
-            gradient.addColorStop(0, `rgba(${nebula.color}, 0.2)`);
-            gradient.addColorStop(0.4, `rgba(${nebula.color}, 0.1)`);
+            gradient.addColorStop(0, `rgba(${nebula.color}, ${0.2 * currentOpacity})`);
+            gradient.addColorStop(0.4, `rgba(${nebula.color}, ${0.1 * currentOpacity})`);
             gradient.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
         });
 
-        // Draw Stars
+        // Draw Stars with fade-in
         stars.forEach(star => {
             ctx.beginPath();
-            ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+            ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity * currentOpacity})`; // Apply opacity
             ctx.arc(star.x, star.y, star.r, 0, 2 * Math.PI);
             ctx.fill();
         });
 
-        // Draw Shooting Stars
+        // Draw Shooting Stars with fade-in
         shootingStars.forEach(star => {
             ctx.beginPath();
             const gradient = ctx.createLinearGradient(star.x, star.y, star.x - star.len, star.y + star.len);
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${1 * currentOpacity})`); // Apply opacity
             gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
             ctx.strokeStyle = gradient;
             ctx.lineWidth = star.width;
@@ -100,6 +103,22 @@ const SpaceTheme: React.FC<SpaceThemeProps> = ({ speed, size }) => {
         const speedRatio = speed / 100;
         const sizeRatio = size / 100;
         
+        const animationStartTime = performance.now();
+        const animationDuration = 1500; // 1.5 seconds fade-in
+
+        const animate = (currentTime: DOMHighResTimeStamp = 0) => {
+            if (initialAnimationProgress.current < 1) {
+                const elapsed = currentTime - animationStartTime;
+                initialAnimationProgress.current = Math.min(1, elapsed / animationDuration);
+            } else {
+                initialAnimationProgress.current = 1; 
+            }
+
+            update(canvas.width, canvas.height, stars, shootingStars, nebulas, speedRatio);
+            draw(ctx, stars, shootingStars, nebulas);
+            animationFrameId.current = requestAnimationFrame(animate);
+        };
+        
         const setup = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -130,15 +149,10 @@ const SpaceTheme: React.FC<SpaceThemeProps> = ({ speed, size }) => {
             }
             
             if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-            animate();
+            initialAnimationProgress.current = 0;
+            animate(performance.now());
         }
 
-        const animate = () => {
-            update(canvas.width, canvas.height, stars, shootingStars, nebulas, speedRatio);
-            draw(ctx, stars, shootingStars, nebulas);
-            animationFrameId.current = requestAnimationFrame(animate);
-        };
-        
         setup();
         window.addEventListener('resize', setup);
         

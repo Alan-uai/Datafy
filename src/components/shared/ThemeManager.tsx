@@ -17,6 +17,7 @@ interface ThemeComponentProps {
     animation: UserPreferences['themeAnimation'];
     speed: UserPreferences['themeSpeed'];
     size: UserPreferences['themeSize'];
+    matrixMode?: UserPreferences['matrixMode'];
 }
 
 const themeMap: Record<ThemeName, React.FC<any>> = {
@@ -46,11 +47,19 @@ export const ThemeManager = () => {
     return null;
   }
 
-  const { theme, themeAnimation, themeSpeed, themeSize } = userProfile.preferences;
+  const { theme, themeAnimation, themeSpeed, themeSize, matrixMode } = userProfile.preferences;
   const ActiveThemeComponent = themeMap[theme];
   
-  const key = `${theme}-${themeAnimation}-${themeSpeed}-${themeSize}`;
-  const props = { animation: themeAnimation, speed: themeSpeed, size: themeSize };
+  // Ensure matrixMode is a defined string for the key and prop, defaulting to 'padrão'
+  const currentMatrixMode = matrixMode || 'padrão';
+
+  const key = `${theme}-${themeAnimation}-${themeSpeed}-${themeSize}-${currentMatrixMode}`;
+  const props = {
+    animation: themeAnimation,
+    speed: themeSpeed,
+    size: themeSize,
+    matrixMode: theme === 'matrix' ? currentMatrixMode : undefined, // Only pass matrixMode if theme is matrix
+  };
 
   return <ActiveThemeComponent key={key} {...props} />;
 };

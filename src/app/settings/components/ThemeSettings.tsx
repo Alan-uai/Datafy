@@ -31,12 +31,14 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
     const [currentAnimation, setCurrentAnimation] = useState(preferences.themeAnimation);
     const [currentThemeSpeed, setCurrentThemeSpeed] = useState(preferences.themeSpeed);
     const [currentThemeSize, setCurrentThemeSize] = useState(preferences.themeSize);
+    const [currentMatrixMode, setCurrentMatrixMode] = useState(preferences.matrixMode || 'padrão'); // Changed default to 'padrão'
 
     useEffect(() => {
         setCurrentTheme(preferences.theme);
         setCurrentAnimation(preferences.themeAnimation);
         setCurrentThemeSpeed(preferences.themeSpeed);
         setCurrentThemeSize(preferences.themeSize);
+        setCurrentMatrixMode(preferences.matrixMode || 'padrão'); // Changed default to 'padrão'
     }, [preferences]);
 
     const handleThemeChange = (theme: ThemeName) => {
@@ -61,6 +63,11 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
         const newSize = value[0];
         setCurrentThemeSize(newSize);
         onPreferencesChange({ themeSize: newSize });
+    };
+
+    const handleMatrixModeChange = (mode: 'padrão' | 'combinado') => {
+        setCurrentMatrixMode(mode);
+        onPreferencesChange({ matrixMode: mode });
     };
 
     return (
@@ -88,6 +95,45 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                         </div>
                     ))}
                 </RadioGroup>
+
+                {currentTheme === 'matrix' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="pt-6 border-t space-y-8"
+                    >
+                        <div>
+                            <Label className="text-base font-medium">Modo Matrix</Label>
+                            <p className="text-sm text-muted-foreground mb-3">
+                                Escolha o modo de renderização para o tema Matrix.
+                            </p>
+                            <RadioGroup
+                                value={currentMatrixMode}
+                                onValueChange={(value) => handleMatrixModeChange(value as 'padrão' | 'combinado')}
+                                className="flex flex-col sm:flex-row gap-4"
+                            >
+                                <div className="flex-1">
+                                    <RadioGroupItem value="padrão" id="matrix-mode-padrao" className="peer sr-only" />
+                                    <Label 
+                                        htmlFor="matrix-mode-padrao" 
+                                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                    >
+                                        Padrão (Dois Canvas)
+                                    </Label>
+                                </div>
+                                <div className="flex-1">
+                                    <RadioGroupItem value="combinado" id="matrix-mode-combinado" className="peer sr-only" />
+                                    <Label 
+                                        htmlFor="matrix-mode-combinado" 
+                                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                    >
+                                        Combinado (Um Canvas)
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                    </motion.div>
+                )}
 
                 <motion.div 
                     initial={{ opacity: 0, y: -10 }} 

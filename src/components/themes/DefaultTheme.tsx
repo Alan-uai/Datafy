@@ -38,8 +38,15 @@ const DefaultTheme: React.FC<DefaultThemeProps> = ({ speed, size }) => {
         particles.forEach(p => {
             p.x += p.vx * speedRatio;
             p.y += p.vy * speedRatio;
+            // Se a partícula sair por baixo, reinicia ela no topo
+            if (p.y > height) {
+                p.y = 0;
+                p.x = Math.random() * width; // Reposiciona x aleatoriamente no topo
+            } 
+            // Se a partícula sair pelas laterais, inverte a direção
             if (p.x < 0 || p.x > width) p.vx *= -1;
-            if (p.y < 0 || p.y > height) p.vy *= -1;
+             // Evita que as partículas subam acima da tela
+            if (p.y < 0) p.vy = Math.abs(p.vy); 
         });
     }, []);
     
@@ -65,11 +72,11 @@ const DefaultTheme: React.FC<DefaultThemeProps> = ({ speed, size }) => {
             for (let i = 0; i < numParticles; i++) {
                 particles.push({
                     x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
+                    y: 0, // Todas as partículas começam no topo
                     radius: Math.random() * 2 + 1,
                     opacity: Math.random() * 0.5 + 0.2,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: (Math.random() - 0.5) * 0.5,
+                    vx: (Math.random() - 0.5) * 0.5, // Movimento horizontal variado
+                    vy: Math.random() * 0.5 + 0.5, // Velocidade vertical inicial para baixo
                 });
             }
             
