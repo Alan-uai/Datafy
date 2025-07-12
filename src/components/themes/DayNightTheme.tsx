@@ -6,105 +6,125 @@ import React, { useRef, useEffect, useCallback } from 'react';
 interface DayNightThemeProps {
     speed: number;
     size: number;
+    diurnoMode?: boolean;
 }
 
-const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size }) => {
+const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode = false }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
+    const starsRef = useRef<any[]>([]);
 
-    const lerpColor = (colorA: number[], colorB: number[], t: number) => {
-        return colorA.map((c, i) => c + (colorB[i] - c) * t);
+    const lerpColor = (colorA: number[], colorB: number[], t: number): string => {
+        const r = Math.round(colorA[0] + (colorB[0] - colorA[0]) * t);
+        const g = Math.round(colorA[1] + (colorB[1] - colorA[1]) * t);
+        const b = Math.round(colorA[2] + (colorB[2] - colorA[2]) * t);
+        return `rgb(${r}, ${g}, ${b})`;
     };
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, frame: number, speedRatio: number, sizeRatio: number) => {
         const { width, height } = ctx.canvas;
         ctx.clearRect(0, 0, width, height);
 
-        const cycleDuration = 7200 / speedRatio;
-        const totalProgress = (frame % cycleDuration) / cycleDuration; // 0 to 1
+        let cycleProgress: number;
 
-        // --- Define Colors ---
-        const dayColor = [135, 206, 255];   // Sky Blue
-        const nightColor = [0, 0, 30];       // Deep Blue
-        const sunsetColor = [255, 140, 0];    // Orange
-        const sunriseColor = [255, 182, 193];  // Pink
-
-        // --- Determine Phase and Colors ---
-        let bgColor;
-        const dayPhaseProgress = totalProgress * 2;       // 0 to 1 during the day
-        const nightPhaseProgress = (totalProgress - 0.5) * 2; // 0 to 1 during the night
-
-        if (totalProgress < 0.5) { // Day Phase
-            if (dayPhaseProgress < 0.1) { // Sunrise
-                bgColor = lerpColor(sunriseColor, dayColor, dayPhaseProgress / 0.1);
-            } else if (dayPhaseProgress > 0.9) { // Sunset
-                bgColor = lerpColor(dayColor, sunsetColor, (dayPhaseProgress - 0.9) / 0.1);
-            } else { // Daytime
-                bgColor = dayColor;
-            }
-        } else { // Night Phase
-            if (nightPhaseProgress < 0.1) { // Sunset -> Night
-                bgColor = lerpColor(sunsetColor, nightColor, nightPhaseProgress / 0.1);
-            } else if (nightPhaseProgress > 0.9) { // Night -> Sunrise
-                bgColor = lerpColor(nightColor, sunriseColor, (nightPhaseProgress - 0.9) / 0.1);
-            } else { // Nighttime
-                bgColor = nightColor;
-            }
+        if (diurnoMode) {
+            const now = new Date();
+            const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            cycleProgress = totalSeconds / 86400; // 86400 seconds in a day
+        } else {
+            const cycleDuration = 3600 / speedRatio;
+            cycleProgress = (frame % cycleDuration) / cycleDuration;
         }
-        
-        const [r, g, b] = bgColor;
+
+        const nightColor = [15, 23, 42]; // Slate 900
+        const dayColor = [100, 116, 139]; // Slate 500
+        const sunsetColor = [251, 146, 60]; // Orange 400
+        const sunriseColor = [244, 114, 182]; // Pink 400
+
+        let bgColor1, bgColor2;
+
+        if (cycleProgress < 0.25) { // Night -> Sunrise
+            const t = cycleProgress / 0.25;
+            bgColor1 = lerpColor(nightColor, sunriseColor, t);
+            bgColor2 = lerpColor(nightColor, dayColor, t);
+        } else if (cycleProgress < 0.5) { // Sunrise -> Day
+            const t = (cycleProgress - 0.25) / 0.25;
+            bgColor1 = lerpColor(sunriseColor, dayColor, t);
+            bgColor2 = lerpColor(dayColor, dayColor, t);
+        } else if (cycleProgress < 0.75) { // Day -> Sunset
+            const t = (cycleProgress - 0.5) / 0.25;
+            bgColor1 = lerpColor(dayColor, sunsetColor, t);
+            bgColor2 = lerpColor(dayColor, nightColor, t);
+        } else { // Sunset -> Night
+            const t = (cycleProgress - 0.75) / 0.25;
+            bgColor1 = lerpColor(sunsetColor, nightColor, t);
+            bgColor2 = lerpColor(nightColor, nightColor, t);
+        }
+
         const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-        bgGradient.addColorStop(0, `rgb(${r}, ${g}, ${b})`);
-        bgGradient.addColorStop(1, `rgb(${Math.max(0,r-80)}, ${Math.max(0,g-80)}, ${Math.max(0,b-80)})`);
+        bgGradient.addColorStop(0, bgColor1);
+        bgGradient.addColorStop(1, bgColor2);
         ctx.fillStyle = bgGradient;
         ctx.fillRect(0, 0, width, height);
         
-        // --- Celestial Bodies ---
-        const pathRadius = Math.min(width, height) / 2.5;
+        const isNight = cycleProgress < 0.25 || cycleProgress > 0.75;
+        let nightOpacity = 0;
+        if (cycleProgress < 0.25) nightOpacity = 1 - (cycleProgress / 0.25);
+        if (cycleProgress > 0.75) nightOpacity = (cycleProgress - 0.75) / 0.25;
 
-        // Sun
-        if (totalProgress < 0.55) { // Render sun during day and sunset
-            const sunAngle = dayPhaseProgress * Math.PI - Math.PI; // -PI to 0
-            const sunX = width / 2 - pathRadius * Math.cos(sunAngle);
-            const sunY = height / 1.5 - pathRadius * Math.sin(sunAngle);
-            const sunRadius = 50 * sizeRatio * (1 + Math.sin(dayPhaseProgress * Math.PI) * 0.2); // Brighter/bigger at midday
-            const sunOpacity = totalProgress < 0.45 ? 1 : 1 - ((totalProgress - 0.45) / 0.1);
-
-            ctx.fillStyle = `rgba(255, 255, 0, ${sunOpacity})`;
-            ctx.beginPath();
-            ctx.arc(sunX, sunY, sunRadius, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-
-        // Moon & Stars
-        if (totalProgress > 0.45) { // Render moon during sunset and night
-            const moonAngle = nightPhaseProgress * Math.PI - Math.PI; // -PI to 0
-            const moonX = width / 2 - pathRadius * Math.cos(moonAngle);
-            const moonY = height / 1.5 - pathRadius * Math.sin(moonAngle);
-            const moonRadius = 40 * sizeRatio * (1 + Math.sin(nightPhaseProgress * Math.PI) * 0.2); // Bigger at midnight
-            const moonOpacity = totalProgress < 0.55 ? (totalProgress - 0.45) / 0.1 : (totalProgress > 0.95 ? 1 - ((totalProgress - 0.95) / 0.05) : 1);
-            
-            // Stars
-            if (moonOpacity > 0) {
-                 ctx.fillStyle = `rgba(255, 255, 255, ${moonOpacity * 0.7})`;
-                 for (let i = 0; i < 150 * sizeRatio; i++) {
-                    const sx = ((i * 139) * (width/150)) % width;
-                    const sy = ((i * 379) * (height/150)) % height;
-                    const sr = ((i * 53) % 15) / 10 + 0.5;
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
-            // Moon
-            ctx.fillStyle = `rgba(240, 240, 255, ${moonOpacity})`;
-            ctx.beginPath();
-            ctx.arc(moonX, moonY, moonRadius, 0, 2 * Math.PI);
-            ctx.fill();
+        if (isNight) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${nightOpacity * 0.7})`;
+            starsRef.current.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.r * sizeRatio, 0, Math.PI * 2);
+                ctx.fill();
+            });
         }
         
-    }, []);
+        const celestialPathY = height * 0.6;
+        const celestialRadiusX = width / 2.2;
+        const celestialRadiusY = height / 2.5;
+        const angle = cycleProgress * 2 * Math.PI + Math.PI / 2;
+        
+        const x = width / 2 - Math.cos(angle) * celestialRadiusX;
+        const y = celestialPathY - Math.sin(angle) * celestialRadiusY;
+        
+        // Sun
+        const sunRadius = 40 * sizeRatio;
+        const sunOpacity = 1 - nightOpacity;
+        if (sunOpacity > 0) {
+            const sunGradient = ctx.createRadialGradient(x, y, 0, x, y, sunRadius);
+            sunGradient.addColorStop(0, `rgba(255, 255, 224, ${sunOpacity})`);
+            sunGradient.addColorStop(1, `rgba(251, 146, 60, 0)`);
+            ctx.fillStyle = sunGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, sunRadius * 2, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.fillStyle = `rgba(253, 224, 71, ${sunOpacity})`;
+            ctx.beginPath();
+            ctx.arc(x, y, sunRadius, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // Moon
+        const moonRadius = 30 * sizeRatio;
+        if (nightOpacity > 0) {
+            const moonGradient = ctx.createRadialGradient(x, y, 0, x, y, moonRadius);
+            moonGradient.addColorStop(0, `rgba(241, 245, 249, ${nightOpacity})`);
+            moonGradient.addColorStop(1, `rgba(241, 245, 249, 0)`);
+            ctx.fillStyle = moonGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, moonRadius * 2, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.fillStyle = `rgba(226, 232, 240, ${nightOpacity})`;
+            ctx.beginPath();
+            ctx.arc(x, y, moonRadius, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+    }, [diurnoMode]);
     
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -125,6 +145,14 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size }) => {
         const setup = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            starsRef.current = [];
+            for (let i = 0; i < 200 * sizeRatio; i++) {
+                starsRef.current.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.8,
+                    r: Math.random() * 1.5,
+                });
+            }
             if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
             animate();
         }
@@ -138,7 +166,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size }) => {
                 cancelAnimationFrame(animationFrameId.current);
             }
         };
-    }, [draw, speed, size]);
+    }, [draw, speed, size, diurnoMode]);
 
     return (
         <div className="fixed inset-0 -z-10">

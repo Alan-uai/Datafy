@@ -69,6 +69,7 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
     themeAnimation: 'nenhuma',
     themeSpeed: 100,
     themeSize: 100,
+    diurnoMode: false,
   },
   privacy: { showEmail: false, showActivity: true },
 };
@@ -77,7 +78,7 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
   const userRef = doc(db, 'users', uid);
   const now = serverTimestamp();
   
-  const newUserProfile: UserProfile = {
+  const newUserProfileData = {
     ...defaultProfile,
     uid,
     displayName: data.displayName || null,
@@ -93,11 +94,17 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
     premium: data.premium || defaultProfile.premium,
   };
 
-  await setDoc(userRef, newUserProfile);
+  await setDoc(userRef, newUserProfileData);
   
-  // Fetch and return the just-created profile to have consistent data (with server timestamp converted to Date)
   const docSnap = await getDoc(userRef);
-  return docSnap.data() as UserProfile;
+  const createdProfile = docSnap.data();
+
+  // Convert server timestamps to Date objects for immediate use
+  return {
+      ...createdProfile,
+      createdAt: createdProfile?.createdAt.toDate(),
+      updatedAt: createdProfile?.updatedAt.toDate()
+  } as UserProfile;
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {

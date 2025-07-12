@@ -5,10 +5,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import type { UserPreferences, ThemeName } from '@/lib/types';
 
 const THEME_OPTIONS = [
@@ -31,14 +32,16 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
     const [currentAnimation, setCurrentAnimation] = useState(preferences.themeAnimation);
     const [currentThemeSpeed, setCurrentThemeSpeed] = useState(preferences.themeSpeed);
     const [currentThemeSize, setCurrentThemeSize] = useState(preferences.themeSize);
-    const [currentMatrixMode, setCurrentMatrixMode] = useState(preferences.matrixMode || 'padrão'); // Changed default to 'padrão'
+    const [currentMatrixMode, setCurrentMatrixMode] = useState(preferences.matrixMode || 'padrão');
+    const [currentDiurnoMode, setCurrentDiurnoMode] = useState(preferences.diurnoMode || false);
 
     useEffect(() => {
         setCurrentTheme(preferences.theme);
         setCurrentAnimation(preferences.themeAnimation);
         setCurrentThemeSpeed(preferences.themeSpeed);
         setCurrentThemeSize(preferences.themeSize);
-        setCurrentMatrixMode(preferences.matrixMode || 'padrão'); // Changed default to 'padrão'
+        setCurrentMatrixMode(preferences.matrixMode || 'padrão');
+        setCurrentDiurnoMode(preferences.diurnoMode || false);
     }, [preferences]);
 
     const handleThemeChange = (theme: ThemeName) => {
@@ -70,6 +73,11 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
         onPreferencesChange({ matrixMode: mode });
     };
 
+    const handleDiurnoModeChange = (checked: boolean) => {
+        setCurrentDiurnoMode(checked);
+        onPreferencesChange({ diurnoMode: checked });
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -96,10 +104,10 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                     ))}
                 </RadioGroup>
 
+                <AnimatePresence>
                 {currentTheme === 'matrix' && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                         className="pt-6 border-t space-y-8"
                     >
                         <div>
@@ -134,6 +142,33 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                         </div>
                     </motion.div>
                 )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                {currentTheme === 'dia-noite' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="pt-6 border-t space-y-4"
+                    >
+                        <Label className="text-base font-medium">Configurações Dia/Noite</Label>
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="diurno-mode" className="text-sm font-medium flex items-center gap-2">
+                                    <Clock className="w-4 h-4"/> Modo Diurno (Tempo Real)
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Sincroniza o ciclo dia/noite com o seu relógio.
+                                </p>
+                            </div>
+                            <Switch
+                                id="diurno-mode"
+                                checked={currentDiurnoMode}
+                                onCheckedChange={handleDiurnoModeChange}
+                            />
+                        </div>
+                    </motion.div>
+                )}
+                </AnimatePresence>
 
                 <motion.div 
                     initial={{ opacity: 0, y: -10 }} 
@@ -183,10 +218,10 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                         </RadioGroup>
                     </div>
 
-                    <div>
+                    <div className={cn(currentDiurnoMode && currentTheme === 'dia-noite' ? 'opacity-50 pointer-events-none' : '')}>
                         <Label htmlFor="speed-slider" className="text-base font-medium">Velocidade da Animação</Label>
                         <p className="text-sm text-muted-foreground mb-3">
-                            Ajuste a velocidade da animação do tema de fundo.
+                            Ajuste a velocidade da animação do tema de fundo. {currentDiurnoMode && currentTheme === 'dia-noite' && '(Desativado no Modo Diurno)'}
                         </p>
                         <div className="flex items-center gap-4">
                            <SlidersHorizontal className="h-5 w-5 text-muted-foreground"/>
@@ -197,6 +232,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                              step={1}
                              value={[currentThemeSpeed]}
                              onValueChange={handleSpeedChange}
+                             disabled={currentDiurnoMode && currentTheme === 'dia-noite'}
                            />
                            <span className="text-sm font-mono w-12 text-center">{currentThemeSpeed}%</span>
                         </div>

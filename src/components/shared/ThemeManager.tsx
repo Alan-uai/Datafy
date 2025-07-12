@@ -18,6 +18,7 @@ interface ThemeComponentProps {
     speed: UserPreferences['themeSpeed'];
     size: UserPreferences['themeSize'];
     matrixMode?: UserPreferences['matrixMode'];
+    diurnoMode?: UserPreferences['diurnoMode'];
 }
 
 const themeMap: Record<ThemeName, React.FC<any>> = {
@@ -47,18 +48,20 @@ export const ThemeManager = () => {
     return null;
   }
 
-  const { theme, themeAnimation, themeSpeed, themeSize, matrixMode } = userProfile.preferences;
+  const { theme, themeAnimation, themeSpeed, themeSize, matrixMode, diurnoMode } = userProfile.preferences;
   const ActiveThemeComponent = themeMap[theme];
   
-  // Ensure matrixMode is a defined string for the key and prop, defaulting to 'padrão'
   const currentMatrixMode = matrixMode || 'padrão';
+  const currentDiurnoMode = diurnoMode || false;
 
-  const key = `${theme}-${themeAnimation}-${themeSpeed}-${themeSize}-${currentMatrixMode}`;
+  const key = `${theme}-${themeAnimation}-${themeSpeed}-${themeSize}-${currentMatrixMode}-${currentDiurnoMode}`;
+  
   const props = {
     animation: themeAnimation,
     speed: themeSpeed,
     size: themeSize,
-    matrixMode: theme === 'matrix' ? currentMatrixMode : undefined, // Only pass matrixMode if theme is matrix
+    matrixMode: theme === 'matrix' ? currentMatrixMode : undefined,
+    diurnoMode: theme === 'dia-noite' ? currentDiurnoMode : undefined,
   };
 
   return <ActiveThemeComponent key={key} {...props} />;

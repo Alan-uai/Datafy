@@ -50,5 +50,6 @@ export interface UserPreferences {
     themeAnimation: 'cintilar' | 'girar' | 'nenhuma';
     themeSpeed: number;
     themeSize: number;
-    matrixMode?: 'padrão' | 'combinado'; // New property
+    matrixMode?: 'padrão' | 'combinado';
+    diurnoMode?: boolean; // New property for Day/Night theme
 }
