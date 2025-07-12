@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { ThemeName } from '@/lib/types';
-import { Sun, Moon, Bot, Space, Cherry } from 'lucide-react';
+import { Sun, Moon, Bot, Space, Cherry, Waves } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -16,7 +16,7 @@ const themeIcons: Record<string, React.FC<{ className?: string }>> = {
   light: Sun,
   dark: Moon,
   matrix: Bot,
-  verão: Sun,
+  verão: Waves,
   espaço: Space,
   sakura: Cherry,
   'dia-noite': Moon,
@@ -47,122 +47,74 @@ export const ThemeToggleButton: React.FC = () => {
 
     const { activeTheme, lastCustomTheme, defaultThemeMode } = userProfile.preferences;
     
-    const handleThemeToggle = () => {
-        let nextTheme: ThemeName;
+    const handleToggle = () => {
+        const isDefaultActive = activeTheme === 'light' || activeTheme === 'dark';
 
-        const isCustomThemeActive = activeTheme !== 'light' && activeTheme !== 'dark';
-
-        if (isCustomThemeActive) {
-            // If a custom theme is active, switch to the configured default theme
-            nextTheme = defaultThemeMode;
+        if (isDefaultActive) {
+            // If default is active, switch to the last used custom theme
+            savePreferences({ activeTheme: lastCustomTheme });
         } else {
-            // If a default theme (light/dark) is active, switch to the last used custom theme.
-            // If there's no last custom theme, just toggle between light and dark.
-            const customThemeToSwitchTo = (lastCustomTheme !== 'light' && lastCustomTheme !== 'dark') ? lastCustomTheme : 'matrix'; // fallback to matrix
-            
-            if (activeTheme === defaultThemeMode) {
-                 nextTheme = customThemeToSwitchTo;
-            } else {
-                // This case handles toggling between light/dark when default is selected
-                nextTheme = activeTheme === 'light' ? 'dark' : 'light';
-            }
+            // If a custom theme is active, switch to the default mode (light or dark)
+            savePreferences({ activeTheme: defaultThemeMode });
         }
-        savePreferences({ activeTheme: nextTheme });
     };
     
-    const getIcon = () => {
-        // The icon should always represent the *next* state.
-        const isCustomThemeActive = activeTheme !== 'light' && activeTheme !== 'dark';
+    const getIconAndTooltip = () => {
+        const isDefaultActive = activeTheme === 'light' || activeTheme === 'dark';
         let nextTheme: ThemeName;
-        let IconComponent: React.FC<any>;
+        let tooltipText: string;
 
-        if (isCustomThemeActive) {
-            // If custom is active, next is the default (light/dark)
-            nextTheme = defaultThemeMode;
-            IconComponent = themeIcons[nextTheme];
+        if (isDefaultActive) {
+            // Currently on a default theme, next will be the last custom theme
+            nextTheme = lastCustomTheme;
+            tooltipText = `Mudar para tema ${themeLabels[nextTheme]}`;
         } else {
-             // If default is active, next is the last custom theme or the other default
-             if(activeTheme === 'light') {
-                IconComponent = themeIcons['dark'];
-             } else if (activeTheme === 'dark') {
-                IconComponent = themeIcons['light'];
-             } else {
-                const customTheme = (lastCustomTheme !== 'light' && lastCustomTheme !== 'dark') ? lastCustomTheme : 'matrix';
-                IconComponent = themeIcons[customTheme];
-             }
+            // Currently on a custom theme, next will be the default mode
+            nextTheme = defaultThemeMode;
+            tooltipText = `Mudar para tema Padrão (${themeLabels[nextTheme]})`;
         }
+
+        const IconComponent = themeIcons[nextTheme] || Moon;
+
+        return { Icon: <IconComponent className="h-5 w-5" />, tooltip: tooltipText };
+    };
+
+    const { Icon, tooltip } = getIconAndTooltip();
+    
+    // This is a special case for when the user is in "Padrão" mode and just wants to toggle light/dark
+    // This happens when the last selected theme in settings *was* "Padrão"
+    const isPadrãoModeSelectedInSettings = (lastCustomTheme === 'light' || lastCustomTheme === 'dark' || lastCustomTheme === 'padrão');
+
+    if (isPadrãoModeSelectedInSettings) {
+        const nextMode = activeTheme === 'light' ? 'dark' : 'light';
+        const NextIcon = nextMode === 'light' ? Sun : Moon;
         
-        // Fallback for safety
-        if (!IconComponent) IconComponent = Moon;
-
-        return <IconComponent className="h-5 w-5" />;
-    };
-    
-    const getTooltipText = () => {
-       const isCustomThemeActive = activeTheme !== 'light' && activeTheme !== 'dark';
-       let nextTheme: ThemeName;
-       
-       if (isCustomThemeActive) {
-           nextTheme = defaultThemeMode;
-           return `Mudar para tema Padrão (${themeLabels[nextTheme]})`;
-       } else {
-           const customTheme = (lastCustomTheme !== 'light' && lastCustomTheme !== 'dark') ? lastCustomTheme : 'matrix';
-           if(activeTheme === 'light') return `Mudar para tema Padrão (Escuro)`;
-           if(activeTheme === 'dark') return `Mudar para tema Padrão (Claro)`;
-           return `Mudar para tema ${themeLabels[customTheme]}`;
-       }
-    }
-
-    // Special logic for when "Padrão" is the selected option in settings
-    const isPadrãoSelected = (activeTheme === 'light' || activeTheme === 'dark');
-
-    const handlePadrãoToggle = () => {
-        const nextTheme = activeTheme === 'light' ? 'dark' : 'light';
-        savePreferences({ activeTheme: nextTheme, defaultThemeMode: nextTheme });
-    }
-
-    if (activeTheme === lastCustomTheme) { // User is on a custom theme
         return (
-            <Tooltip>
+             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => savePreferences({ activeTheme: defaultThemeMode })}>
-                        <Moon className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" onClick={() => savePreferences({ activeTheme: nextMode })}>
+                        <NextIcon className="h-5 w-5" />
                         <span className="sr-only">Toggle theme</span>
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Mudar para tema Padrão ({themeLabels[defaultThemeMode]})</p>
-                </TooltipContent>
-            </Tooltip>
-        );
-    }
-
-    if (isPadrãoSelected) { // User is on light/dark
-        return (
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => savePreferences({ activeTheme: lastCustomTheme })}>
-                        {React.createElement(themeIcons[lastCustomTheme] || Bot, {className: "h-5 w-5"})}
-                        <span className="sr-only">Toggle theme</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Mudar para tema {themeLabels[lastCustomTheme]}</p>
+                  <p>Mudar para tema {themeLabels[nextMode]}</p>
                 </TooltipContent>
             </Tooltip>
         );
     }
     
-     // Fallback / Initial state
+    // Main toggle logic for switching between custom and default
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={() => savePreferences({ activeTheme: defaultThemeMode })}>
-                     <Moon className="h-5 w-5" />
+                <Button variant="ghost" size="icon" onClick={handleToggle}>
+                    {Icon}
+                    <span className="sr-only">Toggle theme</span>
                 </Button>
             </TooltipTrigger>
             <TooltipContent>
-                <p>Mudar para tema Padrão ({themeLabels[defaultThemeMode]})</p>
+              <p>{tooltip}</p>
             </TooltipContent>
         </Tooltip>
     );

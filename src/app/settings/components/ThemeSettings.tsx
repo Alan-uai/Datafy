@@ -16,7 +16,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 const THEME_OPTIONS = [
     { value: 'padrão', label: 'Padrão', icon: Palette },
     { value: 'matrix', label: 'Matrix', icon: Bot, isPremium: true },
-    { value: 'verão', label: 'Verão', icon: Sun },
+    { value: 'verão', label: 'Verão', icon: Waves },
     { value: 'espaço', label: 'Espaço', icon: Space },
     { value: 'sakura', label: 'Sakura', icon: Cherry },
     { value: 'dia-noite', label: 'Dia/Noite', icon: Moon },
