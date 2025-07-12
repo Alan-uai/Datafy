@@ -4,16 +4,13 @@
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ThemeManager } from '@/components/shared/ThemeManager';
 
 function RootLayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <ThemeManager />
-      <ProtectedRoute>
-        {children}
-      </ProtectedRoute>
+      {children}
       <Toaster />
     </AuthProvider>
   );

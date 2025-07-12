@@ -1,7 +1,6 @@
-
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,13 +32,23 @@ export function AuthLayout({
   gradientVia = 'via-purple-900',
   gradientTo = 'to-slate-800',
 }: AuthLayoutProps) {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    delay: Math.random() * 2,
-    duration: 3 + Math.random() * 2,
-  }));
+  const [particles, setParticles] = useState<{
+    id: number;
+    x: number;
+    y: number;
+    delay: number;
+    duration: number;
+  }[]>([]);
+
+  useEffect(() => {
+    setParticles(Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      delay: Math.random() * 2,
+      duration: 3 + Math.random() * 2,
+    })));
+  }, []);
 
   const gradientClasses = cn('bg-gradient-to-br', gradientFrom, gradientVia, gradientTo);
   const textColorClass = gradientFrom === 'from-slate-900' ? 'text-purple-200' : 'text-emerald-200';

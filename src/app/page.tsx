@@ -21,6 +21,7 @@ import { MultiSelectBar } from "@/components/dashboard/MultiSelectBar";
 import type { AllWidgetType } from "@/components/dashboard/widgets/widget-map";
 import { Header } from "@/components/shared/Header";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { DashboardHeader } from "./dashboard/components/DashboardHeader";
 
 function DashboardComponent() {
   const { userProfile, savePreferences, isLoading: isProfileLoading } = useUserProfile();
@@ -121,6 +122,12 @@ function DashboardComponent() {
   return (
     <div className="flex flex-col h-full relative">
         <div className="p-4 md:p-6">
+            <DashboardHeader
+              isEditingWidgets={preferences.isEditingWidgets}
+              onWidgetEditToggle={handleWidgetEditing}
+              columnVisibility={preferences.columnVisibility}
+              onColumnVisibilityChange={handleColumnVisibilityChange}
+            />
             <WidgetManager
                 isEditingWidgets={preferences.isEditingWidgets}
                 hasPremium={!!premium}

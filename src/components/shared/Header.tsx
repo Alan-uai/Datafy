@@ -16,7 +16,7 @@ import { LogOut, BarChart3, Settings } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 
 export function Header() {
-  const { currentUser, logout, hasPremium } = useAuth();
+  const { currentUser, logout, userProfile } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -34,14 +34,16 @@ export function Header() {
     }
     return 'U';
   };
+  
+  const hasPremium = !!userProfile?.premium;
 
   const AnalyticsButton = () => (
     <Button 
       variant="ghost" 
       size="icon" 
-      onClick={() => hasPremium() && router.push('/analytics')}
-      disabled={!hasPremium()}
-      className={!hasPremium() ? 'opacity-50 cursor-not-allowed' : ''}
+      onClick={() => hasPremium && router.push('/analytics')}
+      disabled={!hasPremium}
+      className={!hasPremium ? 'opacity-50 cursor-not-allowed' : ''}
     >
       <BarChart3 className="h-5 w-5" />
     </Button>
@@ -51,7 +53,7 @@ export function Header() {
     <TooltipProvider>
       <header className="sticky top-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-card/80 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard">
+          <Link href="/">
             <AppLogo />
           </Link>
         </div>
@@ -59,7 +61,7 @@ export function Header() {
         <div className="flex items-center gap-1 sm:gap-2">
           {currentUser && (
             <>
-              {pathname.startsWith('/dashboard') && (
+              {(pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>
@@ -77,7 +79,7 @@ export function Header() {
                    <AnalyticsButton/>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Análise {hasPremium() ? '' : '(Premium)'}</p>
+                  <p>Análise {hasPremium ? '' : '(Premium)'}</p>
                 </TooltipContent>
               </Tooltip>
 

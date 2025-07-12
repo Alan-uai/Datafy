@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const newProfileData = {
                 displayName: user.displayName,
                 email: user.email,
-                photoURL: user.photoURL || undefined,
+                photoURL: user.photoURL || null,
             };
             // Create the profile and get the created profile data to set it
             profile = await createUserProfile(user.uid, newProfileData);

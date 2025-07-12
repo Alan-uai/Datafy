@@ -1,7 +1,7 @@
 
 "use client";
 
-import Dashboard from "@/app/dashboard/page";
+import DashboardComponent from "@/app/page";
 import { Header } from "@/components/shared/Header";
 
 export default function MatrixPage() {
@@ -9,7 +9,7 @@ export default function MatrixPage() {
     <div className="relative min-h-screen flex flex-col bg-transparent">
       <Header />
       <main className="flex-1">
-        <Dashboard />
+        <DashboardComponent />
       </main>
     </div>
   );

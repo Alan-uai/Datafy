@@ -1,4 +1,3 @@
-
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { UserPreferences, PremiumPlan } from '@/lib/types';
@@ -83,7 +82,7 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
     uid,
     displayName: data.displayName || null,
     email: data.email || null,
-    photoURL: data.photoURL || undefined,
+    photoURL: data.photoURL === undefined ? null : data.photoURL || null,
     createdAt: now,
     updatedAt: now,
     stats: { ...defaultProfile.stats, ...(data.stats || {}) },

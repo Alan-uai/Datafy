@@ -19,7 +19,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size }) => {
 
         // Sky gradient
         const dayColor = { r: 135, g: 206, b: 235 };
-        const nightColor = { r: 0, g: 0, 50 };
+        const nightColor = { r: 0, g: 0, b: 50 };
         const sunriseColor = { r: 255, g: 127, b: 80 };
 
         let r, g, b;
