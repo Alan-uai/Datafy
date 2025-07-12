@@ -1,69 +1,17 @@
 
 "use client";
 
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 
 interface DayNightThemeProps {
     speed: number;
     size: number;
     diurnoMode?: boolean;
-    astrologicalEvents?: boolean;
 }
 
-const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode = false, astrologicalEvents = true }) => {
+const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode = false }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
-
-    const getMoonPhase = (date: Date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-    
-        let a = Math.floor((14 - month) / 12);
-        let y = year + 4800 - a;
-        let m = month + 12 * a - 3;
-    
-        let jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-        
-        const synodicMonth = 29.53058867;
-        const newMoonJDN = 2451549.5; // JDN of a known new moon (2000-01-06)
-        
-        const daysSinceNewMoon = jdn - newMoonJDN;
-        const phase = (daysSinceNewMoon / synodicMonth) % 1;
-        
-        const age = phase * synodicMonth;
-        const illumination = 0.5 * (1 - Math.cos(2 * Math.PI * phase));
-        
-        return { age, illumination, phase };
-    };
-
-    const draw = useCallback((ctx: CanvasRenderingContext2D, frame: number, speedRatio: number, sizeRatio: number) => {
-        const { width, height } = ctx.canvas;
-        ctx.clearRect(0, 0, width, height);
-
-        const now = new Date();
-        const animationTotalFrames = 24000;
-        
-        const cycleProgress = diurnoMode
-            ? (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400
-            : (frame % animationTotalFrames) / animationTotalFrames;
-
-        // Sky Colors
-        const skyColors = getSkyColors(cycleProgress);
-        const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-        bgGradient.addColorStop(0, skyColors.top);
-        bgGradient.addColorStop(0.6, skyColors.middle);
-        bgGradient.addColorStop(1, skyColors.bottom);
-        ctx.fillStyle = bgGradient;
-        ctx.fillRect(0, 0, width, height);
-
-        const isNight = cycleProgress < 0.25 || cycleProgress > 0.75;
-
-        // Draw Sun and Moon
-        drawCelestialBody(ctx, 'sun', { width, height, cycleProgress, sizeRatio, frame, speedRatio });
-        drawCelestialBody(ctx, 'moon', { width, height, cycleProgress, sizeRatio, date: now });
-
-    }, [diurnoMode]);
 
     const lerpColor = (c1: number[], c2: number[], t: number): number[] => ([
         Math.round(c1[0] + (c2[0] - c1[0]) * t),
@@ -104,54 +52,47 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
             ctx.fill();
         } else { // Moon
             const moonRadius = 35 * p.sizeRatio;
-            const phaseInfo = getMoonPhase(p.date);
             
             ctx.save();
             ctx.translate(x, y);
 
-            // Base Moon
+            // Base Moon color
             ctx.fillStyle = '#f0f0ff';
             ctx.beginPath();
             ctx.arc(0, 0, moonRadius, 0, 2 * Math.PI);
             ctx.fill();
-
-            // Shadow
-            ctx.fillStyle = '#444';
-            ctx.beginPath();
-            const phase = phaseInfo.phase; // 0 = New, 0.25 = First Q, 0.5 = Full, 0.75 = Last Q
-
-            if (phase > 0 && phase < 1) {
-                ctx.moveTo(0, -moonRadius);
-                for (let i = -moonRadius; i <= moonRadius; i++) {
-                    const angle = Math.acos(i / moonRadius);
-                    const xPoint = moonRadius * Math.sin(angle);
-                    const yPoint = moonRadius * Math.cos(angle);
-                    
-                    if (phase < 0.5) { // Waxing
-                         ctx.lineTo(-xPoint * Math.cos(phase * 2 * Math.PI), yPoint);
-                    } else { // Waning
-                         ctx.lineTo(xPoint * Math.cos(phase * 2 * Math.PI), yPoint);
-                    }
-                }
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            if(phase > 0.5) { // cover lit part for waning
-                ctx.fillStyle = '#444';
-                ctx.beginPath();
-                ctx.rect(-moonRadius, -moonRadius, moonRadius, moonRadius * 2);
-                ctx.fill();
-            } else { // cover lit part for waxing
-                ctx.fillStyle = '#444';
-                ctx.beginPath();
-                ctx.rect(0, -moonRadius, moonRadius, moonRadius * 2);
-                ctx.fill();
-            }
             
             ctx.restore();
         }
     };
+
+    const draw = useCallback((ctx: CanvasRenderingContext2D, frame: number, speedRatio: number, sizeRatio: number) => {
+        const { width, height } = ctx.canvas;
+        ctx.clearRect(0, 0, width, height);
+
+        const now = new Date();
+        const animationTotalFrames = 24000;
+        
+        const cycleProgress = diurnoMode
+            ? (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400
+            : (frame % animationTotalFrames) / animationTotalFrames;
+
+        const isNight = cycleProgress < 0.25 || cycleProgress > 0.75;
+        
+        // Sky Colors
+        const skyColors = getSkyColors(cycleProgress);
+        const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+        bgGradient.addColorStop(0, skyColors.top);
+        bgGradient.addColorStop(0.6, skyColors.middle);
+        bgGradient.addColorStop(1, skyColors.bottom);
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, width, height);
+        
+        // Draw Sun and Moon
+        drawCelestialBody(ctx, 'sun', { width, height, cycleProgress, sizeRatio, frame, speedRatio });
+        drawCelestialBody(ctx, 'moon', { width, height, cycleProgress, sizeRatio });
+
+    }, [diurnoMode]);
     
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -189,7 +130,7 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode =
 
     return (
         <div className="fixed inset-0 -z-10 bg-black">
-            <canvas ref={canvasRef} className="absolute inset-0 z-0 block w-full h-full" />
+            <canvas ref={canvasRef} className="absolute inset-0 z-[2] block w-full h-full" />
         </div>
     );
 };
