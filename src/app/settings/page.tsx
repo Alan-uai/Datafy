@@ -7,6 +7,7 @@ import { Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppearanceSettings } from './components/AppearanceSettings';
 import { ThemeSettings } from './components/ThemeSettings';
+import type { ThemeConfig } from '@/lib/types';
 
 export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
@@ -14,6 +15,21 @@ export default function SettingsPage() {
   if (isLoading || !userProfile) {
     return <LoadingSpinner />;
   }
+
+  const handleThemeConfigChange = (newConfig: Partial<ThemeConfig>) => {
+      if (!userProfile) return;
+      const { activeTheme } = userProfile.preferences;
+      const updatedConfigs = {
+          ...userProfile.preferences.themeConfigs,
+          [activeTheme]: {
+              ...userProfile.preferences.themeConfigs[activeTheme],
+              ...newConfig,
+          }
+      };
+      savePreferences({ themeConfigs: updatedConfigs });
+  };
+
+  const activeThemeConfig = userProfile.preferences.themeConfigs[userProfile.preferences.activeTheme] || {};
 
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
@@ -45,8 +61,10 @@ export default function SettingsPage() {
               onScaleChange={(value) => savePreferences({ dashboardScale: value })} 
             />
             <ThemeSettings 
-              preferences={userProfile.preferences} 
-              onPreferencesChange={savePreferences} 
+              preferences={userProfile.preferences}
+              activeThemeConfig={activeThemeConfig}
+              onThemeChange={(theme) => savePreferences({ activeTheme: theme })}
+              onThemeConfigChange={handleThemeConfigChange}
             />
           </motion.div>
         </div>

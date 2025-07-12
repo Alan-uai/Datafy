@@ -19,6 +19,12 @@ export function useUserProfile() {
         ...userProfile,
         preferences: { ...userProfile.preferences, ...newPreferences }
     };
+    if (newPreferences.themeConfigs) {
+        updatedProfile.preferences.themeConfigs = {
+            ...userProfile.preferences.themeConfigs,
+            ...newPreferences.themeConfigs
+        };
+    }
     setUserProfile(updatedProfile);
 
     // Debounce the Firestore update

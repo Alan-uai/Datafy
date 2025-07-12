@@ -2,13 +2,14 @@
 "use client";
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import type { ThemeConfig } from '@/lib/types';
 
 interface SpaceThemeProps {
-    speed: number;
-    size: number;
+    config: Partial<ThemeConfig>;
 }
 
-const SpaceTheme: React.FC<SpaceThemeProps> = ({ speed, size }) => {
+const SpaceTheme: React.FC<SpaceThemeProps> = ({ config }) => {
+    const { themeSpeed: speed = 100, themeSize: size = 100 } = config;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
     const initialAnimationProgress = useRef(0); // 0 to 1 for fade-in

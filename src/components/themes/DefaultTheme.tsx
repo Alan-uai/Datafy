@@ -2,13 +2,14 @@
 "use client";
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import type { ThemeConfig } from '@/lib/types';
 
 interface DefaultThemeProps {
-    speed: number;
-    size: number;
+    config: Partial<ThemeConfig>;
 }
 
-const DefaultTheme: React.FC<DefaultThemeProps> = ({ speed, size }) => {
+const DefaultTheme: React.FC<DefaultThemeProps> = ({ config }) => {
+    const { themeSpeed: speed = 100, themeSize: size = 100 } = config;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
     const mousePos = useRef({ x: 0, y: 0 });

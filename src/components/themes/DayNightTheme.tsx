@@ -2,14 +2,14 @@
 "use client";
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import type { ThemeConfig } from '@/lib/types';
 
 interface DayNightThemeProps {
-    speed: number;
-    size: number;
-    diurnoMode?: boolean;
+    config: Partial<ThemeConfig>;
 }
 
-const DayNightTheme: React.FC<DayNightThemeProps> = ({ speed, size, diurnoMode = false }) => {
+const DayNightTheme: React.FC<DayNightThemeProps> = ({ config }) => {
+    const { themeSpeed: speed = 100, themeSize: size = 100, diurnoMode = false } = config;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
 

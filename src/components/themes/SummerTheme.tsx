@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import type { ThemeConfig } from '@/lib/types';
 
 interface SummerThemeProps {
-    speed: number;
-    size: number;
+    config: Partial<ThemeConfig>;
 }
 
 interface Cloud {
@@ -26,7 +26,8 @@ interface Bird {
     angle: number;
 }
 
-const SummerTheme: React.FC<SummerThemeProps> = ({ speed, size }) => {
+const SummerTheme: React.FC<SummerThemeProps> = ({ config }) => {
+    const { themeSpeed: speed = 100, themeSize: size = 100 } = config;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
     const cloudsRef = useRef<Cloud[]>([]);

@@ -35,10 +35,21 @@ export type PremiumPlan = {
   expiresAt?: any; // Firestore Timestamp for future use
 }
 
-export type ThemeName = 'dark' | 'matrix' | 'padrão' | 'verão' | 'espaço' | 'sakura' | 'dia-noite';
+export type ThemeName = 'dark' | 'light' | 'matrix' | 'padrão' | 'verão' | 'espaço' | 'sakura' | 'dia-noite';
+
+export interface ThemeConfig {
+    themeAnimation: 'cintilar' | 'girar' | 'nenhuma';
+    themeSpeed: number;
+    themeSize: number;
+    matrixMode: 'padrão' | 'combinado';
+    diurnoMode: boolean;
+    astrologicalEvents: boolean;
+}
 
 export interface UserPreferences {
-    theme: ThemeName;
+    activeTheme: ThemeName;
+    lastCustomTheme: ThemeName;
+    themeConfigs: Record<ThemeName, Partial<ThemeConfig>>;
     soundEnabled: boolean;
     language: 'pt-BR' | 'en-US';
     columnVisibility: Record<string, boolean>;
@@ -47,10 +58,4 @@ export interface UserPreferences {
     isEditingWidgets: boolean;
     dashboardScale: 'normal' | 'compact';
     attentionHorizonDays: number;
-    themeAnimation: 'cintilar' | 'girar' | 'nenhuma';
-    themeSpeed: number;
-    themeSize: number;
-    matrixMode?: 'padrão' | 'combinado';
-    diurnoMode?: boolean;
-    astrologicalEvents?: boolean;
 }

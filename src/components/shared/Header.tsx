@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/tooltip"
 import { LogOut, BarChart3, Settings } from 'lucide-react';
 import { AppLogo } from './AppLogo';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 export function Header() {
   const { currentUser, logout, userProfile } = useAuth();
@@ -61,6 +62,8 @@ export function Header() {
         <div className="flex items-center gap-1 sm:gap-2">
           {currentUser && (
             <>
+              <ThemeToggleButton />
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>

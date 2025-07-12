@@ -1,7 +1,7 @@
 
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { UserPreferences, PremiumPlan } from '@/lib/types';
+import type { UserPreferences, PremiumPlan, ThemeName, ThemeConfig } from '@/lib/types';
 
 export interface Achievement {
   id: string;
@@ -44,13 +44,29 @@ export interface UserProfile {
   updatedAt: any;
 }
 
+const defaultThemeConfig: ThemeConfig = {
+    themeAnimation: 'nenhuma',
+    themeSpeed: 100,
+    themeSize: 100,
+    matrixMode: 'padrão',
+    diurnoMode: false,
+    astrologicalEvents: true,
+};
+
+const allThemes: ThemeName[] = ['dark', 'light', 'matrix', 'padrão', 'verão', 'espaço', 'sakura', 'dia-noite'];
+
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {
   premium: null,
   stats: { productsCount: 0, listsCount: 0, daysActive: 0, efficiencyScore: 0 },
   achievements: [],
   notifications: { email: true, push: true, expiryWarnings: true },
   preferences: { 
-    theme: 'dark', 
+    activeTheme: 'dark', 
+    lastCustomTheme: 'matrix',
+    themeConfigs: allThemes.reduce((acc, theme) => {
+        acc[theme] = { ...defaultThemeConfig };
+        return acc;
+    }, {} as Record<ThemeName, Partial<ThemeConfig>>),
     soundEnabled: true, 
     language: 'pt-BR',
     columnVisibility: {
@@ -67,11 +83,6 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
     isEditingWidgets: false,
     dashboardScale: 'normal',
     attentionHorizonDays: 7,
-    themeAnimation: 'nenhuma',
-    themeSpeed: 100,
-    themeSize: 100,
-    diurnoMode: false,
-    astrologicalEvents: true,
   },
   privacy: { showEmail: false, showActivity: true },
 };
@@ -91,7 +102,14 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
     stats: { ...defaultProfile.stats, ...(data.stats || {}) },
     achievements: data.achievements || defaultProfile.achievements,
     notifications: { ...defaultProfile.notifications, ...(data.notifications || {}) },
-    preferences: { ...defaultProfile.preferences, ...(data.preferences || {}) },
+    preferences: { 
+        ...defaultProfile.preferences, 
+        ...(data.preferences || {}),
+        themeConfigs: {
+            ...defaultProfile.preferences.themeConfigs,
+            ...(data.preferences?.themeConfigs || {}),
+        }
+    },
     privacy: { ...defaultProfile.privacy, ...(data.privacy || {}) },
     premium: data.premium || defaultProfile.premium,
   };
@@ -137,6 +155,10 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
        preferences: {
         ...defaultProfile.preferences,
         ...(data.preferences || {}),
+        themeConfigs: {
+            ...defaultProfile.preferences.themeConfigs,
+            ...(data.preferences?.themeConfigs || {}),
+        }
       },
       stats: {
           ...defaultProfile.stats,
@@ -156,7 +178,15 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
   // Convert nested objects to dot notation for atomic updates
   if (data.preferences) {
     for (const [key, value] of Object.entries(data.preferences)) {
-        updates[`preferences.${key}`] = value;
+        if (key === 'themeConfigs') {
+            for (const [theme, config] of Object.entries(value)) {
+                for (const [configKey, configValue] of Object.entries(config)) {
+                    updates[`preferences.themeConfigs.${theme}.${configKey}`] = configValue;
+                }
+            }
+        } else {
+            updates[`preferences.${key}`] = value;
+        }
     }
     delete updates.preferences; // Remove the object to avoid overwriting
   }
@@ -188,7 +218,15 @@ export const updateUserPreferences = async (uid: string, preferences: Partial<Us
   
   const updates: Record<string, any> = { 'updatedAt': serverTimestamp() };
   for (const [key, value] of Object.entries(preferences)) {
-      updates[`preferences.${key}`] = value;
+       if (key === 'themeConfigs') {
+            for (const [theme, config] of Object.entries(value as object)) {
+                for (const [configKey, configValue] of Object.entries(config)) {
+                    updates[`preferences.themeConfigs.${theme}.${configKey}`] = configValue;
+                }
+            }
+        } else {
+            updates[`preferences.${key}`] = value;
+        }
   }
   
   await updateDoc(userRef, updates);

@@ -10,10 +10,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import type { UserPreferences, ThemeName } from '@/lib/types';
+import type { UserPreferences, ThemeName, ThemeConfig } from '@/lib/types';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 const THEME_OPTIONS = [
-    { value: 'dark', label: 'Padrão', icon: Palette },
+    { value: 'dark', label: 'Padrão', icon: Moon },
+    { value: 'light', label: 'Claro', icon: Sun },
     { value: 'matrix', label: 'Matrix', icon: Bot },
     { value: 'verão', label: 'Verão', icon: Sun },
     { value: 'espaço', label: 'Espaço', icon: Space },
@@ -24,67 +26,30 @@ const THEME_OPTIONS = [
 
 interface ThemeSettingsProps {
     preferences: UserPreferences;
-    onPreferencesChange: (newPreferences: Partial<UserPreferences>) => void;
+    activeThemeConfig: Partial<ThemeConfig>;
+    onThemeChange: (theme: ThemeName) => void;
+    onThemeConfigChange: (newConfig: Partial<ThemeConfig>) => void;
 }
 
-export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPreferencesChange }) => {
-    const [currentTheme, setCurrentTheme] = useState<ThemeName>(preferences.theme);
-    const [currentAnimation, setCurrentAnimation] = useState(preferences.themeAnimation);
-    const [currentThemeSpeed, setCurrentThemeSpeed] = useState(preferences.themeSpeed);
-    const [currentThemeSize, setCurrentThemeSize] = useState(preferences.themeSize);
-    const [currentMatrixMode, setCurrentMatrixMode] = useState(preferences.matrixMode || 'padrão');
-    const [currentDiurnoMode, setCurrentDiurnoMode] = useState(preferences.diurnoMode || false);
-    const [currentAstrologicalEvents, setCurrentAstrologicalEvents] = useState(preferences.astrologicalEvents === undefined ? true : preferences.astrologicalEvents);
-
-
-    useEffect(() => {
-        setCurrentTheme(preferences.theme);
-        setCurrentAnimation(preferences.themeAnimation);
-        setCurrentThemeSpeed(preferences.themeSpeed);
-        setCurrentThemeSize(preferences.themeSize);
-        setCurrentMatrixMode(preferences.matrixMode || 'padrão');
-        setCurrentDiurnoMode(preferences.diurnoMode || false);
-        setCurrentAstrologicalEvents(preferences.astrologicalEvents === undefined ? true : preferences.astrologicalEvents);
-    }, [preferences]);
+export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activeThemeConfig, onThemeChange, onThemeConfigChange }) => {
+    const { savePreferences } = useUserProfile();
 
     const handleThemeChange = (theme: ThemeName) => {
-        setCurrentTheme(theme);
-        onPreferencesChange({ theme });
-        document.documentElement.className = cn(theme, `animate-${currentAnimation}`);
+        onThemeChange(theme);
+        if (theme !== 'dark' && theme !== 'light') {
+            savePreferences({ lastCustomTheme: theme });
+        }
     };
-
-    const handleAnimationChange = (animation: 'cintilar' | 'girar' | 'nenhuma') => {
-        setCurrentAnimation(animation);
-        onPreferencesChange({ themeAnimation: animation });
-        document.documentElement.className = cn(currentTheme, `animate-${animation}`);
-    };
-  
-    const handleSpeedChange = (value: number[]) => {
-        const newSpeed = value[0];
-        setCurrentThemeSpeed(newSpeed);
-        onPreferencesChange({ themeSpeed: newSpeed });
-    };
-
-    const handleSizeChange = (value: number[]) => {
-        const newSize = value[0];
-        setCurrentThemeSize(newSize);
-        onPreferencesChange({ themeSize: newSize });
-    };
-
-    const handleMatrixModeChange = (mode: 'padrão' | 'combinado') => {
-        setCurrentMatrixMode(mode);
-        onPreferencesChange({ matrixMode: mode });
-    };
-
-    const handleDiurnoModeChange = (checked: boolean) => {
-        setCurrentDiurnoMode(checked);
-        onPreferencesChange({ diurnoMode: checked });
-    }
     
-    const handleAstrologicalEventsChange = (checked: boolean) => {
-        setCurrentAstrologicalEvents(checked);
-        onPreferencesChange({ astrologicalEvents: checked });
-    }
+    const currentTheme = preferences.activeTheme;
+    const { 
+        themeAnimation = 'nenhuma', 
+        themeSpeed = 100, 
+        themeSize = 100, 
+        matrixMode = 'padrão', 
+        diurnoMode = false, 
+        astrologicalEvents = true 
+    } = activeThemeConfig;
 
     return (
         <Card>
@@ -124,8 +89,8 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                                 Escolha o modo de renderização para o tema Matrix.
                             </p>
                             <RadioGroup
-                                value={currentMatrixMode}
-                                onValueChange={(value) => handleMatrixModeChange(value as 'padrão' | 'combinado')}
+                                value={matrixMode}
+                                onValueChange={(value) => onThemeConfigChange({ matrixMode: value as 'padrão' | 'combinado' })}
                                 className="flex flex-col sm:flex-row gap-4"
                             >
                                 <div className="flex-1">
@@ -170,8 +135,8 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                             </div>
                             <Switch
                                 id="diurno-mode"
-                                checked={currentDiurnoMode}
-                                onCheckedChange={handleDiurnoModeChange}
+                                checked={diurnoMode}
+                                onCheckedChange={(checked) => onThemeConfigChange({ diurnoMode: checked })}
                             />
                         </div>
                         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -185,8 +150,8 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                             </div>
                             <Switch
                                 id="astro-events"
-                                checked={currentAstrologicalEvents}
-                                onCheckedChange={handleAstrologicalEventsChange}
+                                checked={astrologicalEvents}
+                                onCheckedChange={(checked) => onThemeConfigChange({ astrologicalEvents: checked })}
                             />
                         </div>
                     </motion.div>
@@ -204,9 +169,9 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                         Escolha o efeito visual para as bordas dos componentes.
                         </p>
                         <RadioGroup
-                        value={currentAnimation}
-                        onValueChange={(value) => handleAnimationChange(value as 'cintilar' | 'girar' | 'nenhuma')}
-                        className="flex flex-col sm:flex-row gap-4"
+                            value={themeAnimation}
+                            onValueChange={(value) => onThemeConfigChange({ themeAnimation: value as any })}
+                            className="flex flex-col sm:flex-row gap-4"
                         >
                         <div className="flex-1">
                             <RadioGroupItem value="nenhuma" id="anim-nenhuma" className="peer sr-only" />
@@ -241,10 +206,10 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                         </RadioGroup>
                     </div>
 
-                    <div className={cn(currentDiurnoMode && currentTheme === 'dia-noite' ? 'opacity-50 pointer-events-none' : '')}>
+                    <div className={cn(diurnoMode && currentTheme === 'dia-noite' ? 'opacity-50 pointer-events-none' : '')}>
                         <Label htmlFor="speed-slider" className="text-base font-medium">Velocidade da Animação</Label>
                         <p className="text-sm text-muted-foreground mb-3">
-                            Ajuste a velocidade da animação do tema de fundo. {currentDiurnoMode && currentTheme === 'dia-noite' && '(Desativado no Modo Diurno)'}
+                            Ajuste a velocidade da animação do tema de fundo. {diurnoMode && currentTheme === 'dia-noite' && '(Desativado no Modo Diurno)'}
                         </p>
                         <div className="flex items-center gap-4">
                            <SlidersHorizontal className="h-5 w-5 text-muted-foreground"/>
@@ -253,11 +218,11 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                              min={1}
                              max={200}
                              step={1}
-                             value={[currentThemeSpeed]}
-                             onValueChange={handleSpeedChange}
-                             disabled={currentDiurnoMode && currentTheme === 'dia-noite'}
+                             value={[themeSpeed]}
+                             onValueChange={(v) => onThemeConfigChange({ themeSpeed: v[0] })}
+                             disabled={diurnoMode && currentTheme === 'dia-noite'}
                            />
-                           <span className="text-sm font-mono w-12 text-center">{currentThemeSpeed}%</span>
+                           <span className="text-sm font-mono w-12 text-center">{themeSpeed}%</span>
                         </div>
                     </div>
                     
@@ -273,10 +238,10 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                              min={50}
                              max={150}
                              step={1}
-                             value={[currentThemeSize]}
-                             onValueChange={handleSizeChange}
+                             value={[themeSize]}
+                             onValueChange={(v) => onThemeConfigChange({ themeSize: v[0] })}
                            />
-                           <span className="text-sm font-mono w-12 text-center">{currentThemeSize}%</span>
+                           <span className="text-sm font-mono w-12 text-center">{themeSize}%</span>
                         </div>
                     </div>
                 </motion.div>
