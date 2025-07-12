@@ -19,6 +19,7 @@ interface ThemeComponentProps {
     size: UserPreferences['themeSize'];
     matrixMode?: UserPreferences['matrixMode'];
     diurnoMode?: UserPreferences['diurnoMode'];
+    astrologicalEvents?: UserPreferences['astrologicalEvents'];
 }
 
 const themeMap: Record<ThemeName, React.FC<any>> = {
@@ -48,13 +49,15 @@ export const ThemeManager = () => {
     return null;
   }
 
-  const { theme, themeAnimation, themeSpeed, themeSize, matrixMode, diurnoMode } = userProfile.preferences;
+  const { theme, themeAnimation, themeSpeed, themeSize, matrixMode, diurnoMode, astrologicalEvents } = userProfile.preferences;
   const ActiveThemeComponent = themeMap[theme];
   
   const currentMatrixMode = matrixMode || 'padrão';
   const currentDiurnoMode = diurnoMode || false;
+  const currentAstrologicalEvents = astrologicalEvents === undefined ? true : astrologicalEvents;
 
-  const key = `${theme}-${themeAnimation}-${themeSpeed}-${themeSize}-${currentMatrixMode}-${currentDiurnoMode}`;
+
+  const key = `${theme}-${themeAnimation}-${themeSpeed}-${themeSize}-${currentMatrixMode}-${currentDiurnoMode}-${currentAstrologicalEvents}`;
   
   const props = {
     animation: themeAnimation,
@@ -62,6 +65,7 @@ export const ThemeManager = () => {
     size: themeSize,
     matrixMode: theme === 'matrix' ? currentMatrixMode : undefined,
     diurnoMode: theme === 'dia-noite' ? currentDiurnoMode : undefined,
+    astrologicalEvents: theme === 'dia-noite' ? currentAstrologicalEvents : undefined,
   };
 
   return <ActiveThemeComponent key={key} {...props} />;

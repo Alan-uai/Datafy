@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock } from 'lucide-react';
+import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock, Waves } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -34,6 +34,8 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
     const [currentThemeSize, setCurrentThemeSize] = useState(preferences.themeSize);
     const [currentMatrixMode, setCurrentMatrixMode] = useState(preferences.matrixMode || 'padrão');
     const [currentDiurnoMode, setCurrentDiurnoMode] = useState(preferences.diurnoMode || false);
+    const [currentAstrologicalEvents, setCurrentAstrologicalEvents] = useState(preferences.astrologicalEvents === undefined ? true : preferences.astrologicalEvents);
+
 
     useEffect(() => {
         setCurrentTheme(preferences.theme);
@@ -42,6 +44,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
         setCurrentThemeSize(preferences.themeSize);
         setCurrentMatrixMode(preferences.matrixMode || 'padrão');
         setCurrentDiurnoMode(preferences.diurnoMode || false);
+        setCurrentAstrologicalEvents(preferences.astrologicalEvents === undefined ? true : preferences.astrologicalEvents);
     }, [preferences]);
 
     const handleThemeChange = (theme: ThemeName) => {
@@ -76,6 +79,11 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
     const handleDiurnoModeChange = (checked: boolean) => {
         setCurrentDiurnoMode(checked);
         onPreferencesChange({ diurnoMode: checked });
+    }
+    
+    const handleAstrologicalEventsChange = (checked: boolean) => {
+        setCurrentAstrologicalEvents(checked);
+        onPreferencesChange({ astrologicalEvents: checked });
     }
 
     return (
@@ -164,6 +172,21 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onPre
                                 id="diurno-mode"
                                 checked={currentDiurnoMode}
                                 onCheckedChange={handleDiurnoModeChange}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="astro-events" className="text-sm font-medium flex items-center gap-2">
+                                    <Waves className="w-4 h-4"/> Eventos Cósmicos
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Exibe chuvas de meteoros e outros eventos.
+                                </p>
+                            </div>
+                            <Switch
+                                id="astro-events"
+                                checked={currentAstrologicalEvents}
+                                onCheckedChange={handleAstrologicalEventsChange}
                             />
                         </div>
                     </motion.div>

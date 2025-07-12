@@ -51,5 +51,6 @@ export interface UserPreferences {
     themeSpeed: number;
     themeSize: number;
     matrixMode?: 'padrão' | 'combinado';
-    diurnoMode?: boolean; // New property for Day/Night theme
+    diurnoMode?: boolean;
+    astrologicalEvents?: boolean;
 }
