@@ -61,12 +61,13 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
   achievements: [],
   notifications: { email: true, push: true, expiryWarnings: true },
   preferences: { 
-    activeTheme: 'dark', 
+    activeTheme: 'dark',
+    defaultThemeMode: 'dark',
     lastCustomTheme: 'matrix',
     themeConfigs: allThemes.reduce((acc, theme) => {
         acc[theme] = { ...defaultThemeConfig };
         return acc;
-    }, {} as Record<ThemeName, Partial<ThemeConfig>>),
+    }, {} as Record<string, Partial<ThemeConfig>>),
     soundEnabled: true, 
     language: 'pt-BR',
     columnVisibility: {

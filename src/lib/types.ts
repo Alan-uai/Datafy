@@ -48,8 +48,9 @@ export interface ThemeConfig {
 
 export interface UserPreferences {
     activeTheme: ThemeName;
+    defaultThemeMode: 'light' | 'dark';
     lastCustomTheme: ThemeName;
-    themeConfigs: Record<ThemeName, Partial<ThemeConfig>>;
+    themeConfigs: Record<string, Partial<ThemeConfig>>;
     soundEnabled: boolean;
     language: 'pt-BR' | 'en-US';
     columnVisibility: Record<string, boolean>;

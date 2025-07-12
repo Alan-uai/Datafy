@@ -14,8 +14,7 @@ import type { UserPreferences, ThemeName, ThemeConfig } from '@/lib/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 const THEME_OPTIONS = [
-    { value: 'dark', label: 'Padrão', icon: Moon },
-    { value: 'light', label: 'Claro', icon: Sun },
+    { value: 'padrão', label: 'Padrão', icon: Palette },
     { value: 'matrix', label: 'Matrix', icon: Bot },
     { value: 'verão', label: 'Verão', icon: Sun },
     { value: 'espaço', label: 'Espaço', icon: Space },
@@ -34,13 +33,31 @@ interface ThemeSettingsProps {
 export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activeThemeConfig, onThemeChange, onThemeConfigChange }) => {
     const { savePreferences } = useUserProfile();
 
-    const handleThemeChange = (theme: ThemeName) => {
-        onThemeChange(theme);
-        if (theme !== 'dark' && theme !== 'light') {
-            savePreferences({ lastCustomTheme: theme });
+    const handleThemeSelection = (value: string) => {
+        if (value === 'padrão') {
+            // When "Padrão" is selected, activate the light/dark mode preference
+            onThemeChange(preferences.defaultThemeMode);
+        } else {
+            // When a custom theme is selected, activate it
+            onThemeChange(value as ThemeName);
+            savePreferences({ lastCustomTheme: value as ThemeName });
         }
     };
+
+    const handleDefaultModeToggle = (isLight: boolean) => {
+        const newMode = isLight ? 'light' : 'dark';
+        savePreferences({ defaultThemeMode: newMode });
+        // If the current active theme is one of the default modes, update it
+        if (preferences.activeTheme === 'light' || preferences.activeTheme === 'dark') {
+            onThemeChange(newMode);
+        }
+    }
     
+    // Determine which radio button should be checked
+    const selectedRadioValue = (preferences.activeTheme === 'light' || preferences.activeTheme === 'dark')
+        ? 'padrão' 
+        : preferences.activeTheme;
+        
     const currentTheme = preferences.activeTheme;
     const { 
         themeAnimation = 'nenhuma', 
@@ -59,8 +76,8 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
             </CardHeader>
             <CardContent className="space-y-6">
                 <RadioGroup
-                    value={currentTheme}
-                    onValueChange={(value) => handleThemeChange(value as ThemeName)}
+                    value={selectedRadioValue}
+                    onValueChange={handleThemeSelection}
                     className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                 >
                     {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
@@ -76,6 +93,32 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                         </div>
                     ))}
                 </RadioGroup>
+
+                 <AnimatePresence>
+                {selectedRadioValue === 'padrão' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="pt-6 border-t space-y-4"
+                    >
+                        <Label className="text-base font-medium">Modo Padrão</Label>
+                         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="default-mode" className="text-sm font-medium flex items-center gap-2">
+                                    <Sun className="w-4 h-4"/> Modo Claro
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Ative para usar o tema claro como padrão.
+                                </p>
+                            </div>
+                            <Switch
+                                id="default-mode"
+                                checked={preferences.defaultThemeMode === 'light'}
+                                onCheckedChange={handleDefaultModeToggle}
+                            />
+                        </div>
+                    </motion.div>
+                )}
+                </AnimatePresence>
 
                 <AnimatePresence>
                 {currentTheme === 'matrix' && (

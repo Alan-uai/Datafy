@@ -12,15 +12,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const themeIcons: Record<ThemeName, React.FC<{ className?: string }>> = {
+const themeIcons: Record<string, React.FC<{ className?: string }>> = {
   light: Sun,
   dark: Moon,
   matrix: Bot,
-  padrão: Moon,
   verão: Sun,
   espaço: Space,
   sakura: Cherry,
   'dia-noite': Moon,
+  padrão: Moon,
 };
 
 export const ThemeToggleButton: React.FC = () => {
@@ -34,65 +34,47 @@ export const ThemeToggleButton: React.FC = () => {
         );
     }
 
-    const { activeTheme, lastCustomTheme } = userProfile.preferences;
+    const { activeTheme, lastCustomTheme, defaultThemeMode } = userProfile.preferences;
     
     const handleThemeToggle = () => {
         let nextTheme: ThemeName;
 
-        if (activeTheme === 'dark') {
-            // If the last custom theme is set and it's not dark or light, go to it. Otherwise, go to light.
-            const customTheme = (lastCustomTheme && lastCustomTheme !== 'dark' && lastCustomTheme !== 'light') ? lastCustomTheme : 'matrix';
-            nextTheme = customTheme;
-        } else if (activeTheme === 'light') {
-             // This case should ideally not be hit if a custom theme is selected, but as a fallback.
-            nextTheme = 'dark';
-        } else { // Is a custom theme
-            // When on a custom theme, always toggle back to dark
-            nextTheme = 'dark';
+        // If a custom theme is active, toggle between it and 'dark'
+        if (activeTheme !== 'dark' && activeTheme !== 'light') {
+            savePreferences({ activeTheme: 'dark' });
+        } 
+        // If 'dark' is active, toggle to the last custom theme or to 'light'
+        else if (activeTheme === 'dark') {
+            nextTheme = lastCustomTheme !== 'dark' ? lastCustomTheme : 'light';
+            savePreferences({ activeTheme: nextTheme });
         }
-        
-        savePreferences({ activeTheme: nextTheme });
+        // If 'light' is active, toggle to 'dark'
+        else if (activeTheme === 'light') {
+             savePreferences({ activeTheme: 'dark' });
+        }
     };
 
     const getIcon = () => {
-        let themeForIcon: ThemeName = activeTheme;
-
-        // If the current theme is dark, the icon should represent the *next* theme it will toggle to.
         if (activeTheme === 'dark') {
-           const customTheme = (lastCustomTheme && lastCustomTheme !== 'dark' && lastCustomTheme !== 'light') ? lastCustomTheme : 'light';
-           themeForIcon = customTheme;
-        } else {
-            // If on a custom or light theme, the icon should represent toggling back to dark mode.
+            const nextTheme = lastCustomTheme !== 'dark' ? lastCustomTheme : 'light';
+            const Icon = themeIcons[nextTheme] || Moon;
+            return <Icon className="h-5 w-5" />;
+        }
+        if (activeTheme === 'light') {
             return <Moon className="h-5 w-5" />;
         }
-        
-        const Icon = themeIcons[themeForIcon] || Moon;
-        return <Icon className="h-5 w-5" />;
+        // For custom themes, show the Moon to indicate it will toggle back to dark
+        const Icon = themeIcons[activeTheme] || Moon;
+        return <Moon className="h-5 w-5" />;
     };
     
     const getTooltipText = () => {
-        if (activeTheme === 'dark') {
-            const nextThemeName = (lastCustomTheme && lastCustomTheme !== 'dark' && lastCustomTheme !== 'light') ? lastCustomTheme : 'light';
-            return `Mudar para tema ${nextThemeName.charAt(0).toUpperCase() + nextThemeName.slice(1)}`;
-        }
+       if (activeTheme === 'dark') {
+           const nextThemeName = lastCustomTheme !== 'dark' ? lastCustomTheme : 'light';
+           const capitalizedThemeName = nextThemeName.charAt(0).toUpperCase() + nextThemeName.slice(1);
+           return `Mudar para tema ${capitalizedThemeName}`;
+       }
         return `Mudar para tema Padrão (Escuro)`;
-    }
-
-    // Special logic for when the user is in settings and has selected the 'light' theme
-    if (activeTheme === 'light') {
-        return (
-             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => savePreferences({ activeTheme: 'dark' })}>
-                        <Sun className="h-5 w-5" />
-                        <span className="sr-only">Toggle theme</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Mudar para tema Padrão (Escuro)</p>
-                </TooltipContent>
-            </Tooltip>
-        )
     }
 
     return (
