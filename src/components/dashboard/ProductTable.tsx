@@ -89,7 +89,7 @@ export function ProductTable({
       <Table className={cn(dashboardScale === 'compact' ? 'text-sm table-fixed w-full' : '')}>
         <TableHeader>
           <TableRow className="border-b hover:bg-transparent">
-            {columnVisibility['id'] && <TableHead>#</TableHead>}
+            {columnVisibility['id'] && <TableHead>ID</TableHead>}
             <TableHead><Button variant="ghost" onClick={() => onSort('name')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Produto {renderSortIcon('name')}</Button></TableHead>
             {columnVisibility['marca'] && <TableHead><Button variant="ghost" onClick={() => onSort('brand')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
             {columnVisibility['qtde'] && <TableHead><Button variant="ghost" onClick={() => onSort('quantity')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}

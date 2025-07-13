@@ -14,7 +14,7 @@ interface DashboardActionsProps {
 }
 
 const COLUMN_NAMES: Record<string, string> = {
-  'id': '#',
+  'id': 'ID',
   'produto': 'Produto',
   'marca': 'Marca',
   'qtde': 'Qtde',
