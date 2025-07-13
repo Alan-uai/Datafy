@@ -42,6 +42,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
+import { CustomNumberInput } from "../ui/CustomNumberInput";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
@@ -82,7 +83,7 @@ export function AddProductDialog({ children, categories, onSave, open, onOpenCha
         category: editingProduct.category,
       });
     } else {
-      form.reset({ name: "", brand: "", quantity: 1, price: "" as any, expiryDate: undefined, category: undefined });
+      form.reset({ name: "", brand: "", quantity: 1, price: 0, expiryDate: undefined, category: undefined });
     }
   }, [editingProduct, open, form]);
 
@@ -106,8 +107,43 @@ export function AddProductDialog({ children, categories, onSave, open, onOpenCha
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Nome do item</FormLabel> <FormControl><Input placeholder="Ex: Leite Integral" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
             <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem> <FormLabel>Marca</FormLabel> <FormControl><Input placeholder="Ex: Leitissimo" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="quantity" render={({ field }) => ( <FormItem> <FormLabel>Quantidade</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-              <FormField control={form.control} name="price" render={({ field }) => ( <FormItem> <FormLabel>Preço (un.)</FormLabel> <FormControl><Input type="number" step="0.01" placeholder="R$ 0,00" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade</FormLabel>
+                    <FormControl>
+                       <CustomNumberInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          min={1}
+                          step={1}
+                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço (un.)</FormLabel>
+                     <FormControl>
+                       <CustomNumberInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          min={0}
+                          step={0.01}
+                          formatValue={(value) => `R$ ${value.toFixed(2).replace('.', ',')}`}
+                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="expiryDate" render={({ field }) => (
