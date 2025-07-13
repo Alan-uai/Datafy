@@ -12,7 +12,7 @@ export default function MatrixPage() {
   const { triggerMatrixAnimation } = useThemeAnimation();
 
   useEffect(() => {
-    if (userProfile) {
+    if (userProfile && userProfile.preferences.activeTheme !== 'matrix') {
       // Trigger the curtain animation and set the theme to matrix
       triggerMatrixAnimation();
       savePreferences({ activeTheme: 'matrix' });
