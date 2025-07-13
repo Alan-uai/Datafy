@@ -1,7 +1,8 @@
 
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
+import { debounce } from 'lodash';
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProductData } from "@/hooks/useProductData";
 import { useProductTableControls } from "@/hooks/useProductTableControls";
@@ -16,13 +17,14 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { WidgetManager } from "@/components/dashboard/WidgetManager";
 import { ProductListTabs } from "@/components/dashboard/ProductListTabs";
 import { ProductView } from "@/components/dashboard/ProductView";
-import { DashboardModals } from "@/components/dashboard/DashboardModals";
 import { MultiSelectBar } from "@/components/dashboard/MultiSelectBar";
-import type { AllWidgetType } from "@/components/dashboard/widgets/widget-map";
-import { Header } from "@/components/shared/Header";
+import { AddProductDialog } from "@/components/dialogs/AddProductDialog";
+import { ManageListDialog } from "@/components/dialogs/ManageListDialog";
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Settings } from 'lucide-react';
+import { Header } from "@/components/shared/Header";
+import { Plus, Settings } from 'lucide-react';
+import type { AllWidgetType } from "@/components/dashboard/widgets/widget-map";
 
 const COLUMN_NAMES: Record<string, string> = {
   'id': 'ID',
@@ -78,7 +80,7 @@ function DashboardHeader({ isEditingWidgets, onWidgetEditToggle, columnVisibilit
   );
 }
 
-function DashboardComponent() {
+export default function Dashboard() {
   const { userProfile, savePreferences, isLoading: isProfileLoading } = useUserProfile();
   
   const { 
@@ -188,114 +190,114 @@ function DashboardComponent() {
 
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="relative min-h-screen flex flex-col bg-transparent">
         <Header />
-        <div className="p-4 md:p-6">
-            <DashboardHeader
-              isEditingWidgets={preferences.isEditingWidgets}
-              onWidgetEditToggle={handleWidgetEditing}
-              columnVisibility={preferences.columnVisibility}
-              onColumnVisibilityChange={handleColumnVisibilityChange}
-            />
-            <WidgetManager
-                isEditingWidgets={preferences.isEditingWidgets}
-                hasPremium={!!premium}
-                activeWidgets={preferences.activeWidgets}
-                widgetDataProps={widgetDataProps}
-                onAddWidget={addWidget}
-                onRemoveWidget={removeWidget}
-                onDragEnd={handleWidgetDragEnd}
-            />
-        </div>
-        
-        <div className="flex-1 flex flex-col border-t border-white/10 bg-card/20 backdrop-blur-sm rounded-t-xl">
-            <ProductListTabs
-                productLists={productLists}
-                activeListId={activeListId}
-                onListChange={listId => {
-                  handleListChange(listId);
-                  resetSelection();
-                }}
-                onManageList={openManageListDialog}
-                onDeleteList={handleListDelete}
-                dashboardScale={preferences.dashboardScale}
+        <main className="flex-1 flex flex-col">
+            <div className="p-4 md:p-6">
+                <DashboardHeader
+                  isEditingWidgets={preferences.isEditingWidgets}
+                  onWidgetEditToggle={handleWidgetEditing}
+                  columnVisibility={preferences.columnVisibility}
+                  onColumnVisibilityChange={handleColumnVisibilityChange}
+                />
+                <WidgetManager
+                    isEditingWidgets={preferences.isEditingWidgets}
+                    hasPremium={!!premium}
+                    activeWidgets={preferences.activeWidgets}
+                    widgetDataProps={widgetDataProps}
+                    onAddWidget={addWidget}
+                    onRemoveWidget={removeWidget}
+                    onDragEnd={handleWidgetDragEnd}
+                />
+            </div>
+            
+            <div className="flex-1 flex flex-col border-t border-white/10 bg-card/20 backdrop-blur-sm rounded-t-xl">
+                <ProductListTabs
+                    productLists={productLists}
+                    activeListId={activeListId}
+                    onListChange={listId => {
+                      handleListChange(listId);
+                      resetSelection();
+                    }}
+                    onManageList={openManageListDialog}
+                    onDeleteList={handleListDelete}
+                    dashboardScale={preferences.dashboardScale}
+                />
+                
+                <ProductView
+                  activeListId={activeListId}
+                  productLists={productLists}
+                  products={filteredProducts}
+                  categories={initialCategories}
+                  searchQuery={searchQuery}
+                  onSearchChange={e => setSearchQuery(e.target.value)}
+                  activeFilter={activeFilter}
+                  onFilterChange={value => setActiveFilter(value as any)}
+                  sortKey={sortKey}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  onEditProduct={product => openAddProductDialog(product)}
+                  onDeleteProduct={handleDeleteProduct}
+                  selectedProductIds={selectedProductIds}
+                  onProductClick={handleProductClick}
+                  onProductPointerDown={handleProductPointerDown}
+                  onProductPointerUp={handleProductPointerUp}
+                  onProductPointerMove={handleProductPointerMove}
+                  preferences={preferences}
+                  onOpenManageListDialog={() => openManageListDialog(null)}
+                  isLoading={isProductDataLoading}
+                />
+            </div>
+
+            <AddProductDialog
+              open={isAddProductDialogOpen}
+              onOpenChange={(isOpen) => { if (!isOpen) closeDialogs() }}
+              onSave={async (data) => {
+                  if (editingProduct) await handleUpdateProduct(editingProduct.id, data);
+                  else await handleAddProduct(data);
+                  closeDialogs();
+              }}
+              editingProduct={editingProduct}
+              categories={initialCategories}
+            >
+              <Button 
+                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-50 disabled:bg-muted disabled:cursor-not-allowed"
+                  onClick={() => openAddProductDialog(null)}
+                  disabled={productLists.length === 0}
+                  title={productLists.length === 0 ? "Crie uma lista primeiro" : "Adicionar produto"}
+              >
+                <Plus className="h-8 w-8" />
+              </Button>
+            </AddProductDialog>
+
+            <ManageListDialog
+              open={isManageListDialogOpen}
+              onOpenChange={(isOpen) => { if (!isOpen) closeDialogs() }}
+              onSave={async (name, icon) => {
+                  if (editingList) await handleListUpdate(editingList.id, name, icon);
+                  else await handleListCreate(name, icon);
+                  closeDialogs();
+              }}
+              editingList={editingList}
             />
             
-            <ProductView
-              activeListId={activeListId}
-              productLists={productLists}
-              products={filteredProducts}
-              categories={initialCategories}
-              searchQuery={searchQuery}
-              onSearchChange={e => setSearchQuery(e.target.value)}
-              activeFilter={activeFilter}
-              onFilterChange={value => setActiveFilter(value as any)}
-              sortKey={sortKey}
-              sortDirection={sortDirection}
-              onSort={handleSort}
-              onEditProduct={product => openAddProductDialog(product)}
-              onDeleteProduct={handleDeleteProduct}
-              selectedProductIds={selectedProductIds}
-              onProductClick={handleProductClick}
-              onProductPointerDown={handleProductPointerDown}
-              onProductPointerUp={handleProductPointerUp}
-              onProductPointerMove={handleProductPointerMove}
-              preferences={preferences}
-              onOpenManageListDialog={() => openManageListDialog(null)}
-              isLoading={isProductDataLoading}
-            />
-        </div>
-
-        <DashboardModals
-          isAddProductDialogOpen={isAddProductDialogOpen}
-          isManageListDialogOpen={isManageListDialogOpen}
-          editingProduct={editingProduct}
-          editingList={editingList}
-          categories={initialCategories}
-          onAddOrUpdateProduct={async (data) => {
-            if (editingProduct) await handleUpdateProduct(editingProduct.id, data);
-            else await handleAddProduct(data);
-            closeDialogs();
-          }}
-          onManageList={async (name, icon) => {
-            if (editingList) await handleListUpdate(editingList.id, name, icon);
-            else await handleListCreate(name, icon);
-            closeDialogs();
-          }}
-          onOpenChange={(type, open) => {
-            if (!open) closeDialogs();
-          }}
-          onOpenAddProductDialog={() => openAddProductDialog(null)}
-          hasLists={productLists.length > 0}
-        />
-        
-        {isMultiSelectMode && (
-          <MultiSelectBar
-            selectedCount={selectedProductIds.size}
-            productLists={productLists}
-            activeListId={activeListId!}
-            onMove={async (targetListId) => {
-              await handleMoveMultipleProducts(Array.from(selectedProductIds), targetListId);
-              resetSelection();
-            }}
-            onDelete={async () => {
-              await handleDeleteMultipleProducts(Array.from(selectedProductIds));
-              resetSelection();
-            }}
-            onReset={resetSelection}
-          />
-        )}
+            {isMultiSelectMode && (
+              <MultiSelectBar
+                selectedCount={selectedProductIds.size}
+                productLists={productLists}
+                activeListId={activeListId!}
+                onMove={async (targetListId) => {
+                  await handleMoveMultipleProducts(Array.from(selectedProductIds), targetListId);
+                  resetSelection();
+                }}
+                onDelete={async () => {
+                  await handleDeleteMultipleProducts(Array.from(selectedProductIds));
+                  resetSelection();
+                }}
+                onReset={resetSelection}
+              />
+            )}
+        </main>
     </div>
   );
-}
-
-
-export default function Dashboard() {
-    return (
-        <div className="relative min-h-screen flex flex-col bg-transparent">
-            <main className="flex-1">
-                <DashboardComponent />
-            </main>
-        </div>
-    )
 }
