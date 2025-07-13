@@ -18,7 +18,7 @@ interface ExpiryAttentionReportCardProps {
   savePreferences?: (newPreferences: Partial<UserPreferences>) => void;
 }
 
-export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps> = ({
+const MemoizedExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps> = ({
   listProducts,
   preferences,
   savePreferences,
@@ -180,3 +180,5 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     </Card>
   );
 };
+
+export const ExpiryAttentionReportCard = React.memo(MemoizedExpiryAttentionReportCard);

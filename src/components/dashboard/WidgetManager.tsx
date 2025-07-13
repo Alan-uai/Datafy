@@ -100,11 +100,18 @@ export function WidgetManager({ isEditingWidgets, hasPremium, activeWidgets, wid
               if (!widgetInfo || (widgetInfo.premium && !hasPremium)) return null;
               
               const WidgetComponent = widgetInfo.component;
-              const props = widgetInfo.id === 'expiryAttention' ? { ...widgetDataProps, listProducts: widgetDataProps.listProducts } : widgetDataProps;
 
               return (
                 <SortableWidget key={widgetId} id={widgetId} isEditing={isEditingWidgets} onRemove={onRemoveWidget}>
-                  <WidgetComponent {...props as any} />
+                   {widgetInfo.id === 'expiryAttention' ? (
+                        <WidgetComponent
+                            listProducts={widgetDataProps.listProducts}
+                            preferences={widgetDataProps.preferences}
+                            savePreferences={widgetDataProps.savePreferences}
+                        />
+                    ) : (
+                        <WidgetComponent {...widgetDataProps as any} />
+                    )}
                 </SortableWidget>
               );
             })}
