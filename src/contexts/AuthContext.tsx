@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
@@ -35,8 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true); // Start loading when auth state changes
+
       if (user) {
-        setLoading(true);
         setCurrentUser(user);
         try {
           let profile = await getUserProfile(user.uid);
@@ -56,12 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Failed to fetch or create user profile in AuthContext:", error);
           setUserProfile(null);
         } finally {
-            setLoading(false);
+            setLoading(false); // End loading after profile operations
         }
       } else {
         setCurrentUser(null);
         setUserProfile(null);
-        setLoading(false);
+        setLoading(false); // End loading when no user is logged in
       }
     });
     return unsubscribe;
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const logout = async () => {
     await firebaseSignOut(auth);
-    // State will be cleared by onAuthStateChanged listener
+    window.location.reload(); // Force a full page reload after Firebase signOut
   };
   
   const hasPremium = useCallback(() => {
