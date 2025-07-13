@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -18,11 +19,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    allowedDevOrigins: [
+  allowedDevOrigins: [
       '*.cluster-duylic2g3fbzerqpzxxbw6helm.cloudworkstations.dev',
-    ],
-  },
+  ],
 };
 
 export default nextConfig;
