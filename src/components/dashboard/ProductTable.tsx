@@ -39,9 +39,10 @@ interface ProductTableProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
   selectedProductIds: Set<string>;
-  onProductClick: (product: Product) => void;
-  onProductPointerDown: (productId: string) => void;
+  onProductClick: (product: Product, event: React.MouseEvent<HTMLElement>) => void;
+  onProductPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
   onProductPointerUp: () => void;
+  onProductPointerMove: (event: React.PointerEvent<HTMLElement>) => void;
   dashboardScale: 'normal' | 'compact';
 }
 
@@ -68,6 +69,7 @@ export function ProductTable({
   onProductClick,
   onProductPointerDown,
   onProductPointerUp,
+  onProductPointerMove,
   dashboardScale,
 }: ProductTableProps) {
 
@@ -105,15 +107,17 @@ export function ProductTable({
               <PopoverTrigger asChild>
                 <TableRow
                   data-state={selectedProductIds.has(product.id) ? 'selected' : 'unselected'}
+                  data-product-id={product.id}
                   className={cn(
                     'cursor-pointer',
                     dashboardScale === 'compact' ? 'h-10' : '',
                     getRowClass(product),
                     'data-[state=selected]:bg-primary/20'
                   )}
-                  onPointerDown={() => onProductPointerDown(product.id)}
+                  onPointerDown={onProductPointerDown}
                   onPointerUp={onProductPointerUp}
-                  onClick={() => onProductClick(product)}
+                  onPointerMove={onProductPointerMove}
+                  onClick={(e) => onProductClick(product, e)}
                 >
                   {columnVisibility['id'] && <TableCell className={cn('font-mono text-xs text-muted-foreground text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.rowIndex}</TableCell>}
                   <TableCell className={cn('font-medium truncate text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>

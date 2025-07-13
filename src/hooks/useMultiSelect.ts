@@ -1,34 +1,62 @@
 
 "use client";
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Product } from '@/lib/types';
 
 export function useMultiSelect() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
 
   const resetSelection = useCallback(() => {
     setIsMultiSelectMode(false);
     setSelectedProductIds(new Set());
   }, []);
 
-  const handleProductPointerDown = (productId: string) => {
+  const cancelPress = useCallback(() => {
+    if (pressTimeoutRef.current) {
+      clearTimeout(pressTimeoutRef.current);
+      pressTimeoutRef.current = null;
+    }
+    pointerDownRef.current = null;
+  }, []);
+
+  const handleProductPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    pointerDownRef.current = { x: event.clientX, y: event.clientY };
     pressTimeoutRef.current = setTimeout(() => {
       setIsMultiSelectMode(true);
-      setSelectedProductIds(prev => new Set(prev).add(productId));
-    }, 500); // 500ms for long press
+      const productId = event.currentTarget.dataset.productId;
+      if (productId) {
+          setSelectedProductIds(prev => new Set(prev).add(productId));
+      }
+      pressTimeoutRef.current = null; // Clear after firing
+    }, 700); // Increased from 500ms to 700ms
   };
 
   const handleProductPointerUp = () => {
-    if (pressTimeoutRef.current) {
-      clearTimeout(pressTimeoutRef.current);
+    cancelPress();
+  };
+  
+  const handleProductPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (!pointerDownRef.current) return;
+    
+    const threshold = 10; // 10px movement threshold to cancel
+    const dx = Math.abs(event.clientX - pointerDownRef.current.x);
+    const dy = Math.abs(event.clientY - pointerDownRef.current.y);
+    
+    if (dx > threshold || dy > threshold) {
+        cancelPress();
     }
   };
 
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = (product: Product, event: React.MouseEvent<HTMLElement>) => {
     if (isMultiSelectMode) {
+      // Prevent click from propagating when in multi-select mode
+      event.preventDefault(); 
+      event.stopPropagation();
+
       setSelectedProductIds(prev => {
         const newSet = new Set(prev);
         if (newSet.has(product.id)) {
@@ -50,6 +78,7 @@ export function useMultiSelect() {
     isMultiSelectMode,
     handleProductPointerDown,
     handleProductPointerUp,
+    handleProductPointerMove,
     handleProductClick,
     resetSelection,
   };

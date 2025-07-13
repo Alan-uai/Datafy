@@ -38,7 +38,7 @@ function DashboardComponent() {
     handleDeleteProduct,
     handleDeleteMultipleProducts,
     handleMoveMultipleProducts
-  } = useProductData(userProfile);
+  } = useProductData(userProfile, savePreferences);
 
   const {
     searchQuery,
@@ -57,8 +57,8 @@ function DashboardComponent() {
       id: p.id,
       produto: p.name,
       marca: p.brand,
-      unidade: p.quantity.toString(),
-      validade: p.expiryDate.toISOString(),
+      unidade: p.quantity?.toString() ?? '1',
+      validade: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : new Date().toISOString(),
     }));
   }, [products]);
 
@@ -69,6 +69,7 @@ function DashboardComponent() {
     handleProductClick,
     handleProductPointerDown,
     handleProductPointerUp,
+    handleProductPointerMove,
     resetSelection,
   } = useMultiSelect();
 
@@ -180,6 +181,7 @@ function DashboardComponent() {
               onProductClick={handleProductClick}
               onProductPointerDown={handleProductPointerDown}
               onProductPointerUp={handleProductPointerUp}
+              onProductPointerMove={handleProductPointerMove}
               preferences={preferences}
               onOpenManageListDialog={() => openManageListDialog(null)}
               isLoading={isProductDataLoading}

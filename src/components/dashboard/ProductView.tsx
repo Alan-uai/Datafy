@@ -25,9 +25,10 @@ interface ProductViewProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
   selectedProductIds: Set<string>;
-  onProductClick: (product: Product) => void;
-  onProductPointerDown: (productId: string) => void;
+  onProductClick: (product: Product, event: React.MouseEvent<HTMLElement>) => void;
+  onProductPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
   onProductPointerUp: () => void;
+  onProductPointerMove: (event: React.PointerEvent<HTMLElement>) => void;
   preferences: UserPreferences;
   onOpenManageListDialog: () => void;
   isLoading: boolean;
@@ -51,6 +52,7 @@ export const ProductView: React.FC<ProductViewProps> = ({
   onProductClick,
   onProductPointerDown,
   onProductPointerUp,
+  onProductPointerMove,
   preferences,
   onOpenManageListDialog,
   isLoading
@@ -82,6 +84,7 @@ export const ProductView: React.FC<ProductViewProps> = ({
           onProductClick={onProductClick}
           onProductPointerDown={onProductPointerDown}
           onProductPointerUp={onProductPointerUp}
+          onProductPointerMove={onProductPointerMove}
           dashboardScale={preferences.dashboardScale}
         />
       </div>
