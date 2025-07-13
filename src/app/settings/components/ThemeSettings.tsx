@@ -39,11 +39,13 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
         if (selectedOption?.isPremium && !hasPremium) {
             return;
         }
-
+        
+        const themeName = value as ThemeName;
+        
         if (value === 'padrão') {
             onThemeChange(preferences.defaultThemeMode);
+            savePreferences({ lastCustomTheme: 'padrão' });
         } else {
-            const themeName = value as ThemeName;
             onThemeChange(themeName);
             savePreferences({ lastCustomTheme: themeName });
         }

@@ -48,20 +48,16 @@ export const ThemeToggleButton: React.FC = () => {
     const { activeTheme, lastCustomTheme, defaultThemeMode } = userProfile.preferences;
     
     const isStandardMode = (theme: ThemeName) => ['light', 'dark'].includes(theme);
-    const lastThemeWasCustom = !isStandardMode(lastCustomTheme) && lastCustomTheme !== 'padrão';
+    const useQuickToggle = !isStandardMode(lastCustomTheme) && lastCustomTheme !== 'padrão';
 
     const handleToggle = () => {
         let newActiveTheme: ThemeName;
-
-        if (lastThemeWasCustom) {
-            // Logic to toggle between standard and last custom theme
-            if (isStandardMode(activeTheme)) {
-                newActiveTheme = lastCustomTheme;
-            } else {
-                newActiveTheme = defaultThemeMode;
-            }
+        
+        if (useQuickToggle) {
+            // Quick toggle between last custom and default
+            newActiveTheme = isStandardMode(activeTheme) ? lastCustomTheme : defaultThemeMode;
         } else {
-            // Original logic: toggle between light and dark
+            // Standard toggle between light and dark
             newActiveTheme = activeTheme === 'light' ? 'dark' : 'light';
         }
         
@@ -72,7 +68,7 @@ export const ThemeToggleButton: React.FC = () => {
         let IconComponent: React.FC<{ className?: string }>;
         let tooltipText: string;
 
-        if (lastThemeWasCustom) {
+        if (useQuickToggle) {
             const nextTheme = isStandardMode(activeTheme) ? lastCustomTheme : defaultThemeMode;
             IconComponent = themeIcons[nextTheme] || Moon;
             tooltipText = `Mudar para tema ${themeLabels[nextTheme]}`;
