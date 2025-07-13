@@ -39,10 +39,10 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     if (!listProducts) return '[]';
     return JSON.stringify(listProducts.map(p => ({
       id: p.id,
-      name: p.produto,
-      brand: p.marca,
-      quantity: p.unidade,
-      expiryDate: p.validade
+      produto: p.produto,
+      marca: p.marca,
+      unidade: p.unidade,
+      validade: p.validade instanceof Date ? p.validade.toISOString() : p.validade
     })));
   }, [listProducts]);
 
@@ -101,7 +101,8 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
 
   useEffect(() => {
     calculateStats(listProducts, attentionHorizon);
-  }, [productFingerprint, attentionHorizon, calculateStats]);
+    generateReport(listProducts, attentionHorizon);
+  }, [productFingerprint, attentionHorizon, calculateStats, generateReport]);
 
   const handleAnalyzeAgain = () => {
       generateReport(listProducts, attentionHorizon);
