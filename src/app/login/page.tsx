@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import type { User as FirebaseUser } from 'firebase/auth';
 import { useAuth } from "@/contexts/AuthContext";
 
 import { AuthLayout } from "@/components/auth/AuthLayout";
@@ -12,24 +11,29 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Lock } from "lucide-react";
 
 export default function LoginPage() {
-  const { currentUser } = useAuth();
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { currentUser, loading } = useAuth();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleAuthSuccess = () => {
-    // ProtectedRoute will handle the redirect.
-    setIsGoogleLoading(true);
+  const handleAuthStart = () => {
+    setIsAuthenticating(true);
   };
 
-  const handleGoogleSuccess = (user: FirebaseUser | null) => {
-     if (!user) return;
-    // On the login page, we just need to sign the user in.
-    // The AuthProvider and ProtectedRoute will handle the rest.
-    handleAuthSuccess();
+  const handleAuthEnd = () => {
+    setIsAuthenticating(false);
   };
   
+  // This state will be true if the AuthProvider is working or if a local sign-in process has started.
+  const showLoading = loading || isAuthenticating;
+
+  // If we have a user, ProtectedRoute will handle the redirect. Show loading spinner until then.
   if (currentUser) {
     return <LoadingSpinner fullPage text="REDIRECIONANDO"/>;
   }
+  
+  if (showLoading && !currentUser) {
+      return <LoadingSpinner fullPage text="AUTENTICANDO..." />;
+  }
+
 
   return (
     <AuthLayout
@@ -41,9 +45,10 @@ export default function LoginPage() {
       footerLinkText="Criar conta"
     >
         <GoogleSignInButton 
-          isGoogleLoading={isGoogleLoading}
-          onSuccess={(userCredential) => handleGoogleSuccess(userCredential.user)}
-          onError={() => setIsGoogleLoading(false)}
+          onSuccess={() => { /* AuthProvider will handle success */ }}
+          onError={handleAuthEnd}
+          onClick={handleAuthStart}
+          isGoogleLoading={isAuthenticating}
         />
         <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
@@ -54,7 +59,7 @@ export default function LoginPage() {
             </div>
         </div>
         <EmailPasswordLoginForm 
-          onSuccess={handleAuthSuccess}
+          onSuccess={() => { /* AuthProvider will handle success */ }}
         />
     </AuthLayout>
   );
