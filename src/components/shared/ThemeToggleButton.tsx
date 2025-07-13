@@ -47,64 +47,50 @@ export const ThemeToggleButton: React.FC = () => {
 
     const { activeTheme, lastCustomTheme, defaultThemeMode } = userProfile.preferences;
     
-    const handleToggle = () => {
-        const isDefaultActive = activeTheme === 'light' || activeTheme === 'dark';
+    // Helper to check if a theme is considered a "default mode" (light or dark)
+    const isDefaultMode = (theme: ThemeName) => ['light', 'dark'].includes(theme);
 
-        if (isDefaultActive) {
-            // If default is active, switch to the last used custom theme
-            savePreferences({ activeTheme: lastCustomTheme });
+    const handleToggle = () => {
+        let newActiveTheme: ThemeName;
+
+        if (isDefaultMode(activeTheme)) {
+            // Currently in a default theme state. Toggle to the last custom theme if it exists and is not a default theme.
+            if (lastCustomTheme && !isDefaultMode(lastCustomTheme)) {
+                newActiveTheme = lastCustomTheme;
+            } else {
+                // Otherwise, just toggle between light and dark
+                newActiveTheme = activeTheme === 'light' ? 'dark' : 'light';
+            }
         } else {
-            // If a custom theme is active, switch to the default mode (light or dark)
-            savePreferences({ activeTheme: defaultThemeMode });
+            // Currently on a custom theme. Toggle back to the user's preferred default mode.
+            newActiveTheme = defaultThemeMode;
         }
+        
+        // If switching away from a custom theme, we don't clear lastCustomTheme.
+        // If switching to a custom theme, it's already set from the settings page.
+        savePreferences({ activeTheme: newActiveTheme });
     };
     
     const getIconAndTooltip = () => {
-        const isDefaultActive = activeTheme === 'light' || activeTheme === 'dark';
-        let nextTheme: ThemeName;
+        let IconComponent: React.FC<{ className?: string }>;
         let tooltipText: string;
 
-        if (isDefaultActive) {
-            // Currently on a default theme, next will be the last custom theme
-            nextTheme = lastCustomTheme;
+        if (isDefaultMode(activeTheme)) {
+            // Currently in default mode. The next action is to switch to a custom theme or the other default theme.
+            const nextTheme = (lastCustomTheme && !isDefaultMode(lastCustomTheme)) ? lastCustomTheme : (activeTheme === 'light' ? 'dark' : 'light');
+            IconComponent = themeIcons[nextTheme] || Moon;
             tooltipText = `Mudar para tema ${themeLabels[nextTheme]}`;
         } else {
-            // Currently on a custom theme, next will be the default mode
-            nextTheme = defaultThemeMode;
-            tooltipText = `Mudar para tema Padrão (${themeLabels[nextTheme]})`;
+            // Currently in a custom theme. The next action is to switch to the default theme.
+            IconComponent = themeIcons[defaultThemeMode] || Moon;
+            tooltipText = `Mudar para tema Padrão (${themeLabels[defaultThemeMode]})`;
         }
-
-        const IconComponent = themeIcons[nextTheme] || Moon;
 
         return { Icon: <IconComponent className="h-5 w-5" />, tooltip: tooltipText };
     };
 
     const { Icon, tooltip } = getIconAndTooltip();
-    
-    // This is a special case for when the user is in "Padrão" mode and just wants to toggle light/dark
-    // This happens when the last selected theme in settings *was* "Padrão"
-    const isPadrãoModeSelectedInSettings = (lastCustomTheme === 'light' || lastCustomTheme === 'dark' || lastCustomTheme === 'padrão');
 
-    if (isPadrãoModeSelectedInSettings) {
-        const nextMode = activeTheme === 'light' ? 'dark' : 'light';
-        const NextIcon = nextMode === 'light' ? Sun : Moon;
-        
-        return (
-             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => savePreferences({ activeTheme: nextMode })}>
-                        <NextIcon className="h-5 w-5" />
-                        <span className="sr-only">Toggle theme</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Mudar para tema {themeLabels[nextMode]}</p>
-                </TooltipContent>
-            </Tooltip>
-        );
-    }
-    
-    // Main toggle logic for switching between custom and default
     return (
         <Tooltip>
             <TooltipTrigger asChild>
