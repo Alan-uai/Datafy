@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
       if (user) {
+        setLoading(true);
         setCurrentUser(user);
         try {
           let profile = await getUserProfile(user.uid);
@@ -47,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: user.email,
                 photoURL: user.photoURL || null,
             };
-            // Create the profile and get the created profile data to set it
             const createdProfile = await createUserProfile(user.uid, newProfileData);
             setUserProfile(createdProfile);
           } else {
@@ -56,12 +55,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.error("Failed to fetch or create user profile in AuthContext:", error);
           setUserProfile(null);
+        } finally {
+            setLoading(false);
         }
       } else {
         setCurrentUser(null);
         setUserProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, []);
