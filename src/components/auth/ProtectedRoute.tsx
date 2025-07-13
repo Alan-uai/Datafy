@@ -19,30 +19,43 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!currentUser && !!userProfile;
 
   useEffect(() => {
-    // If auth state is still being determined, do nothing.
-    if (authLoading) return;
-
-    // If we're done loading and the user is not authenticated, they should
-    // be redirected from protected routes to the login page.
-    if (!isAuthenticated && isProtectedRoute) {
-      router.push('/login');
-      return; // Stop further execution
+    if (authLoading) {
+      return; // Do nothing while we are actively checking the auth state.
     }
 
-    // If the user is authenticated and tries to access an auth page (login/signup),
+    // If we're done loading and the user is NOT authenticated,
+    // redirect them from protected routes to the login page.
+    if (!isAuthenticated && isProtectedRoute) {
+      router.push('/login');
+      return;
+    }
+
+    // If the user IS authenticated and tries to access an auth page (login/signup),
     // redirect them to the main dashboard.
     if (isAuthenticated && isAuthRoute) {
       router.push('/');
-      return; // Stop further execution
+      return;
     }
   }, [isAuthenticated, authLoading, isProtectedRoute, isAuthRoute, router, pathname]);
 
-  // Show a loading spinner while auth is in progress OR if a redirect is imminent.
-  // This prevents a flash of unstyled/incorrect content.
-  if (authLoading || (!isAuthenticated && isProtectedRoute) || (isAuthenticated && isAuthRoute)) {
+  // Show a loading spinner ONLY if auth is in progress OR a redirect is imminent.
+  if (authLoading) {
+    // If we're loading but already on an auth page, don't show the full-page spinner.
+    // This allows the login/signup page UI to be visible underneath if needed, preventing a blank screen.
+    // However, if we're on a protected route while loading, a spinner is appropriate.
+    if (isProtectedRoute) {
+        return <LoadingSpinner fullPage />;
+    }
+  }
+
+  // Prevent flash of content during redirects.
+  if (!authLoading && !isAuthenticated && isProtectedRoute) {
+    return <LoadingSpinner fullPage />;
+  }
+  if (!authLoading && isAuthenticated && isAuthRoute) {
     return <LoadingSpinner fullPage />;
   }
   
-  // If all checks pass, render the requested page.
+  // If all checks pass, render the requested page content.
   return <>{children}</>;
 }
