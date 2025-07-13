@@ -5,12 +5,15 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeManager } from '@/components/shared/ThemeManager';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 function RootLayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <ThemeManager />
-      {children}
+      <ProtectedRoute>
+        {children}
+      </ProtectedRoute>
       <Toaster />
     </AuthProvider>
   );

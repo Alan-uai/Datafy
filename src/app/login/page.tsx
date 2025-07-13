@@ -11,29 +11,20 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Lock } from "lucide-react";
 
 export default function LoginPage() {
-  const { currentUser, loading } = useAuth();
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const { loading } = useAuth();
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
 
   const handleAuthStart = () => {
-    setIsAuthenticating(true);
+    setIsEmailLoading(true);
   };
 
   const handleAuthEnd = () => {
-    setIsAuthenticating(false);
+    setIsEmailLoading(false);
   };
   
-  // This state will be true if the AuthProvider is working or if a local sign-in process has started.
-  const showLoading = loading || isAuthenticating;
-
-  // If we have a user, ProtectedRoute will handle the redirect. Show loading spinner until then.
-  if (currentUser) {
-    return <LoadingSpinner fullPage text="REDIRECIONANDO"/>;
-  }
-  
-  if (showLoading && !currentUser) {
+  if (loading) {
       return <LoadingSpinner fullPage text="AUTENTICANDO..." />;
   }
-
 
   return (
     <AuthLayout
@@ -45,10 +36,8 @@ export default function LoginPage() {
       footerLinkText="Criar conta"
     >
         <GoogleSignInButton 
-          onSuccess={() => { /* AuthProvider will handle success */ }}
+          onSuccess={() => { /* AuthProvider will handle success and loading state */ }}
           onError={handleAuthEnd}
-          onClick={handleAuthStart}
-          isGoogleLoading={isAuthenticating}
         />
         <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
@@ -60,6 +49,9 @@ export default function LoginPage() {
         </div>
         <EmailPasswordLoginForm 
           onSuccess={() => { /* AuthProvider will handle success */ }}
+          onAuthStart={handleAuthStart}
+          onAuthEnd={handleAuthEnd}
+          isSubmitting={isEmailLoading}
         />
     </AuthLayout>
   );

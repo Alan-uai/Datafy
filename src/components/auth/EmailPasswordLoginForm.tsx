@@ -20,18 +20,20 @@ const formSchema = z.object({
 
 interface EmailPasswordLoginFormProps {
   onSuccess: () => void;
+  onAuthStart: () => void;
+  onAuthEnd: () => void;
+  isSubmitting: boolean;
 }
 
-export function EmailPasswordLoginForm({ onSuccess }: EmailPasswordLoginFormProps) {
+export function EmailPasswordLoginForm({ onSuccess, onAuthStart, onAuthEnd, isSubmitting }: EmailPasswordLoginFormProps) {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  const { isSubmitting } = form.formState;
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    onAuthStart();
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       onSuccess();
@@ -41,6 +43,7 @@ export function EmailPasswordLoginForm({ onSuccess }: EmailPasswordLoginFormProp
         title: 'Erro ao entrar',
         description: error.message,
       });
+      onAuthEnd();
     }
   };
 

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, List } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { Header } from '@/components/shared/Header';
 
 export default function AnalyticsPage() {
   const { currentUser } = useAuth();
@@ -68,6 +69,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
+      <Header />
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">

@@ -6,54 +6,36 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 
-const unprotectedRoutes = ['/login', '/signup', '/teste', '/matrix'];
-const protectedRoutes = ['/dashboard', '/profile', '/settings', '/analytics'];
-
+const PROTECTED_PATHS = ['/', '/dashboard', '/profile', '/settings', '/analytics'];
+const AUTH_PATHS = ['/login', '/signup'];
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { currentUser, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    if (authLoading) {
-      return; 
-    }
+  const isProtectedRoute = PROTECTED_PATHS.some(p => pathname.startsWith(p));
+  const isAuthRoute = AUTH_PATHS.includes(pathname);
 
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route)) || pathname === '/';
-    const isAuthRoute = unprotectedRoutes.includes(pathname);
-    
-    // If not authenticated and trying to access a protected route
+  useEffect(() => {
+    if (authLoading) return; // Wait until authentication status is resolved
+
+    // If user is not logged in and tries to access a protected route, redirect to login
     if (!currentUser && isProtectedRoute) {
       router.push('/login');
     }
 
-    // If authenticated and trying to access an auth route (like /login)
+    // If user is logged in and tries to access an auth route (login/signup), redirect to dashboard
     if (currentUser && isAuthRoute) {
       router.push('/');
     }
-    
-  }, [currentUser, userProfile, authLoading, router, pathname]);
+  }, [currentUser, authLoading, isProtectedRoute, isAuthRoute, router]);
 
-  // Show a loading spinner while authentication status is being determined
-  if (authLoading) {
-     return <LoadingSpinner fullPage />;
+  // While auth is loading, or if we are about to redirect, show a spinner.
+  if (authLoading || (!currentUser && isProtectedRoute) || (currentUser && isAuthRoute)) {
+    return <LoadingSpinner fullPage />;
   }
   
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route)) || pathname === '/';
-  
-  // If the user is authenticated, their profile is loaded, and it's a protected route, show the page
-  if (currentUser && userProfile && isProtectedRoute) {
-    return <>{children}</>;
-  }
-  
-  const isUnprotectedRoute = unprotectedRoutes.includes(pathname);
-
-  // If it's an unprotected route, show the page (the logic inside the useEffect handles redirecting if logged in)
-  if (isUnprotectedRoute) {
-    return <>{children}</>;
-  }
-
-  // Fallback loading spinner for other cases (e.g., waiting for redirect)
-  return <LoadingSpinner fullPage />;
+  // Otherwise, render the requested page content.
+  return <>{children}</>;
 }

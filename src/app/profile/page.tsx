@@ -14,6 +14,7 @@ import { updateUserStatsAndAchievements } from '@/services/userProfileService';
 import { ProfileCard } from './components/ProfileCard';
 import { ProfileTabs } from './components/ProfileTabs';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { Header } from '@/components/shared/Header';
 
 export default function ProfilePage() {
   const { currentUser, logout } = useAuth();
@@ -40,7 +41,7 @@ export default function ProfilePage() {
     if (currentUser?.uid && userProfile) {
       loadUserStats();
     }
-  }, [currentUser, userProfile, loadUserStats]);
+  }, [currentUser?.uid, loadUserStats]);
 
   const handleLogout = async () => {
     try {
@@ -55,52 +56,51 @@ export default function ProfilePage() {
     return <LoadingSpinner />;
   }
   
-  if (!currentUser) {
-     return <div className="p-4 md:p-6">Nenhum perfil encontrado. Faça login para ver seu perfil.</div>;
-  }
-
   return (
-    <div className="min-h-screen bg-transparent p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-8 relative"
-        >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <User className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold">Meu Perfil</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            Gerencie suas informações, conquistas e preferências.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+    <div className="flex flex-col min-h-screen bg-transparent">
+      <Header />
+      <main className="flex-1 p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="xl:col-span-1 space-y-6"
+            className="text-center mb-8 relative"
           >
-            <ProfileCard userProfile={userProfile} />
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <User className="w-8 h-8 text-primary" />
+              <h1 className="text-4xl font-bold">Meu Perfil</h1>
+            </div>
+            <p className="text-muted-foreground text-lg">
+              Gerencie suas informações, conquistas e preferências.
+            </p>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="xl:col-span-3"
-          >
-            <ProfileTabs 
-              userProfile={userProfile} 
-              setUserProfile={setUserProfile}
-              onLogout={handleLogout} 
-            />
-          </motion.div>
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8 }}
+              className="xl:col-span-1 space-y-6"
+            >
+              <ProfileCard userProfile={userProfile} />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="xl:col-span-3"
+            >
+              <ProfileTabs 
+                userProfile={userProfile} 
+                setUserProfile={setUserProfile}
+                onLogout={handleLogout} 
+              />
+            </motion.div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
