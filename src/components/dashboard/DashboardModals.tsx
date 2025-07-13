@@ -21,6 +21,7 @@ interface DashboardModalsProps {
   onManageList: (name: string, icon: string) => void;
   onOpenChange: (type: 'addProduct' | 'manageList', open: boolean) => void;
   onOpenAddProductDialog: () => void;
+  hasLists: boolean;
 }
 
 export function DashboardModals({
@@ -33,6 +34,7 @@ export function DashboardModals({
   onManageList,
   onOpenChange,
   onOpenAddProductDialog,
+  hasLists,
 }: DashboardModalsProps) {
   const { toast } = useToast();
   const newListNameRef = useRef<HTMLInputElement>(null);
@@ -92,8 +94,10 @@ export function DashboardModals({
         categories={categories}
       >
         <Button 
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-50"
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-50 disabled:bg-muted disabled:cursor-not-allowed"
             onClick={onOpenAddProductDialog}
+            disabled={!hasLists}
+            title={!hasLists ? "Crie uma lista primeiro" : "Adicionar produto"}
         >
           <Plus className="h-8 w-8" />
         </Button>

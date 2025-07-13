@@ -170,7 +170,6 @@ function DashboardComponent() {
               onProductPointerUp={handleProductPointerUp}
               preferences={preferences}
               onOpenManageListDialog={() => openManageListDialog(null)}
-              isLoading={isProductDataLoading}
             />
         </div>
 
@@ -194,6 +193,7 @@ function DashboardComponent() {
             if (!open) closeDialogs();
           }}
           onOpenAddProductDialog={() => openAddProductDialog(null)}
+          hasLists={productLists.length > 0}
         />
         
         {isMultiSelectMode && (

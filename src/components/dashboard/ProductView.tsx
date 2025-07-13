@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
 import type { Product, Category, ProductList, UserPreferences } from '@/lib/types';
 import type { FilterType } from '@/hooks/useProductTableControls';
+import { LoadingSpinner } from '../shared/LoadingSpinner';
 
 interface ProductViewProps {
   activeListId: string | null;
@@ -29,6 +30,7 @@ interface ProductViewProps {
   onProductPointerUp: () => void;
   preferences: UserPreferences;
   onOpenManageListDialog: () => void;
+  isLoading: boolean;
 }
 
 export const ProductView: React.FC<ProductViewProps> = ({
@@ -50,8 +52,13 @@ export const ProductView: React.FC<ProductViewProps> = ({
   onProductPointerDown,
   onProductPointerUp,
   preferences,
-  onOpenManageListDialog
+  onOpenManageListDialog,
+  isLoading
 }) => {
+  if (isLoading) {
+    return <LoadingSpinner text="CARREGANDO PRODUTOS..." />
+  }
+
   if (activeListId) {
     return (
       <div className="flex-1 flex flex-col">
