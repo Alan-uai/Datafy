@@ -48,9 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 photoURL: user.photoURL || null,
             };
             // Create the profile and get the created profile data to set it
-            profile = await createUserProfile(user.uid, newProfileData);
+            const createdProfile = await createUserProfile(user.uid, newProfileData);
+            setUserProfile(createdProfile);
+          } else {
+            setUserProfile(profile);
           }
-          setUserProfile(profile);
         } catch (error) {
           console.error("Failed to fetch or create user profile in AuthContext:", error);
           setUserProfile(null);
