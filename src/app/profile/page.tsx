@@ -14,7 +14,6 @@ import { updateUserStatsAndAchievements } from '@/services/userProfileService';
 import { ProfileCard } from './components/ProfileCard';
 import { ProfileTabs } from './components/ProfileTabs';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { Header } from '@/components/shared/Header';
 
 export default function ProfilePage() {
   const { currentUser, logout } = useAuth();
@@ -58,7 +57,6 @@ export default function ProfilePage() {
   
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
-      <Header />
       <main className="flex-1 p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
           <motion.div

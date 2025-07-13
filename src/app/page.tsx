@@ -53,8 +53,14 @@ function DashboardComponent() {
   } = useProductTableControls(products);
   
   const productsForAI = useMemo(() => {
-      if (!products) return [];
-      return products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name }))
+    if (!products) return [];
+    return products.map(p => ({
+      id: p.id,
+      produto: p.name,
+      marca: p.brand,
+      unidade: p.quantity.toString(),
+      validade: p.expiryDate.toISOString(),
+    }));
   }, [products]);
 
 

@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import { AppearanceSettings } from './components/AppearanceSettings';
 import { ThemeSettings } from './components/ThemeSettings';
 import type { ThemeConfig, ThemeName } from '@/lib/types';
-import { Header } from '@/components/shared/Header';
 
 export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
@@ -36,7 +35,6 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
-      <Header />
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
           <motion.div

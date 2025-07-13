@@ -89,14 +89,14 @@ export function ProductTable({
       <Table className={cn(dashboardScale === 'compact' ? 'text-sm table-fixed w-full' : '')}>
         <TableHeader>
           <TableRow className="border-b hover:bg-transparent">
-            {columnVisibility['id'] && <TableHead>ID</TableHead>}
-            <TableHead><Button variant="ghost" onClick={() => onSort('name')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Produto {renderSortIcon('name')}</Button></TableHead>
-            {columnVisibility['marca'] && <TableHead><Button variant="ghost" onClick={() => onSort('brand')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
-            {columnVisibility['qtde'] && <TableHead><Button variant="ghost" onClick={() => onSort('quantity')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
-            {columnVisibility['validade'] && <TableHead><Button variant="ghost" onClick={() => onSort('expiryDate')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
-            {columnVisibility['preco'] && <TableHead><Button variant="ghost" onClick={() => onSort('price')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Preço {renderSortIcon('price')}</Button></TableHead>}
-            {columnVisibility['categoria'] && <TableHead><Button variant="ghost" onClick={() => onSort('category')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Categoria {renderSortIcon('category')}</Button></TableHead>}
-            {columnVisibility['status'] && <TableHead>Status</TableHead>}
+            {columnVisibility['id'] && <TableHead className="text-center">ID</TableHead>}
+            <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('name')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Produto {renderSortIcon('name')}</Button></TableHead>
+            {columnVisibility['marca'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('brand')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
+            {columnVisibility['qtde'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('quantity')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
+            {columnVisibility['validade'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('expiryDate')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
+            {columnVisibility['preco'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('price')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Preço {renderSortIcon('price')}</Button></TableHead>}
+            {columnVisibility['categoria'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('category')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Categoria {renderSortIcon('category')}</Button></TableHead>}
+            {columnVisibility['status'] && <TableHead className="text-center">Status</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -115,14 +115,14 @@ export function ProductTable({
                   onPointerUp={onProductPointerUp}
                   onClick={() => onProductClick(product)}
                 >
-                  {columnVisibility['id'] && <TableCell className={cn('font-mono text-xs text-muted-foreground', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.rowIndex}</TableCell>}
-                  <TableCell className={cn('font-medium truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
-                  {columnVisibility['marca'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.brand}</TableCell>}
-                  {columnVisibility['qtde'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.quantity}</TableCell>}
-                  {columnVisibility['validade'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{format(product.expiryDate, 'dd/MM/yy')}</TableCell>}
-                  {columnVisibility['preco'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
-                  {columnVisibility['categoria'] && <TableCell className={cn('truncate', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
-                  {columnVisibility['status'] && <TableCell className={dashboardScale === 'compact' ? 'p-2' : 'p-4'}><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
+                  {columnVisibility['id'] && <TableCell className={cn('font-mono text-xs text-muted-foreground text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.rowIndex}</TableCell>}
+                  <TableCell className={cn('font-medium truncate text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
+                  {columnVisibility['marca'] && <TableCell className={cn('truncate text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.brand}</TableCell>}
+                  {columnVisibility['qtde'] && <TableCell className={cn('text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.quantity}</TableCell>}
+                  {columnVisibility['validade'] && <TableCell className={cn('text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{format(product.expiryDate, 'dd/MM/yy')}</TableCell>}
+                  {columnVisibility['preco'] && <TableCell className={cn('text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.price.toFixed(2).replace('.', ',')}</TableCell>}
+                  {columnVisibility['categoria'] && <TableCell className={cn('truncate text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{categories.find(c => c.id === product.category)?.name || product.category}</TableCell>}
+                  {columnVisibility['status'] && <TableCell className={cn('text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}><Badge className="bg-green-500/80 hover:bg-green-500/90 text-white">OK</Badge></TableCell>}
                 </TableRow>
               </PopoverTrigger>
               <PopoverContent className="w-40 p-2">
