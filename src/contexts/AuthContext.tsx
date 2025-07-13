@@ -86,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hasPremium,
   };
 
-  // Render children directly, ProtectedRoute will handle loading state
   return (
     <AuthContext.Provider value={value}>
       {children}
