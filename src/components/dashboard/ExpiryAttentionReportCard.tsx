@@ -94,7 +94,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
             id: p.id,
             produto: p.name,
             marca: p.brand,
-            unidade: p.quantity.toString(),
+            unidade: p.quantity?.toString() ?? '1',
             validade: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : new Date().toISOString(),
           }));
           const report = await generateExpiryAttentionReport({ products: plainProductsForAI, attentionHorizonDays: horizon, topNProducts: 3 });
