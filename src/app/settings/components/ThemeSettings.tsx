@@ -25,12 +25,11 @@ const THEME_OPTIONS = [
 
 interface ThemeSettingsProps {
     preferences: UserPreferences;
-    activeThemeConfig: Partial<ThemeConfig>;
     onThemeChange: (theme: ThemeName) => void;
     onThemeConfigChange: (newConfig: Partial<ThemeConfig>) => void;
 }
 
-export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activeThemeConfig, onThemeChange, onThemeConfigChange }) => {
+export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThemeChange, onThemeConfigChange }) => {
     const { savePreferences, userProfile } = useUserProfile();
     const hasPremium = !!userProfile?.premium;
 
@@ -66,7 +65,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
         ? 'padrão' 
         : preferences.activeTheme;
         
-    const currentTheme = preferences.activeTheme;
+    const activeThemeConfig = preferences.themeConfigs[preferences.activeTheme] || {};
     const { 
         themeAnimation = 'nenhuma', 
         themeSpeed = 100, 
@@ -109,7 +108,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                 </RadioGroup>
 
                  <AnimatePresence>
-                {selectedRadioValue === 'padrão' && (
+                {(preferences.activeTheme === 'dark' || preferences.activeTheme === 'light') && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                         className="pt-6 border-t space-y-4"
@@ -143,7 +142,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                 </AnimatePresence>
 
                 <AnimatePresence>
-                {currentTheme === 'matrix' && (
+                {preferences.activeTheme === 'matrix' && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                         className="pt-6 border-t space-y-8"
@@ -183,7 +182,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                 </AnimatePresence>
 
                 <AnimatePresence>
-                {currentTheme === 'dia-noite' && (
+                {preferences.activeTheme === 'dia-noite' && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                         className="pt-6 border-t space-y-4"
@@ -271,10 +270,10 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                         </RadioGroup>
                     </div>
 
-                    <div className={cn(diurnoMode && currentTheme === 'dia-noite' ? 'opacity-50 pointer-events-none' : '')}>
+                    <div className={cn(diurnoMode && preferences.activeTheme === 'dia-noite' ? 'opacity-50 pointer-events-none' : '')}>
                         <Label htmlFor="speed-slider" className="text-base font-medium">Velocidade da Animação</Label>
                         <p className="text-sm text-muted-foreground mb-3">
-                            Ajuste a velocidade da animação do tema de fundo. {diurnoMode && currentTheme === 'dia-noite' && '(Desativado no Modo Diurno)'}
+                            Ajuste a velocidade da animação do tema de fundo. {diurnoMode && preferences.activeTheme === 'dia-noite' && '(Desativado no Modo Diurno)'}
                         </p>
                         <div className="flex items-center gap-4">
                            <SlidersHorizontal className="h-5 w-5 text-muted-foreground"/>
@@ -285,7 +284,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
                              step={1}
                              value={[themeSpeed]}
                              onValueChange={(v) => onThemeConfigChange({ themeSpeed: v[0] })}
-                             disabled={diurnoMode && currentTheme === 'dia-noite'}
+                             disabled={diurnoMode && preferences.activeTheme === 'dia-noite'}
                            />
                            <span className="text-sm font-mono w-12 text-center">{themeSpeed}%</span>
                         </div>
@@ -313,4 +312,6 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, activ
             </CardContent>
         </Card>
     );
-};
+}
+
+    
