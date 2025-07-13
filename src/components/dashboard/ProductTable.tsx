@@ -92,7 +92,7 @@ export function ProductTable({
         <TableHeader>
           <TableRow className="border-b hover:bg-transparent">
             {columnVisibility['id'] && <TableHead className="text-center">ID</TableHead>}
-            <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('name')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Produto {renderSortIcon('name')}</Button></TableHead>}
+            <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('name')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Produto {renderSortIcon('name')}</Button></TableHead>
             {columnVisibility['marca'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('brand')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Marca {renderSortIcon('brand')}</Button></TableHead>}
             {columnVisibility['qtde'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('quantity')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Qtde {renderSortIcon('quantity')}</Button></TableHead>}
             {columnVisibility['validade'] && <TableHead className="text-center"><Button variant="ghost" onClick={() => onSort('expiryDate')} className={cn('p-1', dashboardScale === 'compact' ? 'text-xs px-1' : '')}>Validade {renderSortIcon('expiryDate')}</Button></TableHead>}
