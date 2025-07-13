@@ -19,24 +19,30 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!currentUser && !!userProfile;
 
   useEffect(() => {
-    if (authLoading) return; // Wait until authentication status is resolved
+    // If auth state is still being determined, do nothing.
+    if (authLoading) return;
 
-    // If user is not logged in and tries to access a protected route, redirect to login
+    // If we're done loading and the user is not authenticated, they should
+    // be redirected from protected routes to the login page.
     if (!isAuthenticated && isProtectedRoute) {
       router.push('/login');
+      return; // Stop further execution
     }
 
-    // If user is logged in and tries to access an auth route (login/signup), redirect to dashboard
+    // If the user is authenticated and tries to access an auth page (login/signup),
+    // redirect them to the main dashboard.
     if (isAuthenticated && isAuthRoute) {
       router.push('/');
+      return; // Stop further execution
     }
-  }, [isAuthenticated, authLoading, isProtectedRoute, isAuthRoute, router]);
+  }, [isAuthenticated, authLoading, isProtectedRoute, isAuthRoute, router, pathname]);
 
-  // While auth is loading, or if we are about to redirect, show a spinner.
+  // Show a loading spinner while auth is in progress OR if a redirect is imminent.
+  // This prevents a flash of unstyled/incorrect content.
   if (authLoading || (!isAuthenticated && isProtectedRoute) || (isAuthenticated && isAuthRoute)) {
     return <LoadingSpinner fullPage />;
   }
   
-  // Otherwise, render the requested page content.
+  // If all checks pass, render the requested page.
   return <>{children}</>;
 }
