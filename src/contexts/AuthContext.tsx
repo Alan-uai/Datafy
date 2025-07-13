@@ -68,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const logout = async () => {
     await firebaseSignOut(auth);
+    // State will be cleared by onAuthStateChanged listener
   };
   
   const hasPremium = useCallback(() => {

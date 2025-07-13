@@ -16,23 +16,24 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   const isProtectedRoute = PROTECTED_PATHS.some(p => pathname.startsWith(p));
   const isAuthRoute = AUTH_PATHS.includes(pathname);
+  const isAuthenticated = !!currentUser && !!userProfile;
 
   useEffect(() => {
     if (authLoading) return; // Wait until authentication status is resolved
 
     // If user is not logged in and tries to access a protected route, redirect to login
-    if (!currentUser && isProtectedRoute) {
+    if (!isAuthenticated && isProtectedRoute) {
       router.push('/login');
     }
 
     // If user is logged in and tries to access an auth route (login/signup), redirect to dashboard
-    if (currentUser && isAuthRoute) {
+    if (isAuthenticated && isAuthRoute) {
       router.push('/');
     }
-  }, [currentUser, authLoading, isProtectedRoute, isAuthRoute, router]);
+  }, [isAuthenticated, authLoading, isProtectedRoute, isAuthRoute, router]);
 
   // While auth is loading, or if we are about to redirect, show a spinner.
-  if (authLoading || (!currentUser && isProtectedRoute) || (currentUser && isAuthRoute)) {
+  if (authLoading || (!isAuthenticated && isProtectedRoute) || (isAuthenticated && isAuthRoute)) {
     return <LoadingSpinner fullPage />;
   }
   
