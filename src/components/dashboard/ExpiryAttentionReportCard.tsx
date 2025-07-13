@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,16 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     }
   };
 
+  const productFingerprint = useMemo(() => {
+    return JSON.stringify(listProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      brand: p.brand,
+      quantity: p.quantity,
+      expiryDate: p.expiryDate.toISOString(),
+    })));
+  }, [listProducts]);
+
   const calculateStatsAndReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
     setIsLoadingStats(true);
     setIsLoadingAttentionReport(true);
@@ -47,7 +57,6 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       let expiringSoonCount = 0;
 
       productsToAnalyze.forEach(p => {
-        // This is a simple representation of a Product for AI, not the full type from types.ts
         const productForAnalysis = {
             ...p,
             validade: p.expiryDate.toISOString(),
@@ -102,7 +111,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
 
   useEffect(() => {
     calculateStatsAndReport(listProducts, attentionHorizon);
-  }, [listProducts, attentionHorizon, calculateStatsAndReport]);
+  }, [productFingerprint, attentionHorizon, calculateStatsAndReport]);
 
   const handleAnalyzeAgain = () => {
       calculateStatsAndReport(listProducts, attentionHorizon);
@@ -123,29 +132,25 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       </CardHeader>
       <CardContent className="p-3 sm:p-4 pt-0 space-y-3">
         <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center mb-3">
+          <div>
+            <AttentionHorizonSelect 
+              currentHorizon={attentionHorizon} 
+              onHorizonChange={handleHorizonChange} 
+              isLoading={isLoadingStats} 
+            />
+          </div>
           {isLoadingStats ? (
-            <>
-              <div>
-                <div className="h-3 w-20 sm:w-24 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
-              </div>
-              <div>
-                <div className="h-3 w-12 sm:w-16 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
-                <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
-              </div>
-            </>
+            <div>
+              <div className="h-3 w-12 sm:w-16 mx-auto bg-muted rounded animate-pulse mb-1.5 sm:mb-2"></div>
+              <div className="h-7 w-10 sm:h-8 sm:w-12 mx-auto bg-muted rounded animate-pulse"></div>
+            </div>
           ) : listStats ? (
-            <>
-              <div>
-                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={handleHorizonChange} isLoading={isLoadingStats} />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>
-                <p className={`text-xl sm:text-2xl font-bold ${listStats.expired > 0 ? 'text-destructive' : 'text-foreground'}`}>
-                  {listStats.expired}
-                </p>
-              </div>
-            </>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>
+              <p className={`text-xl sm:text-2xl font-bold ${listStats.expired > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                {listStats.expired}
+              </p>
+            </div>
           ) : (
             <p className="col-span-2 text-sm text-muted-foreground text-center">Estatísticas não disponíveis.</p>
           )}
