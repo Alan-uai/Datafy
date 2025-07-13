@@ -21,7 +21,7 @@ export type WidgetConfig = {
   title: string;
   description: string;
   Icon: LucideIcon;
-  component: React.FC<WidgetProps>;
+  component: React.FC<any>;
   premium?: boolean;
 };
 
