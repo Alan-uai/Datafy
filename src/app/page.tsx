@@ -20,6 +20,7 @@ import { DashboardModals } from "@/components/dashboard/DashboardModals";
 import { MultiSelectBar } from "@/components/dashboard/MultiSelectBar";
 import type { AllWidgetType } from "@/components/dashboard/widgets/widget-map";
 import { DashboardHeader } from "./dashboard/components/DashboardHeader";
+import { Header } from "@/components/shared/Header";
 
 function DashboardComponent() {
   const { userProfile, savePreferences, isLoading: isProfileLoading } = useUserProfile();
@@ -71,7 +72,7 @@ function DashboardComponent() {
     handleProductPointerUp,
     handleProductPointerMove,
     resetSelection,
-  } = useMultiSelect();
+  } = useMultiSelect(0.5);
 
   const {
     isAddProductDialogOpen,
@@ -132,6 +133,7 @@ function DashboardComponent() {
 
   return (
     <div className="flex flex-col h-full relative">
+        <Header />
         <div className="p-4 md:p-6">
             <DashboardHeader
               isEditingWidgets={preferences.isEditingWidgets}

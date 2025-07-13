@@ -4,7 +4,7 @@
 import { useState, useRef, useCallback } from 'react';
 import type { Product } from '@/lib/types';
 
-export function useMultiSelect() {
+export function useMultiSelect(longPressDelay: number = 500) {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -25,7 +25,6 @@ export function useMultiSelect() {
 
   const handleProductPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
-    // Extract productId immediately before setTimeout
     const productId = event.currentTarget.dataset.productId; 
 
     pressTimeoutRef.current = setTimeout(() => {
@@ -34,7 +33,7 @@ export function useMultiSelect() {
           setSelectedProductIds(prev => new Set(prev).add(productId));
       }
       pressTimeoutRef.current = null; // Clear after firing
-    }, 500);
+    }, longPressDelay);
   };
 
   const handleProductPointerUp = () => {
