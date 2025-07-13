@@ -34,7 +34,7 @@ export function useMultiSelect() {
           setSelectedProductIds(prev => new Set(prev).add(productId));
       }
       pressTimeoutRef.current = null; // Clear after firing
-    }, 700);
+    }, 500);
   };
 
   const handleProductPointerUp = () => {
