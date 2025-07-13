@@ -54,9 +54,6 @@ function DashboardComponent() {
   
   const productsForAI = useMemo(() => {
       if (!products) return [];
-      // This transformation is simple, so we can pass `products` directly
-      // if we adjust the ExpiryAttentionReportCard to accept the standard Product type.
-      // For now, keeping the mapping to demonstrate memoization.
       return products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name }))
   }, [products]);
 

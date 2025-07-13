@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { WIDGET_MAP, type AllWidgetType, type WidgetProps, type ExpiryWidgetProps } from './widgets/widget-map';
+import { WIDGET_MAP, type AllWidgetType, type WidgetProps } from './widgets/widget-map';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { X, Lock } from 'lucide-react';
@@ -16,7 +16,7 @@ interface WidgetManagerProps {
   isEditingWidgets: boolean;
   hasPremium: boolean;
   activeWidgets: AllWidgetType[];
-  widgetDataProps: WidgetProps & ExpiryWidgetProps;
+  widgetDataProps: WidgetProps;
   onAddWidget: (id: AllWidgetType) => void;
   onRemoveWidget: (id: AllWidgetType) => void;
   onDragEnd: (event: DragEndEvent) => void;
@@ -106,8 +106,8 @@ export function WidgetManager({ isEditingWidgets, hasPremium, activeWidgets, wid
                    {widgetInfo.id === 'expiryAttention' ? (
                         <WidgetComponent
                             listProducts={widgetDataProps.listProducts}
-                            attentionHorizon={widgetDataProps.preferences.attentionHorizonDays}
-                            onHorizonChange={(value: number) => widgetDataProps.savePreferences({ attentionHorizonDays: value })}
+                            preferences={widgetDataProps.preferences}
+                            savePreferences={widgetDataProps.savePreferences}
                         />
                     ) : (
                         <WidgetComponent {...(widgetDataProps as WidgetProps)} />

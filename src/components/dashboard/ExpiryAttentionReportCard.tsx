@@ -62,7 +62,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
             validade: p.expiryDate.toISOString(),
             produto: p.name,
         }
-        if (productForAnalysis.isExploding) return;
+        if ((p as any).isExploding) return;
         if (productForAnalysis.validade && isValid(parseISO(productForAnalysis.validade))) {
           const productDate = startOfDay(parseISO(productForAnalysis.validade));
           if (isPast(productDate) && !isToday(productDate)) {
