@@ -16,10 +16,10 @@ interface WidgetManagerProps {
   isEditingWidgets: boolean;
   hasPremium: boolean;
   activeWidgets: AllWidgetType[];
-  widgetDataProps: WidgetProps;
   onAddWidget: (id: AllWidgetType) => void;
   onRemoveWidget: (id: AllWidgetType) => void;
   onDragEnd: (event: DragEndEvent) => void;
+  widgetDataProps: WidgetProps;
 }
 
 const SortableWidget = ({ id, isEditing, onRemove, children }: { id: AllWidgetType, isEditing: boolean, onRemove: (id: AllWidgetType) => void, children: React.ReactNode }) => {
@@ -52,7 +52,7 @@ const AvailableWidgetCard = ({ widgetId, onAdd, isLocked, dashboardScale }: { wi
     );
 };
 
-export function WidgetManager({ isEditingWidgets, hasPremium, activeWidgets, widgetDataProps, onAddWidget, onRemoveWidget, onDragEnd }: WidgetManagerProps) {
+const WidgetManagerComponent: React.FC<WidgetManagerProps> = ({ isEditingWidgets, hasPremium, activeWidgets, widgetDataProps, onAddWidget, onRemoveWidget, onDragEnd }) => {
   const { toast } = useToast();
   const availableWidgets = useMemo(() => {
     const allWidgetKeys = Object.keys(WIDGET_MAP) as AllWidgetType[];
@@ -121,3 +121,5 @@ export function WidgetManager({ isEditingWidgets, hasPremium, activeWidgets, wid
     </>
   );
 }
+
+export const WidgetManager = React.memo(WidgetManagerComponent);
