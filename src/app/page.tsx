@@ -19,7 +19,6 @@ import { ProductView } from "@/components/dashboard/ProductView";
 import { DashboardModals } from "@/components/dashboard/DashboardModals";
 import { MultiSelectBar } from "@/components/dashboard/MultiSelectBar";
 import type { AllWidgetType } from "@/components/dashboard/widgets/widget-map";
-import { Header } from "@/components/shared/Header";
 import { DashboardHeader } from "./dashboard/components/DashboardHeader";
 
 function DashboardComponent() {
@@ -39,7 +38,7 @@ function DashboardComponent() {
     handleDeleteProduct,
     handleDeleteMultipleProducts,
     handleMoveMultipleProducts
-  } = useProductData(userProfile, savePreferences);
+  } = useProductData(userProfile);
 
   const {
     searchQuery,
@@ -234,7 +233,6 @@ function DashboardComponent() {
 export default function Dashboard() {
     return (
         <div className="relative min-h-screen flex flex-col bg-transparent">
-            <Header />
             <main className="flex-1">
                 <DashboardComponent />
             </main>

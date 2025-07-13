@@ -12,7 +12,7 @@ import type { Product, UserPreferences } from '@/types';
 import AttentionHorizonSelect from '@/components/dashboard/AttentionHorizonSelect';
 
 interface ExpiryAttentionReportCardProps {
-  listProducts: Product[];
+  listProducts: any[];
   preferences?: UserPreferences;
   savePreferences?: (newPreferences: Partial<UserPreferences>) => void;
 }
@@ -39,14 +39,14 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     if (!listProducts) return '[]';
     return JSON.stringify(listProducts.map(p => ({
       id: p.id,
-      name: p.name,
-      brand: p.brand,
-      quantity: p.quantity,
-      expiryDate: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : null,
+      name: p.produto,
+      brand: p.marca,
+      quantity: p.unidade,
+      expiryDate: p.validade
     })));
   }, [listProducts]);
 
-  const calculateStats = useCallback((productsToAnalyze: Product[], horizon: number) => {
+  const calculateStats = useCallback((productsToAnalyze: any[], horizon: number) => {
     setIsLoadingStats(true);
     setListStats(null);
     try {
@@ -55,14 +55,9 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       let expiringSoonCount = 0;
 
       productsToAnalyze.forEach(p => {
-        const productForAnalysis = {
-            ...p,
-            validade: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : null,
-            produto: p.name,
-        }
         if ((p as any).isExploding) return;
-        if (productForAnalysis.validade && isValid(parseISO(productForAnalysis.validade))) {
-          const productDate = startOfDay(parseISO(productForAnalysis.validade));
+        if (p.validade && isValid(parseISO(p.validade))) {
+          const productDate = startOfDay(parseISO(p.validade));
           if (isPast(productDate) && !isToday(productDate)) {
             expiredCount++;
           } else if (
@@ -85,19 +80,12 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     }
   }, [toast]);
   
-  const generateReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
+  const generateReport = useCallback(async (productsToAnalyze: any[], horizon: number) => {
       setIsLoadingAttentionReport(true);
       setExpiryAttentionReport(null);
       try {
         if (productsToAnalyze.length > 0) {
-          const plainProductsForAI = productsToAnalyze.map(p => ({
-            id: p.id,
-            produto: p.name,
-            marca: p.brand,
-            unidade: p.quantity?.toString() ?? '1',
-            validade: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : new Date().toISOString(),
-          }));
-          const report = await generateExpiryAttentionReport({ products: plainProductsForAI, attentionHorizonDays: horizon, topNProducts: 3 });
+          const report = await generateExpiryAttentionReport({ products: productsToAnalyze, attentionHorizonDays: horizon, topNProducts: 3 });
           setExpiryAttentionReport(report);
         } else {
           setExpiryAttentionReport({ criticalItems: [], overallSummary: "Nenhum produto na lista para analisar.", analyzedProductsCount: 0, criticalProductsCount: 0 });
