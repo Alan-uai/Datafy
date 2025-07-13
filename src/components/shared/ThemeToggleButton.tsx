@@ -47,17 +47,22 @@ export const ThemeToggleButton: React.FC = () => {
 
     const { activeTheme, lastCustomTheme, defaultThemeMode } = userProfile.preferences;
     
-    const isDefaultMode = (theme: ThemeName) => ['light', 'dark'].includes(theme);
+    const isStandardMode = (theme: ThemeName) => ['light', 'dark'].includes(theme);
+    const lastThemeWasCustom = !isStandardMode(lastCustomTheme) && lastCustomTheme !== 'padrão';
 
     const handleToggle = () => {
         let newActiveTheme: ThemeName;
 
-        if (isDefaultMode(activeTheme)) {
-            // When in a standard theme (light/dark), the button should toggle to the *other* standard theme.
-            newActiveTheme = activeTheme === 'light' ? 'dark' : 'light';
+        if (lastThemeWasCustom) {
+            // Logic to toggle between standard and last custom theme
+            if (isStandardMode(activeTheme)) {
+                newActiveTheme = lastCustomTheme;
+            } else {
+                newActiveTheme = defaultThemeMode;
+            }
         } else {
-            // When in a custom theme, the button should toggle back to the user's preferred standard mode.
-            newActiveTheme = defaultThemeMode;
+            // Original logic: toggle between light and dark
+            newActiveTheme = activeTheme === 'light' ? 'dark' : 'light';
         }
         
         savePreferences({ activeTheme: newActiveTheme });
@@ -67,15 +72,14 @@ export const ThemeToggleButton: React.FC = () => {
         let IconComponent: React.FC<{ className?: string }>;
         let tooltipText: string;
 
-        if (isDefaultMode(activeTheme)) {
-            // When in a default mode, the icon should represent the *next* theme, which is the other default mode.
-            const nextTheme = activeTheme === 'light' ? 'dark' : 'light';
+        if (lastThemeWasCustom) {
+            const nextTheme = isStandardMode(activeTheme) ? lastCustomTheme : defaultThemeMode;
             IconComponent = themeIcons[nextTheme] || Moon;
             tooltipText = `Mudar para tema ${themeLabels[nextTheme]}`;
         } else {
-            // When in a custom theme, the icon should represent the default theme we will switch back to.
-            IconComponent = themeIcons[defaultThemeMode] || Moon;
-            tooltipText = `Mudar para tema Padrão (${themeLabels[defaultThemeMode]})`;
+            const nextTheme = activeTheme === 'light' ? 'dark' : 'light';
+            IconComponent = themeIcons[nextTheme] || Moon;
+            tooltipText = `Mudar para tema ${themeLabels[nextTheme]}`;
         }
 
         return { Icon: <IconComponent className="h-5 w-5" />, tooltip: tooltipText };
