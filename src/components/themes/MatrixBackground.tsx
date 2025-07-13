@@ -1,7 +1,6 @@
+"use client";
 
-"use-client";
-
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import type { ThemeConfig } from '@/lib/types';
 import { useThemeAnimation } from '@/contexts/ThemeAnimationContext';
 
@@ -12,16 +11,17 @@ interface MatrixBackgroundProps {
 const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
     const { themeSpeed: speed = 100, themeSize: size = 100, matrixMode = 'padrão' } = config;
     const { isMatrixCurtainPending, completeMatrixCurtain } = useThemeAnimation();
-    
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const canvasTrailRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
     const dropsRef = useRef<number[]>([]);
-    
+    const [isVisible, setIsVisible] = useState(false);
+
     const draw = useCallback((ctx: CanvasRenderingContext2D, currentDrops: number[], fontSize: number, isTrailCanvas: boolean) => {
         const { width, height } = ctx.canvas;
-        
-        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂbiプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
         const hiragana = 'あいうえおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをん';
         const kanji = '日一国会人年大十二本中長出三同時政';
         const nums = '0123456789';
@@ -54,7 +54,7 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
                     ctx.fillText(leaderText, x, y);
                 }
             }
-        } else { // 'combinado'
+        } else {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
             ctx.fillRect(0, 0, width, height);
             ctx.font = `${fontSize}px monospace`;
@@ -73,6 +73,8 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
     }, [matrixMode]);
 
     useEffect(() => {
+        if (!isVisible) return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -80,11 +82,10 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
         if (!ctx) return;
 
         let ctxTrail: CanvasRenderingContext2D | null = null;
-        if (matrixMode === 'padrão') {
-            const canvasTrail = canvasTrailRef.current;
-            if (canvasTrail) ctxTrail = canvasTrail.getContext('2d');
+        if (matrixMode === 'padrão' && canvasTrailRef.current) {
+            ctxTrail = canvasTrailRef.current.getContext('2d');
         }
-        
+
         let frameCount = 0;
 
         const setup = () => {
@@ -100,18 +101,15 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             const columns = Math.ceil(canvas.width / fontSize);
 
             if (isMatrixCurtainPending) {
-                // Curtain effect: start all drops at the top
                 dropsRef.current = Array(columns).fill(0);
             } else {
-                // Standard effect: start drops at random y-positions
                 dropsRef.current = Array(columns).fill(1).map(() => Math.floor(Math.random() * (canvas.height / fontSize)));
             }
-            
+
             let lastTime = 0;
             const baseInterval = 50;
             const speedMultiplier = 100 / Math.max(1, speed);
             const interval = baseInterval * speedMultiplier;
-            frameCount = 0;
 
             const animate = (timestamp: number = 0) => {
                 frameCount++;
@@ -127,18 +125,20 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
                         }
                         dropsRef.current[i]++;
                     }
-                    
+
                     if (matrixMode === 'padrão' && ctxTrail) {
                         draw(ctxTrail, dropsRef.current, fontSize, true);
                         draw(ctx, dropsRef.current, fontSize, false);
                     } else {
                         draw(ctx, dropsRef.current, fontSize, false);
                     }
+
                     lastTime = timestamp;
                 }
+
                 animationFrameId.current = requestAnimationFrame(animate);
             };
-            
+
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
             animate();
         };
@@ -150,12 +150,29 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             window.removeEventListener('resize', setup);
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         };
-    }, [draw, speed, size, matrixMode, isMatrixCurtainPending, completeMatrixCurtain]);
+    }, [isVisible, draw, speed, size, matrixMode, isMatrixCurtainPending, completeMatrixCurtain]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                setIsVisible(true);
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(canvas);
+        return () => observer.disconnect();
+    }, []);
 
     return (
         <div className="fixed inset-0 -z-10 bg-black">
-          {matrixMode === 'padrão' && <canvas ref={canvasTrailRef} className="block absolute inset-0 z-[1]" />}
-          <canvas ref={canvasRef} className="block absolute inset-0 z-[2]" />
+            {matrixMode === 'padrão' && (
+                <canvas ref={canvasTrailRef} className="block absolute inset-0 z-[1]" />
+            )}
+            <canvas ref={canvasRef} className="block absolute inset-0 z-[2]" />
         </div>
     );
 };
