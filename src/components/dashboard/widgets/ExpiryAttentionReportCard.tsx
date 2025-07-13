@@ -9,31 +9,19 @@ import { useToast } from '@/hooks/use-toast';
 import { generateExpiryAttentionReport, type ExpiryAttentionReport } from '@/ai/flows/generate-expiry-attention-report-flow';
 import { formatDaysRemainingText } from '@/utils/dateUtils';
 import { isToday, isPast, isWithinInterval, addDays, startOfDay, parseISO, isValid, format } from 'date-fns';
-import type { Product, UserPreferences } from '@/types';
+import type { Product } from '@/types';
 import AttentionHorizonSelect from '@/components/dashboard/AttentionHorizonSelect';
+import type { ExpiryWidgetProps } from './widget-map';
 
-interface ExpiryAttentionReportCardProps {
-  listProducts: Product[];
-  preferences?: UserPreferences;
-  savePreferences?: (newPreferences: Partial<UserPreferences>) => void;
-}
-
-const MemoizedExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps> = ({
+const MemoizedExpiryAttentionReportCard: React.FC<ExpiryWidgetProps> = ({
   listProducts,
-  preferences,
-  savePreferences,
+  attentionHorizon,
+  onHorizonChange,
 }) => {
   const { toast } = useToast();
   const [listStats, setListStats] = useState<{ expiringSoon: number; expired: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
-  const attentionHorizon = preferences?.attentionHorizonDays || 7;
-
-  const handleHorizonChange = (newHorizon: number) => {
-    if (savePreferences) {
-      savePreferences({ attentionHorizonDays: newHorizon });
-    }
-  };
 
   const calculateStatsAndReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
     setIsLoading(true);
@@ -119,7 +107,7 @@ const MemoizedExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps
         <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center mb-3">
             <>
               <div>
-                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={handleHorizonChange} isLoading={isLoading} />
+                <AttentionHorizonSelect currentHorizon={attentionHorizon} onHorizonChange={onHorizonChange} isLoading={isLoading} />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Vencidos</p>

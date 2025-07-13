@@ -6,7 +6,7 @@ import { CategoryDistributionWidget } from './CategoryDistributionWidget';
 import { StockValueByCategoryWidget } from './StockValueByCategoryWidget';
 import { LowStockItemsWidget } from './LowStockItemsWidget';
 import { PriceRangeDistributionWidget } from './PriceRangeDistributionWidget';
-import { ExpiryAttentionReportCard } from '../ExpiryAttentionReportCard';
+import { ExpiryAttentionReportCard } from './ExpiryAttentionReportCard';
 
 export type WidgetProps = {
   products: Product[];
@@ -17,8 +17,8 @@ export type WidgetProps = {
 
 export type ExpiryWidgetProps = {
   listProducts: Product[];
-  preferences: UserPreferences;
-  savePreferences: (newPreferences: Partial<UserPreferences>) => void;
+  attentionHorizon: number;
+  onHorizonChange: (value: number) => void;
 }
 
 export type WidgetConfig = {

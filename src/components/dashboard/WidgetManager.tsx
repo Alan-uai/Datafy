@@ -106,8 +106,8 @@ export function WidgetManager({ isEditingWidgets, hasPremium, activeWidgets, wid
                    {widgetInfo.id === 'expiryAttention' ? (
                         <WidgetComponent
                             listProducts={widgetDataProps.listProducts}
-                            preferences={widgetDataProps.preferences}
-                            savePreferences={widgetDataProps.savePreferences}
+                            attentionHorizon={widgetDataProps.preferences.attentionHorizonDays}
+                            onHorizonChange={(value: number) => widgetDataProps.savePreferences({ attentionHorizonDays: value })}
                         />
                     ) : (
                         <WidgetComponent {...widgetDataProps as any} />
