@@ -23,6 +23,8 @@ export function GoogleSignInButton({ onSuccess, onError, onClick, className, isG
     onClick?.();
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
+    // Force the account selection prompt every time.
+    provider.setCustomParameters({ prompt: 'select_account' }); 
     try {
       const result = await signInWithPopup(auth, provider);
       onSuccess(result);
