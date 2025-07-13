@@ -36,21 +36,19 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   };
 
   const productFingerprint = useMemo(() => {
+    if (!listProducts) return '[]';
     return JSON.stringify(listProducts.map(p => ({
       id: p.id,
       name: p.name,
       brand: p.brand,
       quantity: p.quantity,
-      expiryDate: p.expiryDate.toISOString(),
+      expiryDate: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : null,
     })));
   }, [listProducts]);
 
-  const calculateStatsAndReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
+  const calculateStats = useCallback((productsToAnalyze: Product[], horizon: number) => {
     setIsLoadingStats(true);
-    setIsLoadingAttentionReport(true);
     setListStats(null);
-    setExpiryAttentionReport(null);
-
     try {
       const today = startOfDay(new Date());
       let expiredCount = 0;
@@ -59,7 +57,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       productsToAnalyze.forEach(p => {
         const productForAnalysis = {
             ...p,
-            validade: p.expiryDate.toISOString(),
+            validade: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : null,
             produto: p.name,
         }
         if ((p as any).isExploding) return;
@@ -85,36 +83,40 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     } finally {
       setIsLoadingStats(false);
     }
-
-    try {
-      if (productsToAnalyze.length > 0) {
-        const plainProductsForAI = productsToAnalyze.map(p => ({
-          id: p.id,
-          produto: p.name,
-          marca: p.brand,
-          unidade: p.quantity.toString(),
-          validade: p.expiryDate.toISOString(),
-        }));
-        const report = await generateExpiryAttentionReport({ products: plainProductsForAI, attentionHorizonDays: horizon, topNProducts: 3 });
-        setExpiryAttentionReport(report);
-      } else {
-        setExpiryAttentionReport({ criticalItems: [], overallSummary: "Nenhum produto na lista para analisar.", analyzedProductsCount: 0, criticalProductsCount: 0 });
-      }
-    } catch (error: any) {
-      console.error("Error generating expiry attention report:", error);
-      toast({ variant: "destructive", title: "Erro na Análise IA", description: `Não foi possível gerar o relatório de atenção: ${error.message}` });
+  }, [toast]);
+  
+  const generateReport = useCallback(async (productsToAnalyze: Product[], horizon: number) => {
+      setIsLoadingAttentionReport(true);
       setExpiryAttentionReport(null);
-    } finally {
-      setIsLoadingAttentionReport(false);
-    }
+      try {
+        if (productsToAnalyze.length > 0) {
+          const plainProductsForAI = productsToAnalyze.map(p => ({
+            id: p.id,
+            produto: p.name,
+            marca: p.brand,
+            unidade: p.quantity.toString(),
+            validade: p.expiryDate instanceof Date ? p.expiryDate.toISOString() : new Date().toISOString(),
+          }));
+          const report = await generateExpiryAttentionReport({ products: plainProductsForAI, attentionHorizonDays: horizon, topNProducts: 3 });
+          setExpiryAttentionReport(report);
+        } else {
+          setExpiryAttentionReport({ criticalItems: [], overallSummary: "Nenhum produto na lista para analisar.", analyzedProductsCount: 0, criticalProductsCount: 0 });
+        }
+      } catch (error: any) {
+        console.error("Error generating expiry attention report:", error);
+        toast({ variant: "destructive", title: "Erro na Análise IA", description: `Não foi possível gerar o relatório de atenção: ${error.message}` });
+        setExpiryAttentionReport(null);
+      } finally {
+        setIsLoadingAttentionReport(false);
+      }
   }, [toast]);
 
   useEffect(() => {
-    calculateStatsAndReport(listProducts, attentionHorizon);
-  }, [productFingerprint, attentionHorizon, calculateStatsAndReport]);
+    calculateStats(listProducts, attentionHorizon);
+  }, [productFingerprint, attentionHorizon, calculateStats]);
 
   const handleAnalyzeAgain = () => {
-      calculateStatsAndReport(listProducts, attentionHorizon);
+      generateReport(listProducts, attentionHorizon);
   };
 
   const isOverallLoading = isLoadingStats || isLoadingAttentionReport;
@@ -179,7 +181,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
                       <p className="font-semibold text-amber-700 dark:text-amber-400">
                         {item.productName} {item.brand ? `(${item.brand})` : ''}
                       </p>
-                      <p>Qtde: {item.quantity} | Vence em: {format(parseISO(item.expiryDate), 'dd/MM/yyyy')} {formatDaysRemainingText(item.expiryDate)}</p>
+                      <p>Qtde: {item.quantity} | Vence em: {isValid(parseISO(item.expiryDate)) ? format(parseISO(item.expiryDate), 'dd/MM/yyyy') : 'Data Inválida'} {isValid(parseISO(item.expiryDate)) ? formatDaysRemainingText(item.expiryDate) : ''}</p>
                       <p className="mt-1 text-xs italic text-muted-foreground flex items-start gap-1">
                         <Wand2 className="inline h-3 w-3 mr-0.5 mt-0.5 flex-shrink-0"/>
                         <span>{item.suggestion}</span>
@@ -199,8 +201,8 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
             onClick={handleAnalyzeAgain}
             disabled={isOverallLoading || listProducts.length === 0}
         >
-            <RefreshCw className={cn("mr-2 h-4 w-4", isOverallLoading && "animate-spin")} />
-            Analisar Novamente
+            {isLoadingAttentionReport ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {isLoadingAttentionReport ? 'Analisando...' : 'Analisar Novamente'}
         </Button>
       </CardContent>
     </Card>
