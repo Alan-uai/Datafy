@@ -12,6 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import type { UserPreferences, ThemeName, ThemeConfig } from '@/lib/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useThemeAnimation } from '@/contexts/ThemeAnimationContext';
 
 const THEME_OPTIONS = [
     { value: 'padrão', label: 'Padrão', icon: Palette },
@@ -32,6 +33,7 @@ interface ThemeSettingsProps {
 
 export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThemeChange, onThemeConfigChange, savePreferences }) => {
     const { userProfile } = useUserProfile();
+    const { triggerMatrixAnimation } = useThemeAnimation();
     const hasPremium = !!userProfile?.premium;
 
     const handleThemeSelection = (value: string) => {
@@ -42,6 +44,10 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
         
         const themeName = value as ThemeName;
         
+        if (themeName === 'matrix') {
+            triggerMatrixAnimation();
+        }
+
         if (value === 'padrão') {
             onThemeChange(preferences.defaultThemeMode);
             savePreferences({ lastCustomTheme: 'padrão' });

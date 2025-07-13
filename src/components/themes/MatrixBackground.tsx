@@ -3,6 +3,7 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { ThemeConfig } from '@/lib/types';
+import { useThemeAnimation } from '@/contexts/ThemeAnimationContext';
 
 interface MatrixBackgroundProps {
     config: Partial<ThemeConfig>;
@@ -10,12 +11,13 @@ interface MatrixBackgroundProps {
 
 const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
     const { themeSpeed: speed = 100, themeSize: size = 100, matrixMode = 'padrão' } = config;
+    const { isMatrixCurtainPending, completeMatrixCurtain } = useThemeAnimation();
+    
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const canvasTrailRef = useRef<HTMLCanvasElement>(null); // New canvas for trail
+    const canvasTrailRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
-    const dropsRef = useRef<number[]>([]); // Use useRef for mutable drops array
-
-    // The draw function now only renders based on the current drops state
+    const dropsRef = useRef<number[]>([]);
+    
     const draw = useCallback((ctx: CanvasRenderingContext2D, currentDrops: number[], fontSize: number, isTrailCanvas: boolean) => {
         const { width, height } = ctx.canvas;
         
@@ -30,41 +32,39 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
         const leaderChars = latin + nums + special;
 
         if (matrixMode === 'padrão') {
-            if (isTrailCanvas) { // Trail Canvas
+            if (isTrailCanvas) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-                ctx.fillRect(0, 0, width, height); // Apply fade effect
+                ctx.fillRect(0, 0, width, height);
                 ctx.font = `${fontSize}px monospace`;
                 for (let i = 0; i < currentDrops.length; i++) {
                     const x = i * fontSize;
                     const y = currentDrops[i] * fontSize;
-                    ctx.fillStyle = '#0F0'; // Green for trail
+                    ctx.fillStyle = '#0F0';
                     const trailText = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
                     ctx.fillText(trailText, x, y);
                 }
-            } else { // Leader Canvas
-                ctx.clearRect(0, 0, width, height); // Clear to ensure no previous trails/fade
+            } else {
+                ctx.clearRect(0, 0, width, height);
                 ctx.font = `${fontSize}px monospace`;
                 for (let i = 0; i < currentDrops.length; i++) {
                     const x = i * fontSize;
-                    const y = (currentDrops[i] + 1) * fontSize; // Adjusted Y for leader to be at the tip
-                    ctx.fillStyle = 'rgba(200, 255, 220, 0.9)'; // Bright for leader
+                    const y = (currentDrops[i] + 1) * fontSize;
+                    ctx.fillStyle = 'rgba(200, 255, 220, 0.9)';
                     const leaderText = leaderChars.charAt(Math.floor(Math.random() * leaderChars.length));
                     ctx.fillText(leaderText, x, y);
                 }
             }
-        } else { // matrixMode === 'combinado'
+        } else { // 'combinado'
             ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, width, height); // Apply fade effect for combined mode
+            ctx.fillRect(0, 0, width, height);
             ctx.font = `${fontSize}px monospace`;
             for (let i = 0; i < currentDrops.length; i++) {
                 const x = i * fontSize;
                 const y = currentDrops[i] * fontSize;
-                // Trail
                 ctx.fillStyle = '#0F0';
                 const trailText = trailChars.charAt(Math.floor(Math.random() * trailChars.length));
                 ctx.fillText(trailText, x, y);
 
-                // Leader
                 ctx.fillStyle = 'rgba(200, 255, 220, 0.9)';
                 const leaderText = leaderChars.charAt(Math.floor(Math.random() * leaderChars.length));
                 ctx.fillText(leaderText, x, y);
@@ -82,12 +82,10 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
         let ctxTrail: CanvasRenderingContext2D | null = null;
         if (matrixMode === 'padrão') {
             const canvasTrail = canvasTrailRef.current;
-            if (canvasTrail) {
-                canvasTrail.width = window.innerWidth;
-                canvasTrail.height = window.innerHeight;
-                ctxTrail = canvasTrail.getContext('2d');
-            }
+            if (canvasTrail) ctxTrail = canvasTrail.getContext('2d');
         }
+        
+        let frameCount = 0;
 
         const setup = () => {
             canvas.width = window.innerWidth;
@@ -101,16 +99,27 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             const fontSize = Math.floor(baseFontSize * (size / 100));
             const columns = Math.ceil(canvas.width / fontSize);
 
-            dropsRef.current = Array(columns).fill(1).map(() => Math.floor(Math.random() * (canvas.height / fontSize)));
+            if (isMatrixCurtainPending) {
+                // Curtain effect: start all drops at the top
+                dropsRef.current = Array(columns).fill(0);
+            } else {
+                // Standard effect: start drops at random y-positions
+                dropsRef.current = Array(columns).fill(1).map(() => Math.floor(Math.random() * (canvas.height / fontSize)));
+            }
             
             let lastTime = 0;
-            const baseInterval = 50; // Corresponds to 100% speed
+            const baseInterval = 50;
             const speedMultiplier = 100 / Math.max(1, speed);
             const interval = baseInterval * speedMultiplier;
+            frameCount = 0;
 
             const animate = (timestamp: number = 0) => {
+                frameCount++;
+                if (frameCount === 1 && isMatrixCurtainPending) {
+                    completeMatrixCurtain();
+                }
+
                 if (timestamp - lastTime >= interval) {
-                    // Update drops once per frame
                     for (let i = 0; i < dropsRef.current.length; i++) {
                         const y = dropsRef.current[i] * fontSize;
                         if (y > canvas.height && Math.random() > 0.975) {
@@ -118,22 +127,19 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
                         }
                         dropsRef.current[i]++;
                     }
-
-                    // Draw on canvases based on mode
+                    
                     if (matrixMode === 'padrão' && ctxTrail) {
-                        draw(ctxTrail, dropsRef.current, fontSize, true); // Draw trail on separate canvas
-                        draw(ctx, dropsRef.current, fontSize, false); // Draw leader on main canvas
+                        draw(ctxTrail, dropsRef.current, fontSize, true);
+                        draw(ctx, dropsRef.current, fontSize, false);
                     } else {
-                        draw(ctx, dropsRef.current, fontSize, false); // Combined mode draws everything on main canvas
+                        draw(ctx, dropsRef.current, fontSize, false);
                     }
                     lastTime = timestamp;
                 }
                 animationFrameId.current = requestAnimationFrame(animate);
             };
             
-            if (animationFrameId.current) {
-                cancelAnimationFrame(animationFrameId.current);
-            }
+            if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
             animate();
         };
 
@@ -142,11 +148,9 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
 
         return () => {
             window.removeEventListener('resize', setup);
-            if (animationFrameId.current) {
-                cancelAnimationFrame(animationFrameId.current);
-            }
+            if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         };
-    }, [draw, speed, size, matrixMode]);
+    }, [draw, speed, size, matrixMode, isMatrixCurtainPending, completeMatrixCurtain]);
 
     return (
         <div className="fixed inset-0 -z-10 bg-black">
