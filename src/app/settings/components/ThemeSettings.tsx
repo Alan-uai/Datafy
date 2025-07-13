@@ -27,41 +27,38 @@ interface ThemeSettingsProps {
     preferences: UserPreferences;
     onThemeChange: (theme: ThemeName) => void;
     onThemeConfigChange: (newConfig: Partial<ThemeConfig>) => void;
+    savePreferences: (newPreferences: Partial<UserPreferences>) => void;
 }
 
-export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThemeChange, onThemeConfigChange }) => {
-    const { savePreferences, userProfile } = useUserProfile();
+export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThemeChange, onThemeConfigChange, savePreferences }) => {
+    const { userProfile } = useUserProfile();
     const hasPremium = !!userProfile?.premium;
 
     const handleThemeSelection = (value: string) => {
         const selectedOption = THEME_OPTIONS.find(opt => opt.value === value);
         if (selectedOption?.isPremium && !hasPremium) {
-            // Maybe show a toast? For now, just prevent selection.
             return;
         }
 
         if (value === 'padrão') {
-            // When "Padrão" is selected, activate the configured light/dark mode
             onThemeChange(preferences.defaultThemeMode);
         } else {
-            // When a custom theme is selected, activate it and set it as the last custom theme
-            onThemeChange(value as ThemeName);
-            savePreferences({ lastCustomTheme: value as ThemeName });
+            const themeName = value as ThemeName;
+            onThemeChange(themeName);
+            savePreferences({ lastCustomTheme: themeName });
         }
     };
 
     const handleDefaultModeToggle = (isLight: boolean) => {
         const newMode = isLight ? 'light' : 'dark';
         savePreferences({ defaultThemeMode: newMode });
-        // If the current active theme is one of the default modes (meaning "Padrão" is selected),
-        // we must also update the active theme to reflect the change immediately.
+        
         if (preferences.activeTheme === 'light' || preferences.activeTheme === 'dark') {
             onThemeChange(newMode);
         }
     }
     
-    // Determine which radio button should be checked
-    const selectedRadioValue = (preferences.activeTheme === 'light' || preferences.activeTheme === 'dark')
+    const selectedRadioValue = ['light', 'dark'].includes(preferences.activeTheme)
         ? 'padrão' 
         : preferences.activeTheme;
         
@@ -108,7 +105,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
                 </RadioGroup>
 
                  <AnimatePresence>
-                {(preferences.activeTheme === 'dark' || preferences.activeTheme === 'light') && (
+                {selectedRadioValue === 'padrão' && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                         className="pt-6 border-t space-y-4"
@@ -313,5 +310,3 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
         </Card>
     );
 }
-
-    

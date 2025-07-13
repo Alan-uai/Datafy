@@ -7,7 +7,7 @@ import { Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppearanceSettings } from './components/AppearanceSettings';
 import { ThemeSettings } from './components/ThemeSettings';
-import type { ThemeConfig } from '@/lib/types';
+import type { ThemeConfig, ThemeName } from '@/lib/types';
 
 export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
@@ -28,8 +28,10 @@ export default function SettingsPage() {
       };
       savePreferences({ themeConfigs: updatedConfigs });
   };
-
-  const activeThemeConfig = userProfile.preferences.themeConfigs[userProfile.preferences.activeTheme] || {};
+  
+  const handleThemeChange = (themeName: ThemeName) => {
+    savePreferences({ activeTheme: themeName });
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
@@ -62,9 +64,9 @@ export default function SettingsPage() {
             />
             <ThemeSettings 
               preferences={userProfile.preferences}
-              activeThemeConfig={activeThemeConfig}
-              onThemeChange={(theme) => savePreferences({ activeTheme: theme })}
+              onThemeChange={handleThemeChange}
               onThemeConfigChange={handleThemeConfigChange}
+              savePreferences={savePreferences}
             />
           </motion.div>
         </div>

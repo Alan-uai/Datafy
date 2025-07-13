@@ -14,33 +14,38 @@ export function useUserProfile() {
   const savePreferences = useCallback((newPreferences: Partial<UserPreferences>) => {
     if (!userProfile) return;
 
-    // Optimistically update the central state in AuthContext
-    const updatedProfile = {
-        ...userProfile,
-        preferences: { ...userProfile.preferences, ...newPreferences }
-    };
-    if (newPreferences.themeConfigs) {
-        updatedProfile.preferences.themeConfigs = {
-            ...userProfile.preferences.themeConfigs,
-            ...newPreferences.themeConfigs
-        };
-    }
-    setUserProfile(updatedProfile);
+    setUserProfile(currentProfile => {
+        if (!currentProfile) return null;
 
-    // Debounce the Firestore update
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    debounceTimeoutRef.current = setTimeout(async () => {
-      try {
-        await updateUserPreferences(userProfile.uid, newPreferences);
-      } catch (error) {
-        console.error("Failed to save preferences:", error);
-        toast({ variant: "destructive", title: "Erro ao salvar preferências" });
-        // On failure, we could revert state, but AuthContext will refetch on next load anyway.
-        // For now, the optimistic update stays.
-      }
-    }, 500);
+        const updatedProfile = {
+            ...currentProfile,
+            preferences: {
+                ...currentProfile.preferences,
+                ...newPreferences,
+                themeConfigs: {
+                    ...currentProfile.preferences.themeConfigs,
+                    ...(newPreferences.themeConfigs || {}),
+                }
+            }
+        };
+
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        debounceTimeoutRef.current = setTimeout(async () => {
+            try {
+                await updateUserPreferences(currentProfile.uid, newPreferences);
+            } catch (error) {
+                console.error("Failed to save preferences:", error);
+                toast({ variant: "destructive", title: "Erro ao salvar preferências" });
+                // Revert on failure if necessary, though not strictly required with optimistic updates
+                // For simplicity, we'll let the next successful fetch correct any potential desync
+            }
+        }, 500);
+
+        return updatedProfile;
+    });
   }, [userProfile, setUserProfile, toast]);
   
   return { userProfile, setUserProfile, isLoading, savePreferences };
