@@ -13,10 +13,11 @@ export type WidgetProps = {
   categories: Category[];
   preferences: UserPreferences;
   savePreferences: (newPreferences: Partial<UserPreferences>) => void;
+  listProducts: any[]; // The AI-formatted product list
 };
 
 export type ExpiryWidgetProps = {
-  listProducts: Product[];
+  listProducts: any[];
   attentionHorizon: number;
   onHorizonChange: (value: number) => void;
 }

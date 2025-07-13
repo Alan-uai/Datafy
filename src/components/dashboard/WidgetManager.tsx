@@ -110,7 +110,7 @@ export function WidgetManager({ isEditingWidgets, hasPremium, activeWidgets, wid
                             onHorizonChange={(value: number) => widgetDataProps.savePreferences({ attentionHorizonDays: value })}
                         />
                     ) : (
-                        <WidgetComponent {...widgetDataProps as any} />
+                        <WidgetComponent {...(widgetDataProps as WidgetProps)} />
                     )}
                 </SortableWidget>
               );

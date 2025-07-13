@@ -54,6 +54,9 @@ function DashboardComponent() {
   
   const productsForAI = useMemo(() => {
       if (!products) return [];
+      // This transformation is simple, so we can pass `products` directly
+      // if we adjust the ExpiryAttentionReportCard to accept the standard Product type.
+      // For now, keeping the mapping to demonstrate memoization.
       return products.map(p => ({ ...p, validade: p.expiryDate.toISOString(), produto: p.name }))
   }, [products]);
 
@@ -114,7 +117,15 @@ function DashboardComponent() {
   }
   
   const { preferences, premium } = userProfile;
-  const widgetDataProps = { products, categories: initialCategories, preferences, savePreferences };
+  
+  const widgetDataProps = useMemo(() => ({
+    products,
+    categories: initialCategories,
+    listProducts: productsForAI,
+    preferences,
+    savePreferences,
+  }), [products, productsForAI, preferences, savePreferences]);
+
 
   return (
     <div className="flex flex-col h-full relative">
@@ -129,7 +140,7 @@ function DashboardComponent() {
                 isEditingWidgets={preferences.isEditingWidgets}
                 hasPremium={!!premium}
                 activeWidgets={preferences.activeWidgets}
-                widgetDataProps={{ ...widgetDataProps, listProducts: productsForAI }}
+                widgetDataProps={widgetDataProps}
                 onAddWidget={addWidget}
                 onRemoveWidget={removeWidget}
                 onDragEnd={handleWidgetDragEnd}
