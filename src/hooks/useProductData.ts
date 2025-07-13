@@ -31,14 +31,14 @@ export function useProductData(
   const [isLoading, setIsLoading] = useState(true);
 
   const loadInitialData = useCallback(async () => {
-    if (!currentUser?.uid || !userProfile) return;
+    if (!currentUser?.uid) return; // Changed dependency
     setIsLoading(true);
     try {
       const lists = await getProductLists(currentUser.uid);
       setProductLists(lists);
       
       if (lists.length > 0) {
-        const lastListId = userProfile.preferences?.lastActiveListId;
+        const lastListId = userProfile?.preferences?.lastActiveListId; // Safely access preferences
         const listToLoad = lists.find(l => l.id === lastListId) || lists[0];
         setActiveListId(listToLoad.id);
         const fetchedProducts = await getProductsByList(currentUser.uid, listToLoad.id);
@@ -53,13 +53,13 @@ export function useProductData(
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser?.uid, userProfile, toast]);
+  }, [currentUser?.uid, userProfile?.preferences?.lastActiveListId, toast]);
 
   useEffect(() => {
-    if (userProfile) {
+    if (currentUser?.uid) {
       loadInitialData();
     }
-  }, [userProfile, loadInitialData]);
+  }, [currentUser?.uid, loadInitialData]);
 
   // List Handlers
   const handleListChange = async (listId: string) => {
