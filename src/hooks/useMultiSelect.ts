@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { Product } from '@/lib/types';
 
 export function useMultiSelect() {
@@ -25,14 +25,16 @@ export function useMultiSelect() {
 
   const handleProductPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
+    // Extract productId immediately before setTimeout
+    const productId = event.currentTarget.dataset.productId; 
+
     pressTimeoutRef.current = setTimeout(() => {
       setIsMultiSelectMode(true);
-      const productId = event.currentTarget.dataset.productId;
       if (productId) {
           setSelectedProductIds(prev => new Set(prev).add(productId));
       }
       pressTimeoutRef.current = null; // Clear after firing
-    }, 700); // Increased from 500ms to 700ms
+    }, 700);
   };
 
   const handleProductPointerUp = () => {
