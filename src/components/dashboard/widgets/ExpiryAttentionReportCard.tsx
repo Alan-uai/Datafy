@@ -27,10 +27,9 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
   const [listStats, setListStats] = useState<{ expiringSoon: number; expired: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expiryAttentionReport, setExpiryAttentionReport] = useState<ExpiryAttentionReport | null>(null);
-  const [attentionHorizon, setAttentionHorizon] = useState(preferences?.attentionHorizonDays || 7);
+  const attentionHorizon = preferences?.attentionHorizonDays || 7;
 
   const handleHorizonChange = (newHorizon: number) => {
-    setAttentionHorizon(newHorizon);
     if (savePreferences) {
       savePreferences({ attentionHorizonDays: newHorizon });
     }
@@ -45,6 +44,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       const today = startOfDay(new Date());
       let expiredCount = 0;
       let expiringSoonCount = 0;
+      const nonExpiredProducts = [];
 
       productsToAnalyze.forEach(p => {
         const productForAnalysis = {
@@ -53,11 +53,13 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
             produto: p.name,
         }
         if ((productForAnalysis as any).isExploding) return;
-        if (productForAnalysis.validade && isValid(parseISO(productForAnalysis.validade))) {
-          const productDate = startOfDay(parseISO(productForAnalysis.validade));
-          if (isPast(productDate) && !isToday(productDate)) {
-            expiredCount++;
-          } else if (
+
+        const productDate = startOfDay(p.expiryDate);
+        if (isPast(productDate) && !isToday(productDate)) {
+          expiredCount++;
+        } else {
+          nonExpiredProducts.push(p);
+          if (
             !isToday(productDate) &&
             isWithinInterval(productDate, {
               start: addDays(today, 1),
@@ -69,15 +71,10 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
         }
       });
       setListStats({ expiringSoon: expiringSoonCount, expired: expiredCount });
-    } catch (error) {
-      console.error("Error calculating list stats:", error);
-      toast({ variant: "destructive", title: "Erro ao calcular estatísticas" });
-    }
 
-    // Generate AI report
-    try {
-      if (productsToAnalyze.length > 0) {
-        const plainProductsForAI = productsToAnalyze.map(p => ({
+      // Generate AI report only for non-expired products
+      if (nonExpiredProducts.length > 0) {
+        const plainProductsForAI = nonExpiredProducts.map(p => ({
           id: p.id,
           produto: p.name,
           marca: p.brand,
@@ -89,6 +86,7 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
       } else {
         setExpiryAttentionReport({ criticalItems: [], overallSummary: "Nenhum produto na lista para analisar.", analyzedProductsCount: 0, criticalProductsCount: 0 });
       }
+
     } catch (error: any) {
       console.error("Error generating expiry attention report:", error);
       toast({ variant: "destructive", title: "Erro na Análise IA", description: `Não foi possível gerar o relatório de atenção: ${error.message}` });
@@ -102,13 +100,6 @@ export const ExpiryAttentionReportCard: React.FC<ExpiryAttentionReportCardProps>
     calculateStatsAndReport(listProducts, attentionHorizon);
   }, [listProducts, attentionHorizon, calculateStatsAndReport]);
   
-  // Update local state if preferences from props change
-  useEffect(() => {
-    if (preferences?.attentionHorizonDays && preferences.attentionHorizonDays !== attentionHorizon) {
-      setAttentionHorizon(preferences.attentionHorizonDays);
-    }
-  }, [preferences?.attentionHorizonDays, attentionHorizon]);
-
   const handleAnalyzeAgain = () => {
       calculateStatsAndReport(listProducts, attentionHorizon);
   };
