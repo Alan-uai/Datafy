@@ -9,6 +9,7 @@ export function useMultiSelect(longPressDelay: number = 500) {
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
+  const movedEnoughRef = useRef(false); // New ref to track significant movement
 
   const resetSelection = useCallback(() => {
     setIsMultiSelectMode(false);
@@ -21,16 +22,25 @@ export function useMultiSelect(longPressDelay: number = 500) {
       pressTimeoutRef.current = null;
     }
     pointerDownRef.current = null;
+    movedEnoughRef.current = false; // Reset on cancel
   }, []);
 
   const handleProductPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    // Only start long press detection if not already in multi-select mode
+    // This prevents accidental long press leading to multi-select when already in it
+    if (isMultiSelectMode) return;
+
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
+    movedEnoughRef.current = false; // Reset at the start of a new press
     const productId = event.currentTarget.dataset.productId; 
 
     pressTimeoutRef.current = setTimeout(() => {
-      setIsMultiSelectMode(true);
-      if (productId) {
-          setSelectedProductIds(prev => new Set(prev).add(productId));
+      // Only activate multi-select if no significant movement occurred
+      if (!movedEnoughRef.current) {
+        setIsMultiSelectMode(true);
+        if (productId) {
+            setSelectedProductIds(prev => new Set(prev).add(productId));
+        }
       }
       pressTimeoutRef.current = null; // Clear after firing
     }, longPressDelay);
@@ -48,16 +58,13 @@ export function useMultiSelect(longPressDelay: number = 500) {
     const dy = Math.abs(event.clientY - pointerDownRef.current.y);
     
     if (dx > threshold || dy > threshold) {
-        cancelPress();
+        movedEnoughRef.current = true; // Mark that significant movement occurred
+        cancelPress(); // Cancel the long press timeout
     }
   };
 
-  const handleProductClick = (product: Product, event: React.MouseEvent<HTMLElement>) => {
+  const handleProductClick = (product: Product, event: React.MouseEvent<HTMLElement>): boolean => {
     if (isMultiSelectMode) {
-      // Prevent click from propagating when in multi-select mode
-      event.preventDefault(); 
-      event.stopPropagation();
-
       setSelectedProductIds(prev => {
         const newSet = new Set(prev);
         if (newSet.has(product.id)) {
@@ -71,7 +78,17 @@ export function useMultiSelect(longPressDelay: number = 500) {
         }
         return newSet;
       });
+      // If in multi-select mode, the click was used for selection, so indicate it was handled.
+      return true; 
+    } else {
+      // If not in multi-select mode, and it was a drag (movedEnoughRef.current is true),
+      // then prevent the default click action (e.g., popover opening) and indicate handled.
+      if (movedEnoughRef.current) {
+        event.preventDefault(); 
+        return true; 
+      }
     }
+    return false; // Indicate that the click was NOT handled by multi-select logic, let default happen (popover)
   };
 
   return {

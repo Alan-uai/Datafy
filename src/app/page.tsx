@@ -130,7 +130,7 @@ export default function Dashboard() {
     handleProductPointerUp,
     handleProductPointerMove,
     resetSelection,
-  } = useMultiSelect(0.5);
+  } = useMultiSelect(500); // Changed delay to 500ms to match common long press behavior
 
   const {
     isAddProductDialogOpen,
@@ -243,6 +243,7 @@ export default function Dashboard() {
                   onProductPointerDown={handleProductPointerDown}
                   onProductPointerUp={handleProductPointerUp}
                   onProductPointerMove={handleProductPointerMove}
+                  isMultiSelectMode={isMultiSelectMode} // Pass the new prop
                   preferences={preferences}
                   onOpenManageListDialog={() => openManageListDialog(null)}
                   isLoading={isProductDataLoading}

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -39,10 +39,11 @@ interface ProductTableProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
   selectedProductIds: Set<string>;
-  onProductClick: (product: Product, event: React.MouseEvent<HTMLElement>) => void;
+  onProductClick: (product: Product, event: React.MouseEvent<HTMLElement>) => boolean; // Updated return type
   onProductPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
   onProductPointerUp: () => void;
   onProductPointerMove: (event: React.PointerEvent<HTMLElement>) => void;
+  isMultiSelectMode: boolean; // Added prop
   dashboardScale: 'normal' | 'compact';
 }
 
@@ -70,8 +71,11 @@ export function ProductTable({
   onProductPointerDown,
   onProductPointerUp,
   onProductPointerMove,
+  isMultiSelectMode, // Destructure new prop
   dashboardScale,
 }: ProductTableProps) {
+
+  const [isPopoverOpen, setIsPopoverOpen] = useState<string | null>(null); // State to control which popover is open
 
   const renderSortIcon = (key: keyof Product) => {
     if (sortKey !== key) return null;
@@ -103,7 +107,15 @@ export function ProductTable({
         </TableHeader>
         <TableBody>
           {productsWithRowIndex.map((product) => (
-            <Popover key={product.id}>
+            <Popover 
+              key={product.id}
+              open={isPopoverOpen === product.id && !isMultiSelectMode} // Control open state
+              onOpenChange={(open) => {
+                if (!isMultiSelectMode) {
+                  setIsPopoverOpen(open ? product.id : null);
+                }
+              }}
+            >
               <PopoverTrigger asChild>
                 <TableRow
                   data-state={selectedProductIds.has(product.id) ? 'selected' : 'unselected'}
@@ -117,10 +129,21 @@ export function ProductTable({
                   onPointerDown={onProductPointerDown}
                   onPointerUp={onProductPointerUp}
                   onPointerMove={onProductPointerMove}
-                  onClick={(e) => onProductClick(product, e)}
+                  onClick={(e) => {
+                    const wasHandledByMultiSelect = onProductClick(product, e);
+                    if (!wasHandledByMultiSelect && !isMultiSelectMode) {
+                      setIsPopoverOpen(product.id);
+                    } else if (isMultiSelectMode) {
+                      setIsPopoverOpen(null); // Close popover if multi-select mode is active
+                    }
+                  }}
                 >
                   {columnVisibility['id'] && <TableCell className={cn('font-mono text-xs text-muted-foreground text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.rowIndex}</TableCell>}
-                  <TableCell className={cn('font-medium truncate text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.name}</TableCell>
+                  <TableCell className={cn('font-medium truncate text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>
+                    <div className="flex items-center justify-center h-full w-full"> {/* Ensure it takes full cell space */}
+                      {product.name}
+                    </div>
+                  </TableCell>
                   {columnVisibility['marca'] && <TableCell className={cn('truncate text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.brand}</TableCell>}
                   {columnVisibility['qtde'] && <TableCell className={cn('text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{product.quantity}</TableCell>}
                   {columnVisibility['validade'] && <TableCell className={cn('text-center', dashboardScale === 'compact' ? 'p-2' : 'p-4')}>{format(product.expiryDate, 'dd/MM/yy')}</TableCell>}
@@ -131,7 +154,10 @@ export function ProductTable({
               </PopoverTrigger>
               <PopoverContent className="w-40 p-2">
                 <div className="flex flex-col gap-1">
-                  <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onEditProduct(product)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => {
+                    onEditProduct(product);
+                    setIsPopoverOpen(null); // Close popover on edit
+                  }}>
                     <Edit className="mr-2 h-4 w-4" /> Editar
                   </Button>
                   <AlertDialog>
@@ -147,7 +173,10 @@ export function ProductTable({
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDeleteProduct(product.id)}>Excluir</AlertDialogAction>
+                        <AlertDialogAction onClick={() => {
+                          onDeleteProduct(product.id);
+                          setIsPopoverOpen(null); // Close popover on delete
+                        }}>Excluir</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
