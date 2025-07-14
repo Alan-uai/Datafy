@@ -17,6 +17,7 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
     const animationFrameId = useRef<number | null>(null);
     const dropsRef = useRef<number[]>([]);
     const [isVisible, setIsVisible] = useState(false);
+    const [isCurtainActive, setIsCurtainActive] = useState(false); // New state for curtain animation
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, currentDrops: number[], fontSize: number, isTrailCanvas: boolean) => {
         const { width, height } = ctx.canvas;
@@ -86,7 +87,7 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             ctxTrail = canvasTrailRef.current.getContext('2d');
         }
 
-        let frameCount = 0;
+        let curtainCompleteThreshold = 0; // To track when the curtain has swept the screen
 
         const setup = () => {
             canvas.width = window.innerWidth;
@@ -102,8 +103,11 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
 
             if (isMatrixCurtainPending) {
                 dropsRef.current = Array(columns).fill(0);
+                setIsCurtainActive(true);
+                curtainCompleteThreshold = canvas.height / fontSize + columns; // A heuristic for when all drops have passed
             } else {
                 dropsRef.current = Array(columns).fill(1).map(() => Math.floor(Math.random() * (canvas.height / fontSize)));
+                setIsCurtainActive(false);
             }
 
             let lastTime = 0;
@@ -112,18 +116,27 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             const interval = baseInterval * speedMultiplier;
 
             const animate = (timestamp: number = 0) => {
-                frameCount++;
-                if (frameCount === 1 && isMatrixCurtainPending) {
-                    completeMatrixCurtain();
-                }
-
                 if (timestamp - lastTime >= interval) {
+                    let allDropsBelowScreen = true;
                     for (let i = 0; i < dropsRef.current.length; i++) {
                         const y = dropsRef.current[i] * fontSize;
-                        if (y > canvas.height && Math.random() > 0.975) {
-                            dropsRef.current[i] = 0;
+                        
+                        if (isCurtainActive) {
+                            if (y < canvas.height) {
+                                allDropsBelowScreen = false;
+                            }
+                            dropsRef.current[i]++; // Continue falling for curtain
+                        } else {
+                            if (y > canvas.height && Math.random() > 0.975) {
+                                dropsRef.current[i] = 0;
+                            }
+                            dropsRef.current[i]++;
                         }
-                        dropsRef.current[i]++;
+                    }
+
+                    if (isCurtainActive && allDropsBelowScreen && dropsRef.current[0] * fontSize > canvas.height) { // Ensure all drops have gone past the bottom
+                        completeMatrixCurtain();
+                        setIsCurtainActive(false);
                     }
 
                     if (matrixMode === 'padrão' && ctxTrail) {
@@ -150,7 +163,7 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             window.removeEventListener('resize', setup);
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         };
-    }, [isVisible, draw, speed, size, matrixMode, isMatrixCurtainPending, completeMatrixCurtain]);
+    }, [isVisible, draw, speed, size, matrixMode, isMatrixCurtainPending, completeMatrixCurtain, isCurtainActive]); // Added isCurtainActive to dependencies
 
     useEffect(() => {
         const canvas = canvasRef.current;
