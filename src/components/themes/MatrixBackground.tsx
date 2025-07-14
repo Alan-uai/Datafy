@@ -87,8 +87,6 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             ctxTrail = canvasTrailRef.current.getContext('2d');
         }
 
-        let curtainCompleteThreshold = 0; // To track when the curtain has swept the screen
-
         const setup = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -102,11 +100,11 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             const columns = Math.ceil(canvas.width / fontSize);
 
             if (isMatrixCurtainPending) {
-                dropsRef.current = Array(columns).fill(0);
+                dropsRef.current = Array(columns).fill(0); // All drops start at the very top for the curtain
                 setIsCurtainActive(true);
-                curtainCompleteThreshold = canvas.height / fontSize + columns; // A heuristic for when all drops have passed
             } else {
-                dropsRef.current = Array(columns).fill(1).map(() => Math.floor(Math.random() * (canvas.height / fontSize)));
+                // When not a curtain, drops still start at 0 but with a random initial offset for variability
+                dropsRef.current = Array(columns).fill(0).map(() => -Math.floor(Math.random() * (canvas.height / fontSize)));
                 setIsCurtainActive(false);
             }
 
@@ -127,8 +125,9 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
                             }
                             dropsRef.current[i]++; // Continue falling for curtain
                         } else {
-                            if (y > canvas.height && Math.random() > 0.975) {
-                                dropsRef.current[i] = 0;
+                            // For regular rain, reset to 0 if off-screen, maintaining top-down flow
+                            if (y > canvas.height) { // If the drop has gone below the screen
+                                dropsRef.current[i] = 0; // Reset it to the top
                             }
                             dropsRef.current[i]++;
                         }
@@ -163,7 +162,7 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             window.removeEventListener('resize', setup);
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         };
-    }, [isVisible, draw, speed, size, matrixMode, isMatrixCurtainPending, completeMatrixCurtain, isCurtainActive]); // Added isCurtainActive to dependencies
+    }, [isVisible, draw, speed, size, matrixMode, isMatrixCurtainPending, completeMatrixCurtain, isCurtainActive]);
 
     useEffect(() => {
         const canvas = canvasRef.current;

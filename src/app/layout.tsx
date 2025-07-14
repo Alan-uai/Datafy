@@ -1,27 +1,7 @@
-
-"use client";
-
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ThemeManager } from '@/components/shared/ThemeManager';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { ThemeAnimationProvider } from '@/contexts/ThemeAnimationContext';
-
-function RootLayoutWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <ThemeAnimationProvider>
-        <ThemeManager />
-        <ProtectedRoute>
-          {children}
-        </ProtectedRoute>
-        <Toaster />
-      </ThemeAnimationProvider>
-    </AuthProvider>
-  );
-}
-
+import { Providers } from './providers';
+import { MatrixCurtainTrigger } from '@/components/themes/MatrixCurtainTrigger';
 
 export default function RootLayout({
   children,
@@ -31,9 +11,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className='dark'>
         <body>
-            <RootLayoutWrapper>
-                {children}
-            </RootLayoutWrapper>
+            <AuthProvider>
+                <Providers>
+                    <MatrixCurtainTrigger />
+                    {children}
+                </Providers>
+            </AuthProvider>
         </body>
     </html>
   );
