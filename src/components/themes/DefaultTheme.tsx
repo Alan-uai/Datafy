@@ -1,8 +1,8 @@
-
 "use client";
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import type { ThemeConfig } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 
 interface DefaultThemeProps {
     config: Partial<ThemeConfig>;
@@ -13,6 +13,8 @@ const DefaultTheme: React.FC<DefaultThemeProps> = ({ config }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
     const mousePos = useRef({ x: 0, y: 0 });
+    const { currentUser, loading } = useAuth(); // Get currentUser and loading
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, particles: any[], speedRatio: number) => {
         const { width, height } = ctx.canvas;
@@ -52,6 +54,9 @@ const DefaultTheme: React.FC<DefaultThemeProps> = ({ config }) => {
     }, []);
     
     useEffect(() => {
+        if (!currentUser || loading) return; // Only run if user is logged in and not loading
+        if (isInitialized) return; // Only initialize once
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -94,7 +99,8 @@ const DefaultTheme: React.FC<DefaultThemeProps> = ({ config }) => {
         setup();
         window.addEventListener('resize', setup);
         window.addEventListener('mousemove', handleMouseMove);
-        
+        setIsInitialized(true); // Mark as initialized
+
         return () => {
             window.removeEventListener('resize', setup);
             window.removeEventListener('mousemove', handleMouseMove);
@@ -102,7 +108,7 @@ const DefaultTheme: React.FC<DefaultThemeProps> = ({ config }) => {
                 cancelAnimationFrame(animationFrameId.current);
             }
         };
-    }, [draw, update, speed, size]);
+    }, [draw, update, speed, size, currentUser, loading, isInitialized]); // Add currentUser, loading, isInitialized to dependencies
 
     return (
         <div className="fixed inset-0 -z-10">

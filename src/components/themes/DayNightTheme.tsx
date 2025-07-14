@@ -1,8 +1,8 @@
-
 "use client";
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import type { ThemeConfig } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 
 interface DayNightThemeProps {
     config: Partial<ThemeConfig>;
@@ -12,6 +12,8 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ config }) => {
     const { themeSpeed: speed = 100, themeSize: size = 100, diurnoMode = false } = config;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
+    const { currentUser, loading } = useAuth(); // Get currentUser and loading
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const lerpColor = (c1: number[], c2: number[], t: number): number[] => ([
         Math.round(c1[0] + (c2[0] - c1[0]) * t),
@@ -95,6 +97,9 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ config }) => {
     }, [diurnoMode]);
     
     useEffect(() => {
+        if (!currentUser || loading) return; // Only run if user is logged in and not loading
+        if (isInitialized) return; // Only initialize once
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -121,12 +126,13 @@ const DayNightTheme: React.FC<DayNightThemeProps> = ({ config }) => {
 
         setup();
         window.addEventListener('resize', setup);
-        
+        setIsInitialized(true); // Mark as initialized
+
         return () => {
             window.removeEventListener('resize', setup);
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         };
-    }, [draw, speed, size]);
+    }, [draw, speed, size, currentUser, loading, isInitialized]); // Add currentUser, loading, isInitialized to dependencies
 
     return (
         <div className="fixed inset-0 -z-10 bg-black">

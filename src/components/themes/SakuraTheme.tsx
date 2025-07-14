@@ -1,8 +1,8 @@
-
 "use client";
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import type { ThemeConfig } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 
 interface SakuraThemeProps {
     config: Partial<ThemeConfig>;
@@ -13,6 +13,8 @@ const SakuraTheme: React.FC<SakuraThemeProps> = ({ config }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
     const initialAnimationProgress = useRef(0); // 0 to 1 for fade-in
+    const { currentUser, loading } = useAuth(); // Get currentUser and loading
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, petals: any[]) => {
         const { width, height } = ctx.canvas;
@@ -60,6 +62,9 @@ const SakuraTheme: React.FC<SakuraThemeProps> = ({ config }) => {
     }, []);
 
     useEffect(() => {
+        if (!currentUser || loading) return; // Only run if user is logged in and not loading
+        if (isInitialized) return; // Only initialize once
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -112,14 +117,15 @@ const SakuraTheme: React.FC<SakuraThemeProps> = ({ config }) => {
 
         setup();
         window.addEventListener('resize', setup);
-        
+        setIsInitialized(true); // Mark as initialized
+
         return () => {
             window.removeEventListener('resize', setup);
             if (animationFrameId.current) {
                 cancelAnimationFrame(animationFrameId.current);
             }
         };
-    }, [draw, update, speed, size]);
+    }, [draw, update, speed, size, currentUser, loading, isInitialized]); // Add currentUser, loading, isInitialized to dependencies
 
     return (
         <div className="fixed inset-0 -z-10">

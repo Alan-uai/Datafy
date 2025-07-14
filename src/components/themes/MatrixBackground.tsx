@@ -115,27 +115,35 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
 
             const animate = (timestamp: number = 0) => {
                 if (timestamp - lastTime >= interval) {
-                    let allDropsBelowScreen = true;
+                    const FADE_ROWS_BUFFER = 10; // Number of additional rows to fall for the fade-out
+                    let allDropsPastFadeOutPoint = true; 
+
                     for (let i = 0; i < dropsRef.current.length; i++) {
-                        const y = dropsRef.current[i] * fontSize;
+                        const currentDropRow = dropsRef.current[i];
+                        const canvasRows = canvas.height / fontSize;
                         
                         if (isCurtainActive) {
-                            if (y < canvas.height) {
-                                allDropsBelowScreen = false;
+                            // Check if the current drop (including its potential trail length) has passed the fade out point
+                            if (currentDropRow < canvasRows + FADE_ROWS_BUFFER) {
+                                allDropsPastFadeOutPoint = false;
                             }
                             dropsRef.current[i]++; // Continue falling for curtain
                         } else {
                             // For regular rain, reset to 0 if off-screen, maintaining top-down flow
-                            if (y > canvas.height) { // If the drop has gone below the screen
+                            if (currentDropRow * fontSize > canvas.height) { // If the drop has gone below the screen
                                 dropsRef.current[i] = 0; // Reset it to the top
                             }
                             dropsRef.current[i]++;
                         }
                     }
 
-                    if (isCurtainActive && allDropsBelowScreen && dropsRef.current[0] * fontSize > canvas.height) { // Ensure all drops have gone past the bottom
-                        completeMatrixCurtain();
-                        setIsCurtainActive(false);
+                    if (isCurtainActive) {
+                        // The curtain should only complete after all drops have fallen a certain distance
+                        // beyond the bottom of the screen to allow the trails to fade naturally.
+                        if (allDropsPastFadeOutPoint) {
+                            completeMatrixCurtain();
+                            setIsCurtainActive(false);
+                        }
                     }
 
                     if (matrixMode === 'padrão' && ctxTrail) {
