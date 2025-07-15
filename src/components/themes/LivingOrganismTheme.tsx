@@ -44,8 +44,14 @@ const LivingOrganismTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ confi
             ctx.beginPath();
             const opacity = cell.life / 400;
             const grad = ctx.createRadialGradient(cell.x, cell.y, 0, cell.x, cell.y, cell.radius);
-            grad.addColorStop(0, `${cell.color.slice(0, -2)}${opacity})`);
-            grad.addColorStop(1, `${cell.color.slice(0, -2)}0)`);
+            
+            // Correctly format HSL string into HSLA
+            const colorWithAlpha = cell.color.replace(')', `, ${opacity})`).replace('hsl', 'hsla');
+            const colorTransparent = cell.color.replace(')', ', 0)').replace('hsl', 'hsla');
+
+            grad.addColorStop(0, colorWithAlpha);
+            grad.addColorStop(1, colorTransparent);
+
             ctx.fillStyle = grad;
             ctx.arc(cell.x, cell.y, cell.radius, 0, Math.PI * 2);
             ctx.fill();
