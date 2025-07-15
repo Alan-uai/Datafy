@@ -17,7 +17,7 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
     const animationFrameId = useRef<number | null>(null);
     const dropsRef = useRef<number[]>([]);
     const [isVisible, setIsVisible] = useState(false);
-    const [isCurtainActive, setIsCurtainActive] = useState(false); // New state for curtain animation
+    const [isCurtainActive, setIsCurtainActive] = useState(false); // State to manage if the initial curtain animation is still active
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, currentDrops: number[], fontSize: number, isTrailCanvas: boolean) => {
         const { width, height } = ctx.canvas;
@@ -100,12 +100,12 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             const columns = Math.ceil(canvas.width / fontSize);
 
             if (isMatrixCurtainPending) {
-                dropsRef.current = Array(columns).fill(0); // All drops start at the very top for the curtain
-                setIsCurtainActive(true);
+                dropsRef.current = Array(columns).fill(0); // All drops start at the very top for the initial curtain effect
+                setIsCurtainActive(true); // Signal that initial curtain animation is active
             } else {
-                // When not a curtain, drops still start at 0 but with a random initial offset for variability
-                dropsRef.current = Array(columns).fill(0).map(() => -Math.floor(Math.random() * (canvas.height / fontSize)));
-                setIsCurtainActive(false);
+                // When not an initial curtain, drops start with a random negative offset for immediate random rain
+                dropsRef.current = Array(columns).fill(0).map(() => -Math.floor(Math.random() * (canvas.height / fontSize / 2)));
+                setIsCurtainActive(false); // Initial curtain animation is not active
             }
 
             let lastTime = 0;
@@ -116,34 +116,30 @@ const MatrixBackground: React.FC<MatrixBackgroundProps> = ({ config }) => {
             const animate = (timestamp: number = 0) => {
                 if (timestamp - lastTime >= interval) {
                     const FADE_ROWS_BUFFER = 10; // Number of additional rows to fall for the fade-out
-                    let allDropsPastFadeOutPoint = true; 
+                    const canvasRows = canvas.height / fontSize;
+                    const fadeOutThresholdRow = canvasRows + FADE_ROWS_BUFFER;
+
+                    let allDropsPastCurtainCompletionPoint = true; // Used to track initial curtain completion
 
                     for (let i = 0; i < dropsRef.current.length; i++) {
-                        const currentDropRow = dropsRef.current[i];
-                        const canvasRows = canvas.height / fontSize;
-                        
-                        if (isCurtainActive) {
-                            // Check if the current drop (including its potential trail length) has passed the fade out point
-                            if (currentDropRow < canvasRows + FADE_ROWS_BUFFER) {
-                                allDropsPastFadeOutPoint = false;
-                            }
-                            dropsRef.current[i]++; // Continue falling for curtain
-                        } else {
-                            // For regular rain, reset to 0 if off-screen, maintaining top-down flow
-                            if (currentDropRow * fontSize > canvas.height) { // If the drop has gone below the screen
-                                dropsRef.current[i] = 0; // Reset it to the top
-                            }
-                            dropsRef.current[i]++;
+                        // Universal drop advancement
+                        dropsRef.current[i]++;
+
+                        // Universal drop reset: If the drop goes beyond the fade out threshold, reset it to a random negative offset
+                        if (dropsRef.current[i] > fadeOutThresholdRow) {
+                            dropsRef.current[i] = -Math.floor(Math.random() * (canvasRows / 2)); // Reset to random top offset
+                        }
+
+                        // Check for initial curtain completion (only relevant if isCurtainActive is true at start of animation)
+                        if (isCurtainActive && dropsRef.current[i] < fadeOutThresholdRow) {
+                            allDropsPastCurtainCompletionPoint = false;
                         }
                     }
 
-                    if (isCurtainActive) {
-                        // The curtain should only complete after all drops have fallen a certain distance
-                        // beyond the bottom of the screen to allow the trails to fade naturally.
-                        if (allDropsPastFadeOutPoint) {
-                            completeMatrixCurtain();
-                            setIsCurtainActive(false);
-                        }
+                    // Only complete the initial curtain if it was active and all drops have passed the threshold
+                    if (isCurtainActive && allDropsPastCurtainCompletionPoint) {
+                        completeMatrixCurtain();
+                        setIsCurtainActive(false); // Initial curtain animation is now complete
                     }
 
                     if (matrixMode === 'padrão' && ctxTrail) {
