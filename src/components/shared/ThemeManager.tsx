@@ -21,6 +21,12 @@ import LivingOrganismTheme from '@/components/themes/LivingOrganismTheme';
 import GenerativeTopographyTheme from '@/components/themes/GenerativeTopographyTheme';
 import DynamicWeatherTheme from '@/components/themes/DynamicWeatherTheme';
 import FractalExplorerTheme from '@/components/themes/FractalExplorerTheme';
+import GlitchscapeTheme from '@/components/themes/GlitchscapeTheme';
+import BioluminescentCaveTheme from '@/components/themes/BioluminescentCaveTheme';
+import ShiftingSandsTheme from '@/components/themes/ShiftingSandsTheme';
+import LivingWatercolorTheme from '@/components/themes/LivingWatercolorTheme';
+import ParticlePlexusTheme from '@/components/themes/ParticlePlexusTheme';
+
 
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -55,6 +61,11 @@ const themeMap: Record<string, React.FC<any> | null> = {
     'generative-topography': GenerativeTopographyTheme,
     'dynamic-weather': DynamicWeatherTheme,
     'fractal-explorer': FractalExplorerTheme,
+    'glitchscape': GlitchscapeTheme,
+    'bioluminescent-cave': BioluminescentCaveTheme,
+    'shifting-sands': ShiftingSandsTheme,
+    'living-watercolor': LivingWatercolorTheme,
+    'particle-plexus': ParticlePlexusTheme,
 };
 
 export const ThemeManager = () => {

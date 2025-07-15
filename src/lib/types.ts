@@ -41,7 +41,8 @@ export type ThemeName =
   | 'galactic-journey' | 'floating-lanterns' | 'cyberpunk-city'
   | 'cyberpunk-traffic' | 'chinese-lanterns' | 'celestial-sphere'
   | 'living-organism' | 'generative-topography' | 'dynamic-weather'
-  | 'fractal-explorer';
+  | 'fractal-explorer' | 'glitchscape' | 'bioluminescent-cave'
+  | 'shifting-sands' | 'living-watercolor' | 'particle-plexus';
 
 
 export interface ThemeConfig {

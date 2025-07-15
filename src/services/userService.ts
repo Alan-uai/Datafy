@@ -58,7 +58,8 @@ const allThemes: ThemeName[] = [
     'deep-ocean', 'enchanted-forest', 'starfield-warp', 'galactic-journey', 
     'floating-lanterns', 'cyberpunk-city', 'living-watercolor', 'particle-plexus', 'shifting-sands',
     'cyberpunk-traffic', 'chinese-lanterns', 'celestial-sphere', 'living-organism', 
-    'generative-topography', 'dynamic-weather', 'fractal-explorer'
+    'generative-topography', 'dynamic-weather', 'fractal-explorer',
+    'glitchscape', 'bioluminescent-cave'
 ];
 
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {

@@ -66,6 +66,10 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   Atom: Icons.Atom,
   BrainCircuit: Icons.BrainCircuit,
   Droplets: Icons.Droplets,
+  Signal: Icons.Signal,
+  Gem: Icons.Gem,
+  Diamond: Icons.Diamond,
+  Brain: Icons.Brain,
   // Add other icons as needed
 };
 

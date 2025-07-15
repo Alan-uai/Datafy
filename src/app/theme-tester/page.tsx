@@ -4,7 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, DraftingCompass, Flame, Wind, Droplets, Mountain, SunMoon, Atom, BrainCircuit, VenetianMask, Map, Globe, Brain } from 'lucide-react';
+import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, DraftingCompass, Flame, Wind, Droplets, Mountain, SunMoon, Atom, BrainCircuit, VenetianMask, Map, Globe, Brain, Signal, Diamond, Gem } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ThemeName } from '@/lib/types';
 import { Header } from '@/components/shared/Header';
@@ -17,13 +17,18 @@ const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any> }[] 
     { value: 'galactic-journey', label: 'Galactic Journey', icon: Globe },
     { value: 'floating-lanterns', label: 'Floating Lanterns', icon: Flame },
     { value: 'chinese-lanterns', label: 'Chinese Lanterns', icon: VenetianMask },
-    { value: 'cyberpunk-city', label: 'Cyberpunk City', icon: Wind },
+    { value: 'cyberpunk-city', label: 'Cyberpunk City', icon: Map },
     { value: 'cyberpunk-traffic', label: 'Cyberpunk Traffic', icon: Wind },
     { value: 'celestial-sphere', label: 'Celestial Sphere', icon: SunMoon },
     { value: 'living-organism', label: 'Living Organism', icon: Atom },
-    { value: 'generative-topography', label: 'Generative Topography', icon: Map },
+    { value: 'generative-topography', label: 'Generative Topography', icon: Mountain },
     { value: 'dynamic-weather', label: 'Dynamic Weather', icon: Droplets },
     { value: 'fractal-explorer', label: 'Fractal Explorer', icon: BrainCircuit },
+    { value: 'glitchscape', label: 'Glitchscape', icon: Signal },
+    { value: 'bioluminescent-cave', label: 'Bioluminescent Cave', icon: Gem },
+    { value: 'shifting-sands', label: 'Shifting Sands', icon: Wind },
+    { value: 'living-watercolor', label: 'Living Watercolor', icon: Paintbrush },
+    { value: 'particle-plexus', label: 'Particle Plexus', icon: Brain },
 ] as const;
 
 export default function ThemeTesterPage() {
@@ -52,7 +57,7 @@ export default function ThemeTesterPage() {
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 * index }}
+                                transition={{ delay: 0.05 * index }}
                                 whileHover={{ scale: 1.05, y: -5 }}
                                 className="h-full"
                             >
