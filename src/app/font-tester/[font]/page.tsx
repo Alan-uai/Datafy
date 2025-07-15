@@ -1,7 +1,8 @@
+
 // src/app/font-tester/[font]/page.tsx
 "use client";
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/shared/Header';
@@ -10,9 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 const fontClassMap: { [key: string]: string } = {
   inter: 'font-body',
-  lora: 'font-serif',
-  lobster: 'font-script',
-  'roboto-mono': 'font-code',
+  'cinzel-decorative': 'font-cinzel',
+  'medieval-sharp': 'font-medieval',
+  'emilys-candy': 'font-emilys-candy',
 };
 
 export default function FontVisualizerPage() {
@@ -55,7 +56,7 @@ export default function FontVisualizerPage() {
                 <p>An example of <strong>bold text</strong>, <em>italic text</em>, and a <a href="#" className="underline">link</a>.</p>
               </div>
               <div className="font-code bg-muted p-4 rounded-lg">
-                <p className="text-sm">This is a code block, using a monospace font:</p>
+                <p className="text-sm">This is a code block, using a different font for code:</p>
                 <pre><code>{`const greeting = "Hello, World!";\nconsole.log(greeting);`}</code></pre>
               </div>
             </CardContent>

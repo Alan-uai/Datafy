@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -12,8 +13,9 @@ export default {
       fontFamily: {
         body: ['var(--font-inter)', 'sans-serif'],
         headline: ['var(--font-inter)', 'sans-serif'],
-        serif: ['var(--font-lora)', 'serif'],
-        script: ['var(--font-lobster)', 'cursive'],
+        cinzel: ['var(--font-cinzel)', 'serif'],
+        medieval: ['var(--font-medieval)', 'serif'],
+        'emilys-candy': ['var(--font-emilys-candy)', 'cursive'],
         code: ['var(--font-roboto-mono)', 'monospace'],
       },
       colors: {

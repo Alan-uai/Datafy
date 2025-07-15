@@ -67,7 +67,13 @@ export const ThemeManager = () => {
       const activeConfig = themeConfigs[activeTheme] || {};
       const themeAnimation = activeConfig.themeAnimation || 'nenhuma';
       
-      document.documentElement.className = cn(activeTheme, themeAnimation !== 'nenhuma' && `animate-${themeAnimation}`);
+      const themeClasses = [
+        activeTheme,
+        themeAnimation !== 'nenhuma' ? `animate-${themeAnimation}` : ''
+      ].filter(Boolean).join(' ');
+
+      document.documentElement.className = themeClasses;
+
     } else {
       // Fallback to dark theme if profile isn't loaded yet
       document.documentElement.className = 'dark';

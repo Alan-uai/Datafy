@@ -1,19 +1,20 @@
+
 // src/app/font-tester/page.tsx
 "use client";
 
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CaseSensitive, Pilcrow, Type, Code } from 'lucide-react';
+import { Type, PenTool, Sparkles, Wand } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/shared/Header';
 import { cn } from '@/lib/utils';
 
 const FONT_OPTIONS: { value: string; label: string; icon: React.FC<any>; className: string }[] = [
     { value: 'inter', label: 'Inter', icon: Type, className: 'font-body' },
-    { value: 'lora', label: 'Lora', icon: Pilcrow, className: 'font-serif' },
-    { value: 'lobster', label: 'Lobster', icon: CaseSensitive, className: 'font-script' },
-    { value: 'roboto-mono', label: 'Roboto Mono', icon: Code, className: 'font-code' },
+    { value: 'cinzel-decorative', label: 'Cinzel', icon: Wand, className: 'font-cinzel' },
+    { value: 'medieval-sharp', label: 'Medieval', icon: PenTool, className: 'font-medieval' },
+    { value: 'emilys-candy', label: 'Emilys Candy', icon: Sparkles, className: 'font-emilys-candy' },
 ];
 
 export default function FontTesterPage() {
