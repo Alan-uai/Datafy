@@ -6,8 +6,14 @@ import type { ThemeConfig } from '@/lib/types';
 import * as d3 from 'd3';
 import { geoOrthographic, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
-// Due to its structure, d3-celestial must be required
+
+// UGLY HACK: d3-celestial expects d3 to be a global object,
+// so we need to attach it to the window before requiring the module.
+if (typeof window !== 'undefined') {
+    (window as any).d3 = d3;
+}
 const Celestial = require('d3-celestial');
+
 
 const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config }) => {
     const { themeSpeed: speed = 100, themeSize: size = 100 } = config;
@@ -75,13 +81,14 @@ const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ conf
         const animate = () => {
             rotation += 0.05 * (speed / 100);
             celestialRef.current.rotate({ euler: [rotation, -20, 0] });
-            requestAnimationFrame(animate);
+            animationFrameId.current = requestAnimationFrame(animate);
         };
         const animId = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animId);
 
-    }, [speed]);
+    }, [speed, celestialRef.current]);
 
+    const animationFrameId = useRef<number | null>(null);
 
     return <div ref={containerRef} className="fixed inset-0 -z-10 bg-black" />;
 };
