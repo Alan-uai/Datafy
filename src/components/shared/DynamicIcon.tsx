@@ -51,6 +51,11 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   Bot: Icons.Bot,
   Space: Icons.Sparkles, // Using Sparkles as a placeholder for Space
   Cherry: Icons.Leaf, // Using Leaf as a placeholder for Cherry
+  Waves: Icons.Waves,
+  Sunset: Icons.Sunset,
+  Trees: Icons.Trees,
+  Rocket: Icons.Rocket,
+  Draftsman: Icons.DraftingCompass,
   // Add other icons as needed
 };
 

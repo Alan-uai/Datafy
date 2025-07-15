@@ -8,6 +8,11 @@ import SummerTheme from '@/components/themes/SummerTheme';
 import SpaceTheme from '@/components/themes/SpaceTheme';
 import SakuraTheme from '@/components/themes/SakuraTheme';
 import DayNightTheme from '@/components/themes/DayNightTheme';
+import DeepOceanTheme from '@/components/themes/DeepOceanTheme';
+import SynthwaveSunsetTheme from '@/components/themes/SynthwaveSunsetTheme';
+import EnchantedForestTheme from '@/components/themes/EnchantedForestTheme';
+import StarfieldWarpTheme from '@/components/themes/StarfieldWarpTheme';
+import BlueprintGridTheme from '@/components/themes/BlueprintGridTheme';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -17,7 +22,7 @@ interface ThemeComponentProps {
     config: Partial<ThemeConfig>;
 }
 
-const themeMap: Record<ThemeName, React.FC<any> | null> = {
+const themeMap: Record<string, React.FC<any> | null> = {
     'dark': null,
     'light': null,
     'padrão': DefaultTheme,
@@ -26,6 +31,11 @@ const themeMap: Record<ThemeName, React.FC<any> | null> = {
     'espaço': SpaceTheme,
     'sakura': SakuraTheme,
     'dia-noite': DayNightTheme,
+    'deep-ocean': DeepOceanTheme,
+    'synthwave-sunset': SynthwaveSunsetTheme,
+    'enchanted-forest': EnchantedForestTheme,
+    'starfield-warp': StarfieldWarpTheme,
+    'blueprint-grid': BlueprintGridTheme,
 };
 
 export const ThemeManager = () => {

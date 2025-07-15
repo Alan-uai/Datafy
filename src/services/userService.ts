@@ -53,7 +53,7 @@ const defaultThemeConfig: ThemeConfig = {
     astrologicalEvents: true,
 };
 
-const allThemes: ThemeName[] = ['dark', 'light', 'matrix', 'padrão', 'verão', 'espaço', 'sakura', 'dia-noite'];
+const allThemes: ThemeName[] = ['dark', 'light', 'matrix', 'padrão', 'verão', 'espaço', 'sakura', 'dia-noite', 'deep-ocean', 'synthwave-sunset', 'enchanted-forest', 'starfield-warp', 'blueprint-grid'];
 
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {
   premium: null,
@@ -231,7 +231,7 @@ export const updateUserPreferences = async (uid: string, preferences: Partial<Us
   }
   
   await updateDoc(userRef, updates);
-}
+};
 
 
 export const checkPremiumStatus = async (uid: string): Promise<boolean> => {

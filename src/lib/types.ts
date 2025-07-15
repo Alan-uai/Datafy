@@ -35,7 +35,7 @@ export type PremiumPlan = {
   expiresAt?: any; // Firestore Timestamp for future use
 }
 
-export type ThemeName = 'dark' | 'light' | 'matrix' | 'padrão' | 'verão' | 'espaço' | 'sakura' | 'dia-noite';
+export type ThemeName = 'dark' | 'light' | 'matrix' | 'padrão' | 'verão' | 'espaço' | 'sakura' | 'dia-noite' | 'deep-ocean' | 'synthwave-sunset' | 'enchanted-forest' | 'starfield-warp' | 'blueprint-grid';
 
 export interface ThemeConfig {
     themeAnimation: 'cintilar' | 'girar' | 'nenhuma';

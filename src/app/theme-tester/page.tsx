@@ -4,13 +4,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Paintbrush } from 'lucide-react';
+import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, Draftsman } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ThemeName } from '@/lib/types';
 import { Header } from '@/components/shared/Header';
 
 const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any> }[] = [
     { value: 'matrix', label: 'Matrix', icon: Bot },
+    { value: 'deep-ocean', label: 'Deep Ocean', icon: Waves },
+    { value: 'synthwave-sunset', label: 'Synthwave', icon: Sunset },
+    { value: 'enchanted-forest', label: 'Enchanted Forest', icon: Trees },
+    { value: 'starfield-warp', label: 'Starfield Warp', icon: Rocket },
+    { value: 'blueprint-grid', label: 'Blueprint Grid', icon: Draftsman },
 ] as const;
 
 export default function ThemeTesterPage() {
