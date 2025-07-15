@@ -4,18 +4,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Palette, Bot, Waves, Space, Cherry, Moon, Paintbrush } from 'lucide-react';
+import { Bot, Paintbrush } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ThemeName } from '@/lib/types';
 import { Header } from '@/components/shared/Header';
 
 const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any> }[] = [
-    { value: 'padrão', label: 'Padrão', icon: Palette },
     { value: 'matrix', label: 'Matrix', icon: Bot },
-    { value: 'verão', label: 'Verão', icon: Waves },
-    { value: 'espaço', label: 'Espaço', icon: Space },
-    { value: 'sakura', label: 'Sakura', icon: Cherry },
-    { value: 'dia-noite', label: 'Dia/Noite', icon: Moon },
 ] as const;
 
 export default function ThemeTesterPage() {
