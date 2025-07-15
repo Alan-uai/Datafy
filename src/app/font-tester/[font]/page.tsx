@@ -19,6 +19,14 @@ const fontClassMap: { [key: string]: string } = {
 export default function FontVisualizerPage() {
   const params = useParams();
   const font = (params.font as string) || 'inter';
+
+  // Redirect to monogram page if that's the param
+  if (font === 'monogram') {
+      // This page is handled by /font-tester/monogram/page.tsx
+      // We render a simple loading/redirecting state
+      return <div>Carregando...</div>;
+  }
+
   const selectedFontClass = fontClassMap[font] || 'font-body';
 
   return (

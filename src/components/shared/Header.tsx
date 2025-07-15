@@ -89,6 +89,10 @@ export function Header() {
                         <Text className="mr-2 h-4 w-4" />
                         <span>Fontes</span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/font-tester/monogram')}>
+                        <span className="mr-2 h-4 w-4 font-serif font-bold italic">M</span>
+                        <span>Monogramas</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push('/border-tester')}>
                         <Gem className="mr-2 h-4 w-4" />
                         <span>Bordas</span>
