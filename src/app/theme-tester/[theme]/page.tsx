@@ -39,7 +39,7 @@ export default function ThemeVisualizerPage() {
       <ThemeManager />
 
       {/* Control Panel */}
-      <div className="absolute top-4 right-4 bg-card/80 backdrop-blur-md p-3 rounded-lg z-10">
+      <div className="absolute top-4 right-4 bg-card/80 backdrop-blur-md p-3 rounded-lg z-10 border border-border">
         <div className="flex items-center space-x-2">
           <Switch id="show-card-toggle" checked={showCard} onCheckedChange={setShowCard} />
           <Label htmlFor="show-card-toggle">Mostrar Card</Label>
@@ -48,7 +48,7 @@ export default function ThemeVisualizerPage() {
 
       {/* Title */}
       <div className="text-center mb-8 z-10">
-        <h1 className="text-4xl font-bold capitalize text-shadow-lg" style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>{theme}</h1>
+        <h1 className="text-4xl font-bold capitalize text-shadow-lg" style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>{theme.replace(/-/g, ' ')}</h1>
         <p className="text-muted-foreground text-lg">Visualizador de Tema</p>
       </div>
 
@@ -62,19 +62,17 @@ export default function ThemeVisualizerPage() {
             transition={{ type: 'spring', damping: 15, stiffness: 100 }}
             className="w-full max-w-md z-10"
           >
-            <div className='border-tema-giratoria rounded-xl'>
-                 <Card className="shadow-2xl bg-card/80 backdrop-blur-lg">
-                    <CardHeader>
-                        <CardTitle>Exemplo de Card</CardTitle>
-                        <CardDescription>Este é um card de exemplo para testar o tema.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p>
-                        O conteúdo do card permanece legível e funcional, enquanto o fundo e a borda refletem o tema ativo.
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
+            <Card className="shadow-2xl bg-card/50 backdrop-blur-lg border-2 border-primary/30">
+                <CardHeader>
+                    <CardTitle>Exemplo de Card</CardTitle>
+                    <CardDescription>Este é um card de exemplo para testar o tema.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p>
+                    O conteúdo do card permanece legível e funcional, enquanto o fundo e a borda refletem o tema ativo.
+                    </p>
+                </CardContent>
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>

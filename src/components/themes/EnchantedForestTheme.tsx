@@ -13,37 +13,36 @@ const EnchantedForestTheme: React.FC<EnchantedForestThemeProps> = ({ config }) =
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
     const mousePos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    const treesRef = useRef<any[]>([]);
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, frame: number, fireflies: any[], speedRatio: number, sizeRatio: number) => {
         const { width, height } = ctx.canvas;
         
-        // Background Gradient
         const gradient = ctx.createLinearGradient(0, 0, 0, height);
-        gradient.addColorStop(0, '#0c1445'); // Dark blue
-        gradient.addColorStop(0.7, '#2c3e50'); // Dark slate gray
-        gradient.addColorStop(1, '#1a2a1f'); // Dark green
+        gradient.addColorStop(0, '#0c1445');
+        gradient.addColorStop(0.7, '#2c3e50');
+        gradient.addColorStop(1, '#1a2a1f');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
         
-        // Draw Parallax Trees (simple representation)
-        ctx.fillStyle = '#000';
-        for (let i = 0; i < 3; i++) {
-            const parallaxFactor = (i + 1) * 0.1;
-            const offsetX = (mousePos.current.x - width / 2) * parallaxFactor;
-            for (let j = 0; j < 10; j++) {
-                const x = (width / 9) * j + offsetX;
-                const h = (150 + i * 50) * sizeRatio;
-                const w = (60 + i * 30) * sizeRatio;
-                ctx.globalAlpha = 0.2 + i * 0.1;
-                ctx.beginPath();
-                ctx.moveTo(x - w / 2, height);
-                ctx.lineTo(x, height - h);
-                ctx.lineTo(x + w / 2, height);
-                ctx.closePath();
-                ctx.fill();
-            }
-        }
-        ctx.globalAlpha = 1;
+        // Sort trees by z-index for correct layering
+        treesRef.current.sort((a, b) => a.z - b.z);
+
+        treesRef.current.forEach(tree => {
+            const scale = tree.z;
+            const treeHeight = 150 * scale * sizeRatio;
+            const treeWidth = 60 * scale * sizeRatio;
+            const parallaxX = (mousePos.current.x - width / 2) * (scale * 0.1);
+
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.1 + scale * 0.3})`;
+            ctx.beginPath();
+            ctx.moveTo(tree.x + parallaxX - treeWidth / 2, height);
+            ctx.lineTo(tree.x + parallaxX, height - treeHeight);
+            ctx.lineTo(tree.x + parallaxX + treeWidth / 2, height);
+            ctx.closePath();
+            ctx.fill();
+        });
+
 
         // Draw Fireflies
         fireflies.forEach(f => {
@@ -59,18 +58,26 @@ const EnchantedForestTheme: React.FC<EnchantedForestThemeProps> = ({ config }) =
     }, []);
 
     const update = useCallback((width: number, height: number, fireflies: any[], speedRatio: number) => {
+        // Update trees for forward motion
+        treesRef.current.forEach((tree, index) => {
+            tree.z += 0.0005 * speedRatio;
+            tree.y = height * (1 - tree.z);
+            if (tree.z > 1.2) {
+                // Reset tree when it's too close
+                tree.z = Math.random() * 0.1;
+                tree.x = Math.random() * width;
+            }
+        });
+
         fireflies.forEach(f => {
-            // Move towards mouse
             const dx = mousePos.current.x - f.x;
             const dy = mousePos.current.y - f.y;
             f.vx += dx * 0.0001 * speedRatio;
             f.vy += dy * 0.0001 * speedRatio;
 
-            // Random flutter
             f.vx += (Math.random() - 0.5) * 0.1;
             f.vy += (Math.random() - 0.5) * 0.1;
 
-            // Damping
             f.vx *= 0.95;
             f.vy *= 0.95;
 
@@ -105,6 +112,13 @@ const EnchantedForestTheme: React.FC<EnchantedForestThemeProps> = ({ config }) =
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             fireflies = [];
+            treesRef.current = [];
+            for (let i = 0; i < 50; i++) {
+                treesRef.current.push({
+                    x: Math.random() * canvas.width,
+                    z: Math.random() // z will represent depth (0-1)
+                });
+            }
             for (let i = 0; i < 100; i++) {
                 fireflies.push({
                     x: Math.random() * canvas.width,

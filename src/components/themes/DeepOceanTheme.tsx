@@ -31,12 +31,12 @@ const DeepOceanTheme: React.FC<DeepOceanThemeProps> = ({ config }) => {
         const rayCount = 5;
         for (let i = 0; i < rayCount; i++) {
             ctx.beginPath();
-            ctx.moveTo((width / rayCount) * i + Math.sin(frame * 0.001 * speedRatio + i) * 100, -50);
+            ctx.moveTo((width / rayCount) * i + Math.sin(frame * 0.0005 * speedRatio + i) * 100, -50);
             ctx.lineTo(mousePos.current.x + (Math.random() - 0.5) * 400, height * 1.2);
             ctx.lineTo(mousePos.current.x + (Math.random() - 0.5) * 400 + 100, height * 1.2);
-            ctx.lineTo((width / rayCount) * i + Math.sin(frame * 0.0015 * speedRatio + i) * 100 + 200, -50);
+            ctx.lineTo((width / rayCount) * i + Math.sin(frame * 0.0008 * speedRatio + i) * 100 + 200, -50);
             const rayGradient = ctx.createLinearGradient(0, 0, 0, height);
-            rayGradient.addColorStop(0, `rgba(173, 216, 230, ${0.05 + Math.sin(frame * 0.002 * speedRatio + i) * 0.03})`);
+            rayGradient.addColorStop(0, `rgba(173, 216, 230, ${0.05 + Math.sin(frame * 0.001 * speedRatio + i) * 0.03})`);
             rayGradient.addColorStop(1, 'rgba(173, 216, 230, 0)');
             ctx.fillStyle = rayGradient;
             ctx.fill();

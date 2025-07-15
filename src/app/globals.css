@@ -119,9 +119,9 @@
   }
   .matrix {
     --background: 0 0% 2%;
-    --foreground: 120 100% 75%;
+    --foreground: 120 100% 85%;
     --card: 140 10% 6% / 0.8;
-    --card-foreground: 120 100% 75%;
+    --card-foreground: 120 100% 85%;
     --popover: 140 10% 2% / 0.9;
     --popover-foreground: 120 100% 75%;
     --primary: 120 100% 50%;
@@ -129,7 +129,7 @@
     --secondary: 130 15% 12% / 0.8;
     --secondary-foreground: 120 90% 80%;
     --muted: 130 15% 12% / 0.8;
-    --muted-foreground: 120 40% 60%;
+    --muted-foreground: 120 100% 85%;
     --accent: 120 60% 50% / 0.5;
     --accent-foreground: 120 100% 85%;
     --destructive: 0 100% 50%;
@@ -199,14 +199,35 @@
      animation: cintilate-effect 2s ease-in-out infinite;
   }
 
-  .animate-girar *:not(body):not(html) {
+  .border-tema-giratoria {
+    position: relative;
+    padding: 1px;
+    border-radius: var(--radius);
+  }
+
+  .border-tema-giratoria::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    margin: -1px;
+    border-radius: inherit;
+    background: conic-gradient(from var(--angle),
+        rgba(0,0,0,0.1),
+        hsl(var(--primary)), 
+        rgba(255,255,255,0.4),
+        hsl(var(--primary)),
+        rgba(0,0,0,0.1)
+    );
     animation: rotate-effect 4s linear infinite;
-    border: 1px solid transparent;
-    background: conic-gradient(from var(--angle), hsl(var(--background)), hsl(var(--primary)), white, hsl(var(--primary)), hsl(var(--background))) border-box;
-    -webkit-mask:
-        linear-gradient(#fff 0 0) padding-box, 
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
+  }
+
+  .card-content-wrapper {
+      background-color: var(--card);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius);
+      padding: 1.5rem; /* Corresponds to p-6 from Card */
+      width: 100%;
+      height: 100%;
   }
 }

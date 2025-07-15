@@ -53,7 +53,11 @@ const defaultThemeConfig: ThemeConfig = {
     astrologicalEvents: true,
 };
 
-const allThemes: ThemeName[] = ['dark', 'light', 'matrix', 'padrão', 'verão', 'espaço', 'sakura', 'dia-noite', 'deep-ocean', 'synthwave-sunset', 'enchanted-forest', 'starfield-warp', 'blueprint-grid'];
+const allThemes: ThemeName[] = [
+    'dark', 'light', 'matrix', 'padrão', 'verão', 'espaço', 'sakura', 'dia-noite', 
+    'deep-ocean', 'enchanted-forest', 'starfield-warp', 'galactic-journey', 
+    'floating-lanterns', 'cyberpunk-city', 'living-watercolor', 'particle-plexus', 'shifting-sands'
+];
 
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {
   premium: null,

@@ -56,6 +56,11 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   Trees: Icons.Trees,
   Rocket: Icons.Rocket,
   DraftingCompass: Icons.DraftingCompass,
+  SunMoon: Icons.SunMoon,
+  Flame: Icons.Flame,
+  Wind: Icons.Wind,
+  Mountain: Icons.Mountain,
+  Paintbrush: Icons.Paintbrush,
   // Add other icons as needed
 };
 
