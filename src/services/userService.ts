@@ -56,8 +56,8 @@ const defaultThemeConfig: ThemeConfig = {
 const allThemes: ThemeName[] = [
     'dark', 'light', 'matrix', 'padrão', 'verão', 'espaço', 'sakura', 'dia-noite', 
     'deep-ocean', 'enchanted-forest', 'starfield-warp', 'galactic-journey', 
-    'floating-lanterns', 'cyberpunk-city', 'living-watercolor', 'particle-plexus', 'shifting-sands',
-    'cyberpunk-traffic', 'chinese-lanterns', 'celestial-sphere', 'living-organism', 
+    'floating-lanterns', 'cyberpunk-city',
+    'cyberpunk-traffic', 'chinese-lanterns', 'living-organism', 
     'generative-topography', 'dynamic-weather', 'fractal-explorer',
     'glitchscape', 'bioluminescent-cave'
 ];

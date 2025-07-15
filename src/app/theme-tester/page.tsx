@@ -4,7 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, DraftingCompass, Flame, Wind, Droplets, Mountain, SunMoon, Atom, BrainCircuit, VenetianMask, Map, Globe, Brain, Signal, Diamond, Gem } from 'lucide-react';
+import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, VenetianMask, Map, Wind, Atom, Mountain, Droplets, BrainCircuit, Signal, Gem, Globe, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ThemeName } from '@/lib/types';
 import { Header } from '@/components/shared/Header';
@@ -19,16 +19,12 @@ const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any> }[] 
     { value: 'chinese-lanterns', label: 'Chinese Lanterns', icon: VenetianMask },
     { value: 'cyberpunk-city', label: 'Cyberpunk City', icon: Map },
     { value: 'cyberpunk-traffic', label: 'Cyberpunk Traffic', icon: Wind },
-    { value: 'celestial-sphere', label: 'Celestial Sphere', icon: SunMoon },
     { value: 'living-organism', label: 'Living Organism', icon: Atom },
     { value: 'generative-topography', label: 'Generative Topography', icon: Mountain },
     { value: 'dynamic-weather', label: 'Dynamic Weather', icon: Droplets },
     { value: 'fractal-explorer', label: 'Fractal Explorer', icon: BrainCircuit },
     { value: 'glitchscape', label: 'Glitchscape', icon: Signal },
     { value: 'bioluminescent-cave', label: 'Bioluminescent Cave', icon: Gem },
-    { value: 'shifting-sands', label: 'Shifting Sands', icon: Wind },
-    { value: 'living-watercolor', label: 'Living Watercolor', icon: Paintbrush },
-    { value: 'particle-plexus', label: 'Particle Plexus', icon: Brain },
 ] as const;
 
 export default function ThemeTesterPage() {

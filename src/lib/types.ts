@@ -39,10 +39,9 @@ export type ThemeName =
   | 'dark' | 'light' | 'matrix' | 'padrão' | 'verão' | 'espaço' | 'sakura' | 'dia-noite' 
   | 'deep-ocean' | 'enchanted-forest' | 'starfield-warp'
   | 'galactic-journey' | 'floating-lanterns' | 'cyberpunk-city'
-  | 'cyberpunk-traffic' | 'chinese-lanterns' | 'celestial-sphere'
+  | 'cyberpunk-traffic' | 'chinese-lanterns'
   | 'living-organism' | 'generative-topography' | 'dynamic-weather'
-  | 'fractal-explorer' | 'glitchscape' | 'bioluminescent-cave'
-  | 'shifting-sands' | 'living-watercolor' | 'particle-plexus';
+  | 'fractal-explorer' | 'glitchscape' | 'bioluminescent-cave';
 
 
 export interface ThemeConfig {

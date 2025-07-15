@@ -23,17 +23,11 @@ import DynamicWeatherTheme from '@/components/themes/DynamicWeatherTheme';
 import FractalExplorerTheme from '@/components/themes/FractalExplorerTheme';
 import GlitchscapeTheme from '@/components/themes/GlitchscapeTheme';
 import BioluminescentCaveTheme from '@/components/themes/BioluminescentCaveTheme';
-import ShiftingSandsTheme from '@/components/themes/ShiftingSandsTheme';
-import LivingWatercolorTheme from '@/components/themes/LivingWatercolorTheme';
-import ParticlePlexusTheme from '@/components/themes/ParticlePlexusTheme';
 
 
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import type { UserPreferences, ThemeName, ThemeConfig } from '@/lib/types';
-
-// Dynamically import the component that causes the SSR issue
-const CelestialSphereTheme = dynamic(() => import('@/components/themes/CelestialSphereTheme'), { ssr: false });
 
 interface ThemeComponentProps {
     config: Partial<ThemeConfig>;
@@ -56,16 +50,12 @@ const themeMap: Record<string, React.FC<any> | null> = {
     'cyberpunk-city': CyberpunkCityTheme,
     'cyberpunk-traffic': CyberpunkTrafficTheme,
     'chinese-lanterns': ChineseLanternsTheme,
-    'celestial-sphere': CelestialSphereTheme,
     'living-organism': LivingOrganismTheme,
     'generative-topography': GenerativeTopographyTheme,
     'dynamic-weather': DynamicWeatherTheme,
     'fractal-explorer': FractalExplorerTheme,
     'glitchscape': GlitchscapeTheme,
     'bioluminescent-cave': BioluminescentCaveTheme,
-    'shifting-sands': ShiftingSandsTheme,
-    'living-watercolor': LivingWatercolorTheme,
-    'particle-plexus': ParticlePlexusTheme,
 };
 
 export const ThemeManager = () => {
