@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import MatrixBackground from '@/components/themes/MatrixBackground';
 import DefaultTheme from '@/components/themes/DefaultTheme';
 import SummerTheme from '@/components/themes/SummerTheme';
@@ -16,7 +17,6 @@ import FloatingLanternsTheme from '@/components/themes/FloatingLanternsTheme';
 import CyberpunkCityTheme from '@/components/themes/CyberpunkCityTheme';
 import CyberpunkTrafficTheme from '@/components/themes/CyberpunkTrafficTheme';
 import ChineseLanternsTheme from '@/components/themes/ChineseLanternsTheme';
-import CelestialSphereTheme from '@/components/themes/CelestialSphereTheme';
 import LivingOrganismTheme from '@/components/themes/LivingOrganismTheme';
 import GenerativeTopographyTheme from '@/components/themes/GenerativeTopographyTheme';
 import DynamicWeatherTheme from '@/components/themes/DynamicWeatherTheme';
@@ -25,6 +25,9 @@ import FractalExplorerTheme from '@/components/themes/FractalExplorerTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import type { UserPreferences, ThemeName, ThemeConfig } from '@/lib/types';
+
+// Dynamically import the component that causes the SSR issue
+const CelestialSphereTheme = dynamic(() => import('@/components/themes/CelestialSphereTheme'), { ssr: false });
 
 interface ThemeComponentProps {
     config: Partial<ThemeConfig>;
