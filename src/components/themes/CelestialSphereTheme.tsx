@@ -7,12 +7,7 @@ import * as d3Base from 'd3';
 import { geoOrthographic, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 
-// UGLY HACK: d3-celestial expects d3 to be a global object with geo methods,
-// so we need to construct this object and attach it to the window before requiring the module.
-if (typeof window !== 'undefined') {
-    const d3 = Object.assign({}, d3Base, { geoOrthographic, geoPath });
-    (window as any).d3 = d3;
-}
+// Due to its structure, d3-celestial must be required
 const Celestial = require('d3-celestial');
 
 
@@ -22,12 +17,18 @@ const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ conf
     const celestialRef = useRef<any>(null);
 
     const initChart = useCallback(() => {
-        if (!containerRef.current || celestialRef.current) return;
+        if (!containerRef.current || !Celestial) return;
+        
+        // Clear previous chart
+        d3Base.select(containerRef.current).html('');
+        celestialRef.current = null;
 
         const { width, height } = containerRef.current.getBoundingClientRect();
+        
+        // Use d3.geoOrthographic directly as the projection function
         const projection = geoOrthographic().scale(width / 2.2).translate([width / 2, height / 2]).clipAngle(90);
 
-        const celestial = Celestial();
+        const celestial = Celestial.Celestial();
         celestial.display({
             width: width,
             height: height,
@@ -64,14 +65,10 @@ const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ conf
 
     useEffect(() => {
         initChart();
-        const containerNode = containerRef.current;
-        window.addEventListener('resize', initChart);
+        const handleResize = () => initChart();
+        window.addEventListener('resize', handleResize);
         return () => {
-             window.removeEventListener('resize', initChart);
-             if (containerNode) {
-                d3Base.select(containerNode).html(''); // Clear the d3 chart on unmount
-                celestialRef.current = null;
-             }
+             window.removeEventListener('resize', handleResize);
         };
     }, [initChart]);
     
@@ -79,17 +76,23 @@ const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ conf
         if (!celestialRef.current) return;
         
         let rotation = 0;
+        let animationFrameId: number | null = null;
+        
         const animate = () => {
             rotation += 0.05 * (speed / 100);
             celestialRef.current.rotate({ euler: [rotation, -20, 0] });
-            animationFrameId.current = requestAnimationFrame(animate);
+            animationFrameId = requestAnimationFrame(animate);
         };
-        const animId = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(animId);
+        
+        animate();
+        
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
 
-    }, [speed, celestialRef]);
-
-    const animationFrameId = useRef<number | null>(null);
+    }, [speed, celestialRef.current]); // Re-run if the celestial object changes
 
     return <div ref={containerRef} className="fixed inset-0 -z-10 bg-black" />;
 };

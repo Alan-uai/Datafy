@@ -1,0 +1,13 @@
+diff --git a/node_modules/d3-celestial/celestial.js b/node_modules/d3-celestial/celestial.js
+index 7a9e9a4..60e4701 100644
+--- a/node_modules/d3-celestial/celestial.js
++++ b/node_modules/d3-celestial/celestial.js
+@@ -1071,7 +1071,7 @@
+     var euler = Celestial.eulerAngles();
+     var q = euler[0], w = euler[1], z = euler[2];
+     var centri = Celestial.centrifugal();
+-    var projection = d3.geo.projection(function(x, y) {
++    var projection = d3.geoOrthographic().projection(function(x, y) {
+       var R = Math.cos(y);
+       var X = R * Math.sin(x - q);
+       var Y = Math.sin(y) * Math.cos(w) - R * Math.cos(x - q) * Math.sin(w);
