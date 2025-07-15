@@ -36,6 +36,24 @@
   }
 }
 
+@keyframes border-pulsar {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px hsl(var(--border-animation-color))) drop-shadow(0 0 5px hsl(var(--border-animation-color)));
+    opacity: 0.8;
+  }
+  50% {
+    filter: drop-shadow(0 0 5px hsl(var(--border-animation-color))) drop-shadow(0 0 15px hsl(var(--border-animation-color)));
+    opacity: 1;
+  }
+}
+
+@keyframes border-vibrar {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  25% { transform: translate(1px, -1px) rotate(0.5deg); }
+  50% { transform: translate(-1px, 1px) rotate(-0.5deg); }
+  75% { transform: translate(1px, 1px) rotate(0.2deg); }
+}
+
 @property --angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -195,8 +213,16 @@
     @apply text-foreground;
   }
   
-  .animate-cintilar * {
+  .animate-cintilar {
      animation: cintilate-effect 2s ease-in-out infinite;
+  }
+  
+  .animate-pulsar {
+    animation: border-pulsar 2s ease-in-out infinite;
+  }
+
+  .animate-vibrar {
+    animation: border-vibrar 0.3s ease-in-out infinite;
   }
 
   .border-tema-giratoria {

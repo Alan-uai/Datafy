@@ -12,9 +12,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { LogOut, BarChart3, Settings } from 'lucide-react';
+import { LogOut, BarChart3, Settings, Paintbrush, Text, Gem } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
   const { currentUser, logout, userProfile } = useAuth();
@@ -63,6 +71,30 @@ export function Header() {
           {currentUser && (
             <>
               <ThemeToggleButton />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <Paintbrush className="h-5 w-5" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuLabel>Testers</DropdownMenuLabel>
+                    <DropdownMenuSeparator/>
+                    <DropdownMenuItem onClick={() => router.push('/theme-tester')}>
+                        <Paintbrush className="mr-2 h-4 w-4" />
+                        <span>Temas</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/font-tester')}>
+                        <Text className="mr-2 h-4 w-4" />
+                        <span>Fontes</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/border-tester')}>
+                        <Gem className="mr-2 h-4 w-4" />
+                        <span>Bordas</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Tooltip>
                 <TooltipTrigger asChild>
