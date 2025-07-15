@@ -3,13 +3,14 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { ThemeConfig } from '@/lib/types';
-import * as d3 from 'd3';
+import * as d3Base from 'd3';
 import { geoOrthographic, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 
-// UGLY HACK: d3-celestial expects d3 to be a global object,
-// so we need to attach it to the window before requiring the module.
+// UGLY HACK: d3-celestial expects d3 to be a global object with geo methods,
+// so we need to construct this object and attach it to the window before requiring the module.
 if (typeof window !== 'undefined') {
+    const d3 = Object.assign({}, d3Base, { geoOrthographic, geoPath });
     (window as any).d3 = d3;
 }
 const Celestial = require('d3-celestial');
@@ -56,7 +57,7 @@ const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ conf
             interactive: false,
         });
 
-        d3.select(containerRef.current).call(celestial.display);
+        d3Base.select(containerRef.current).call(celestial.display);
         celestialRef.current = celestial;
 
     }, [size]);
@@ -68,7 +69,7 @@ const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ conf
         return () => {
              window.removeEventListener('resize', initChart);
              if (containerNode) {
-                d3.select(containerNode).html(''); // Clear the d3 chart on unmount
+                d3Base.select(containerNode).html(''); // Clear the d3 chart on unmount
                 celestialRef.current = null;
              }
         };
@@ -86,7 +87,7 @@ const CelestialSphereTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ conf
         const animId = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animId);
 
-    }, [speed, celestialRef.current]);
+    }, [speed, celestialRef]);
 
     const animationFrameId = useRef<number | null>(null);
 
