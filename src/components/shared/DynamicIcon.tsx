@@ -61,6 +61,11 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   Wind: Icons.Wind,
   Mountain: Icons.Mountain,
   Paintbrush: Icons.Paintbrush,
+  VenetianMask: Icons.VenetianMask,
+  Map: Icons.Map,
+  Atom: Icons.Atom,
+  BrainCircuit: Icons.BrainCircuit,
+  Droplets: Icons.Droplets,
   // Add other icons as needed
 };
 

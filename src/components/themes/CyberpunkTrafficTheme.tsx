@@ -4,11 +4,13 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { ThemeConfig } from '@/lib/types';
 
-interface Raindrop {
+interface Car {
     x: number;
     y: number;
-    length: number;
+    z: number; // depth
     speed: number;
+    color: string;
+    length: number;
 }
 
 interface BuildingLayer {
@@ -17,11 +19,12 @@ interface BuildingLayer {
     buildings: { x: number; width: number; height: number; windows: any[] }[];
 }
 
-const CyberpunkCityTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config }) => {
+
+const CyberpunkTrafficTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config }) => {
     const { themeSpeed: speed = 100, themeSize: size = 100 } = config;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number | null>(null);
-    const raindropsRef = useRef<Raindrop[]>([]);
+    const carsRef = useRef<Car[]>([]);
     const layersRef = useRef<BuildingLayer[]>([]);
     const mousePos = useRef({ x: 0, y: 0 });
 
@@ -41,23 +44,7 @@ const CyberpunkCityTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config
             while(currentX < width + 50) {
                 const buildingWidth = (Math.random() * 150 + 50) * sizeRatio * depth;
                 const buildingHeight = (Math.random() * (height * 0.6) + height * 0.2) * depth;
-
-                // Create windows
-                let windows = [];
-                for(let wx = 10; wx < buildingWidth - 10; wx+= 15) {
-                    for(let wy = 10; wy < buildingHeight - 10; wy+=15) {
-                        if(Math.random() > 0.3) {
-                            windows.push({x: wx, y: wy, color: Math.random() > 0.1 ? '#f1e7fe' : '#ffc8dd'});
-                        }
-                    }
-                }
-
-                layer.buildings.push({
-                    x: currentX,
-                    width: buildingWidth,
-                    height: buildingHeight,
-                    windows: windows
-                });
+                layer.buildings.push({ x: currentX, width: buildingWidth, height: buildingHeight, windows: [] });
                 currentX += buildingWidth + (Math.random() * 50 + 20) * sizeRatio;
             }
             layersRef.current.push(layer);
@@ -74,56 +61,40 @@ const CyberpunkCityTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config
         ctx.fillStyle = bgGradient;
         ctx.fillRect(0, 0, width, height);
         
-        // Draw buildings with parallax
         layersRef.current.forEach(layer => {
             const parallaxX = (mousePos.current.x - width / 2) * (layer.depth * 0.1);
-
             ctx.fillStyle = layer.color;
             layer.buildings.forEach(b => {
-                const topY = height - b.height;
-                ctx.fillRect(b.x + parallaxX, topY, b.width, b.height);
-                
-                // Draw windows
-                b.windows.forEach(w => {
-                    ctx.fillStyle = w.color;
-                    ctx.fillRect(b.x + parallaxX + w.x, topY + w.y, 3, 5);
-                })
+                ctx.fillRect(b.x + parallaxX, height - b.height, b.width, b.height);
             });
         });
         
-        // Reflection
         ctx.save();
-        ctx.translate(0, height);
-        ctx.scale(1, -1);
-        const reflectionGrad = ctx.createLinearGradient(0, 0, 0, height * 0.25);
-        reflectionGrad.addColorStop(0, 'rgba(0,0,0,0.7)');
-        reflectionGrad.addColorStop(1, 'rgba(0,0,0,1)');
-        ctx.globalAlpha = 0.5;
-        ctx.drawImage(ctx.canvas, 0, -height);
-        ctx.fillStyle = reflectionGrad;
-        ctx.fillRect(0,0,width,height);
-        ctx.restore();
-
-
-        // Raindrops
-        ctx.strokeStyle = `rgba(173, 216, 230, 0.7)`;
-        ctx.lineWidth = 1;
-        ctx.lineCap = 'round';
-        raindropsRef.current.forEach(drop => {
-            ctx.beginPath();
-            ctx.moveTo(drop.x, drop.y);
-            ctx.lineTo(drop.x, drop.y + drop.length);
-            ctx.stroke();
+        carsRef.current.sort((a,b) => a.z - b.z); // Draw cars from back to front
+        carsRef.current.forEach(car => {
+            const perspective = car.z / 10;
+            const carY = height * 0.5 + car.y * perspective;
+            const carLength = car.length * perspective;
+            const carHeight = 2 * perspective;
+            
+            const grad = ctx.createLinearGradient(car.x, carY, car.x + carLength, carY);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(0.5, car.color);
+            grad.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(car.x, carY - carHeight/2, carLength, carHeight);
         });
-
+        ctx.restore();
     }, []);
 
     const update = useCallback((width: number, height: number, speedRatio: number) => {
-        raindropsRef.current.forEach(drop => {
-            drop.y += drop.speed * speedRatio;
-            if (drop.y > height) {
-                drop.y = Math.random() * -50 - 20;
-                drop.x = Math.random() * width;
+        carsRef.current.forEach((car, index) => {
+            car.x += car.speed * speedRatio;
+            if(car.speed > 0 && car.x > width + car.length) {
+                car.x = -car.length;
+            } else if (car.speed < 0 && car.x < -car.length) {
+                car.x = width + car.length;
             }
         });
     }, []);
@@ -147,13 +118,16 @@ const CyberpunkCityTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config
             
             createBuildingLayers(canvas.width, canvas.height, sizeRatio);
 
-            raindropsRef.current = [];
-            for (let i = 0; i < 300 * sizeRatio; i++) {
-                raindropsRef.current.push({
+            carsRef.current = [];
+            for (let i = 0; i < 100 * sizeRatio; i++) {
+                const z = Math.random() * 9 + 1; // 1 to 10
+                carsRef.current.push({
                     x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    length: Math.random() * 20 + 10,
-                    speed: Math.random() * 5 + 5,
+                    y: (Math.random() - 0.5) * canvas.height * 0.8,
+                    z: z,
+                    speed: (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 2 + 1 + z/2),
+                    color: Math.random() > 0.5 ? '#ff47da' : '#00f6ff',
+                    length: Math.random() * 30 + 20,
                 });
             }
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
@@ -185,4 +159,4 @@ const CyberpunkCityTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config
     );
 };
 
-export default CyberpunkCityTheme;
+export default CyberpunkTrafficTheme;

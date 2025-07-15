@@ -56,7 +56,9 @@ const defaultThemeConfig: ThemeConfig = {
 const allThemes: ThemeName[] = [
     'dark', 'light', 'matrix', 'padrão', 'verão', 'espaço', 'sakura', 'dia-noite', 
     'deep-ocean', 'enchanted-forest', 'starfield-warp', 'galactic-journey', 
-    'floating-lanterns', 'cyberpunk-city', 'living-watercolor', 'particle-plexus', 'shifting-sands'
+    'floating-lanterns', 'cyberpunk-city', 'living-watercolor', 'particle-plexus', 'shifting-sands',
+    'cyberpunk-traffic', 'chinese-lanterns', 'celestial-sphere', 'living-organism', 
+    'generative-topography', 'dynamic-weather', 'fractal-explorer'
 ];
 
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {

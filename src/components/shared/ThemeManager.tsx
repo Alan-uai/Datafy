@@ -14,9 +14,13 @@ import StarfieldWarpTheme from '@/components/themes/StarfieldWarpTheme';
 import GalacticJourneyTheme from '@/components/themes/GalacticJourneyTheme';
 import FloatingLanternsTheme from '@/components/themes/FloatingLanternsTheme';
 import CyberpunkCityTheme from '@/components/themes/CyberpunkCityTheme';
-import LivingWatercolorTheme from '@/components/themes/LivingWatercolorTheme';
-import ParticlePlexusTheme from '@/components/themes/ParticlePlexusTheme';
-import ShiftingSandsTheme from '@/components/themes/ShiftingSandsTheme';
+import CyberpunkTrafficTheme from '@/components/themes/CyberpunkTrafficTheme';
+import ChineseLanternsTheme from '@/components/themes/ChineseLanternsTheme';
+import CelestialSphereTheme from '@/components/themes/CelestialSphereTheme';
+import LivingOrganismTheme from '@/components/themes/LivingOrganismTheme';
+import GenerativeTopographyTheme from '@/components/themes/GenerativeTopographyTheme';
+import DynamicWeatherTheme from '@/components/themes/DynamicWeatherTheme';
+import FractalExplorerTheme from '@/components/themes/FractalExplorerTheme';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -41,9 +45,13 @@ const themeMap: Record<string, React.FC<any> | null> = {
     'galactic-journey': GalacticJourneyTheme,
     'floating-lanterns': FloatingLanternsTheme,
     'cyberpunk-city': CyberpunkCityTheme,
-    'living-watercolor': LivingWatercolorTheme,
-    'particle-plexus': ParticlePlexusTheme,
-    'shifting-sands': ShiftingSandsTheme,
+    'cyberpunk-traffic': CyberpunkTrafficTheme,
+    'chinese-lanterns': ChineseLanternsTheme,
+    'celestial-sphere': CelestialSphereTheme,
+    'living-organism': LivingOrganismTheme,
+    'generative-topography': GenerativeTopographyTheme,
+    'dynamic-weather': DynamicWeatherTheme,
+    'fractal-explorer': FractalExplorerTheme,
 };
 
 export const ThemeManager = () => {
