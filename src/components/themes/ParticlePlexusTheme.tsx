@@ -85,7 +85,7 @@ const ParticlePlexusTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ confi
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             particlesRef.current = [];
-            const particleCount = Math.floor(width / 15);
+            const particleCount = Math.floor(canvas.width / 15);
             for (let i = 0; i < particleCount; i++) {
                 particlesRef.current.push({
                     x: Math.random() * canvas.width,
