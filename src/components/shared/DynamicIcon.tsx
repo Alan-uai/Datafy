@@ -55,7 +55,7 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   Sunset: Icons.Sunset,
   Trees: Icons.Trees,
   Rocket: Icons.Rocket,
-  Draftsman: Icons.DraftingCompass,
+  DraftingCompass: Icons.DraftingCompass,
   // Add other icons as needed
 };
 
