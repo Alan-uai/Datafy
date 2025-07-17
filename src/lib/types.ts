@@ -41,7 +41,10 @@ export type ThemeName =
   | 'galactic-journey' | 'floating-lanterns' | 'cyberpunk-city'
   | 'cyberpunk-traffic' | 'chinese-lanterns'
   | 'living-organism' | 'generative-topography' | 'dynamic-weather'
-  | 'fractal-explorer' | 'glitchscape' | 'bioluminescent-cave';
+  | 'fractal-explorer' | 'glitchscape' | 'bioluminescent-cave'
+  | 'interstellar-black-hole' | 'glitch' | 'user-media'
+  | 'facebook-likes' | 'galaxy-impact' | 'snowfall' | 'vampire-aesthetic'
+  | 'chocolate-fountain' | 'zodiac-wheel' | 'cloud-surfing' | 'mystic-eye';
 
 
 export interface ThemeConfig {
@@ -51,6 +54,12 @@ export interface ThemeConfig {
     matrixMode: 'padrão' | 'combinado';
     diurnoMode: boolean;
     astrologicalEvents: boolean;
+    glitchType?: 'classic' | 'rgb-shift' | 'blocky' | 'invert' | 'scanlines';
+    snowType?: 'soft' | 'crystal' | 'heavy';
+    chocolateType?: 'black' | 'white' | 'colorful';
+    zodiacSign?: 'all' | 'aries' | 'taurus' | 'gemini' | 'cancer' | 'leo' | 'virgo' | 'libra' | 'scorpio' | 'sagittarius' | 'capricorn' | 'aquarius' | 'pisces';
+    eyeType?: 'human' | 'demon' | 'angelic' | 'reptile' | 'cybernetic';
+    userMediaUrl?: string;
 }
 
 export interface UserPreferences {

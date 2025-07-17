@@ -5,7 +5,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock, Waves } from 'lucide-react';
+import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock, Waves, Aperture, Signal, Upload, Heart, Rocket, Snowflake, VenetianMask, Chocolate, Star, Cloud, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -13,6 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import type { UserPreferences, ThemeName, ThemeConfig } from '@/lib/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useThemeAnimation } from '@/contexts/ThemeAnimationContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const THEME_OPTIONS = [
     { value: 'padrão', label: 'Padrão', icon: Palette },
@@ -21,6 +23,17 @@ const THEME_OPTIONS = [
     { value: 'espaço', label: 'Espaço', icon: Space },
     { value: 'sakura', label: 'Sakura', icon: Cherry },
     { value: 'dia-noite', label: 'Dia/Noite', icon: Moon },
+    { value: 'interstellar-black-hole', label: 'Buraco Negro', icon: Aperture, isPremium: true },
+    { value: 'glitch', label: 'Glitch', icon: Signal, isPremium: true },
+    { value: 'facebook-likes', label: 'Reações', icon: Heart, isPremium: true },
+    { value: 'galaxy-impact', label: 'Impacto Galáctico', icon: Rocket, isPremium: true },
+    { value: 'snowfall', label: 'Neve', icon: Snowflake },
+    { value: 'vampire-aesthetic', label: 'Vampiro', icon: VenetianMask, isPremium: true },
+    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Chocolate, isPremium: true },
+    { value: 'zodiac-wheel', label: 'Zodíaco', icon: Star, isPremium: true },
+    { value: 'cloud-surfing', label: 'Nuvens', icon: Cloud },
+    { value: 'mystic-eye', label: 'Olho Místico', icon: Eye, isPremium: true },
+    { value: 'user-media', label: 'Personalizado', icon: Upload, isPremium: true },
 ] as const;
 
 
@@ -77,7 +90,13 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
         themeSize = 100, 
         matrixMode = 'padrão', 
         diurnoMode = false, 
-        astrologicalEvents = true 
+        astrologicalEvents = true,
+        glitchType = 'classic',
+        snowType = 'soft',
+        chocolateType = 'black',
+        zodiacSign = 'all',
+        eyeType = 'human',
+        userMediaUrl = ''
     } = activeThemeConfig;
 
     const isLightMode = preferences.defaultThemeMode === 'light';
@@ -92,7 +111,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
                 <RadioGroup
                     value={selectedRadioValue}
                     onValueChange={handleThemeSelection}
-                    className="grid grid-cols-2 sm:grid-cols-3 gap-4"
+                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
                 >
                     {THEME_OPTIONS.map(({ value, label, icon: Icon, isPremium }) => (
                         <div key={value}>
@@ -100,13 +119,13 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
                             <Label
                             htmlFor={`theme-${value}`}
                             className={cn(
-                                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-24",
+                                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-28",
                                 isPremium && !hasPremium && "cursor-not-allowed opacity-50"
                             )}
                             >
                             <Icon className="mb-2 h-6 w-6" />
-                            {label}
-                             {isPremium && <span className="text-xs font-bold text-yellow-500">Premium</span>}
+                            <span className="text-center">{label}</span>
+                             {isPremium && <span className="text-xs font-bold text-yellow-500 mt-1">Premium</span>}
                             </Label>
                         </div>
                     ))}
@@ -146,86 +165,95 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
                 )}
                 </AnimatePresence>
 
-                <AnimatePresence>
-                {preferences.activeTheme === 'matrix' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                        className="pt-6 border-t space-y-8"
-                    >
-                        <div>
-                            <Label className="text-base font-medium">Modo Matrix</Label>
-                            <p className="text-sm text-muted-foreground mb-3">
-                                Escolha o modo de renderização para o tema Matrix.
-                            </p>
-                            <RadioGroup
-                                value={matrixMode}
-                                onValueChange={(value) => onThemeConfigChange({ matrixMode: value as 'padrão' | 'combinado' })}
-                                className="flex flex-col sm:flex-row gap-4"
-                            >
-                                <div className="flex-1">
-                                    <RadioGroupItem value="padrão" id="matrix-mode-padrao" className="peer sr-only" />
-                                    <Label 
-                                        htmlFor="matrix-mode-padrao" 
-                                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                    >
-                                        Padrão (Dois Canvas)
-                                    </Label>
+                {/* START: Theme Specific Options */}
+                 <AnimatePresence>
+                    {preferences.activeTheme === 'user-media' && (
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
+                            <Label className="text-base font-medium">Tema Personalizado</Label>
+                             <div className="flex items-center gap-2">
+                                <Input 
+                                    placeholder="URL da imagem ou GIF"
+                                    value={userMediaUrl}
+                                    onChange={(e) => onThemeConfigChange({ userMediaUrl: e.target.value })}
+                                />
+                                <Button onClick={() => onThemeConfigChange({ userMediaUrl: userMediaUrl })}>Aplicar</Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Cole a URL de uma imagem (JPG, PNG) ou GIF para usar como fundo.</p>
+                         </motion.div>
+                    )}
+                    {preferences.activeTheme === 'glitch' && (
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
+                            <Label className="text-base font-medium">Tipo de Glitch</Label>
+                            <RadioGroup value={glitchType} onValueChange={(v) => onThemeConfigChange({ glitchType: v as any })}>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="classic" id="glitch-classic" />
+                                    <Label htmlFor="glitch-classic">Clássico</Label>
                                 </div>
-                                <div className="flex-1">
-                                    <RadioGroupItem value="combinado" id="matrix-mode-combinado" className="peer sr-only" />
-                                    <Label 
-                                        htmlFor="matrix-mode-combinado" 
-                                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                    >
-                                        Combinado (Um Canvas)
-                                    </Label>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="rgb-shift" id="glitch-rgb" />
+                                    <Label htmlFor="glitch-rgb">Deslocamento RGB</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="blocky" id="glitch-blocky" />
+                                    <Label htmlFor="glitch-blocky">Blocos</Label>
+                                </div>
+                                 <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="invert" id="glitch-invert" />
+                                    <Label htmlFor="glitch-invert">Inversão</Label>
+                                </div>
+                                 <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="scanlines" id="glitch-scanlines" />
+                                    <Label htmlFor="glitch-scanlines">Linhas de Varredura</Label>
                                 </div>
                             </RadioGroup>
-                        </div>
-                    </motion.div>
-                )}
-                </AnimatePresence>
+                         </motion.div>
+                    )}
+                    {preferences.activeTheme === 'snowfall' && (
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
+                            <Label className="text-base font-medium">Tipo de Floco</Label>
+                             <RadioGroup value={snowType} onValueChange={(v) => onThemeConfigChange({ snowType: v as any })}>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="soft" id="snow-soft" /><Label htmlFor="snow-soft">Suave</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="crystal" id="snow-crystal" /><Label htmlFor="snow-crystal">Cristal</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="heavy" id="snow-heavy" /><Label htmlFor="snow-heavy">Pesado</Label></div>
+                             </RadioGroup>
+                         </motion.div>
+                    )}
+                    {preferences.activeTheme === 'chocolate-fountain' && (
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
+                            <Label className="text-base font-medium">Tipo de Chocolate</Label>
+                             <RadioGroup value={chocolateType} onValueChange={(v) => onThemeConfigChange({ chocolateType: v as any })}>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="black" id="choco-black" /><Label htmlFor="choco-black">Amargo</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="white" id="choco-white" /><Label htmlFor="choco-white">Branco</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="colorful" id="choco-colorful" /><Label htmlFor="choco-colorful">Colorido</Label></div>
+                             </RadioGroup>
+                         </motion.div>
+                    )}
+                    {preferences.activeTheme === 'zodiac-wheel' && (
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
+                            <Label className="text-base font-medium">Signo</Label>
+                             <RadioGroup value={zodiacSign} onValueChange={(v) => onThemeConfigChange({ zodiacSign: v as any })}>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="zodiac-all" /><Label htmlFor="zodiac-all">Todos (Padrão)</Label></div>
+                                {['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'].map(s => (
+                                    <div key={s} className="flex items-center space-x-2"><RadioGroupItem value={s} id={`zodiac-${s}`} /><Label htmlFor={`zodiac-${s}`} className="capitalize">{s}</Label></div>
+                                ))}
+                             </RadioGroup>
+                         </motion.div>
+                    )}
+                     {preferences.activeTheme === 'mystic-eye' && (
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
+                            <Label className="text-base font-medium">Tipo de Olho</Label>
+                             <RadioGroup value={eyeType} onValueChange={(v) => onThemeConfigChange({ eyeType: v as any })}>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="human" id="eye-human" /><Label htmlFor="eye-human">Humano</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="demon" id="eye-demon" /><Label htmlFor="eye-demon">Demoníaco</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="angelic" id="eye-angelic" /><Label htmlFor="eye-angelic">Angelical</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="reptile" id="eye-reptile" /><Label htmlFor="eye-reptile">Reptiliano</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="cybernetic" id="eye-cybernetic" /><Label htmlFor="eye-cybernetic">Cibernético</Label></div>
+                             </RadioGroup>
+                         </motion.div>
+                    )}
+                 </AnimatePresence>
+                {/* END: Theme Specific Options */}
 
-                <AnimatePresence>
-                {preferences.activeTheme === 'dia-noite' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                        className="pt-6 border-t space-y-4"
-                    >
-                        <Label className="text-base font-medium">Configurações Dia/Noite</Label>
-                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                            <div className="space-y-0.5">
-                                <Label htmlFor="diurno-mode" className="text-sm font-medium flex items-center gap-2">
-                                    <Clock className="w-4 h-4"/> Modo Diurno (Tempo Real)
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Sincroniza o ciclo dia/noite com o seu relógio.
-                                </p>
-                            </div>
-                            <Switch
-                                id="diurno-mode"
-                                checked={diurnoMode}
-                                onCheckedChange={(checked) => onThemeConfigChange({ diurnoMode: checked })}
-                            />
-                        </div>
-                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                            <div className="space-y-0.5">
-                                <Label htmlFor="astro-events" className="text-sm font-medium flex items-center gap-2">
-                                    <Waves className="w-4 h-4"/> Eventos Cósmicos
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Exibe chuvas de meteoros e outros eventos.
-                                </p>
-                            </div>
-                            <Switch
-                                id="astro-events"
-                                checked={astrologicalEvents}
-                                onCheckedChange={(checked) => onThemeConfigChange({ astrologicalEvents: checked })}
-                            />
-                        </div>
-                    </motion.div>
-                )}
-                </AnimatePresence>
 
                 <motion.div 
                     initial={{ opacity: 0, y: -10 }} 

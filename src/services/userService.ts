@@ -51,6 +51,12 @@ const defaultThemeConfig: ThemeConfig = {
     matrixMode: 'padrão',
     diurnoMode: false,
     astrologicalEvents: true,
+    glitchType: 'classic',
+    snowType: 'soft',
+    chocolateType: 'black',
+    zodiacSign: 'all',
+    eyeType: 'human',
+    userMediaUrl: 'https://media1.tenor.com/m/Ia8S1a51EgwAAAAd/hacker-hacker-man.gif'
 };
 
 const allThemes: ThemeName[] = [
@@ -59,7 +65,10 @@ const allThemes: ThemeName[] = [
     'floating-lanterns', 'cyberpunk-city',
     'cyberpunk-traffic', 'chinese-lanterns', 'living-organism', 
     'generative-topography', 'dynamic-weather', 'fractal-explorer',
-    'glitchscape', 'bioluminescent-cave'
+    'glitchscape', 'bioluminescent-cave',
+    'interstellar-black-hole', 'glitch', 'user-media', 'facebook-likes', 
+    'galaxy-impact', 'snowfall', 'vampire-aesthetic', 'chocolate-fountain',
+    'zodiac-wheel', 'cloud-surfing', 'mystic-eye'
 ];
 
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {

@@ -24,6 +24,19 @@ import FractalExplorerTheme from '@/components/themes/FractalExplorerTheme';
 import GlitchscapeTheme from '@/components/themes/GlitchscapeTheme';
 import BioluminescentCaveTheme from '@/components/themes/BioluminescentCaveTheme';
 
+// Newly added themes
+const InterstellarBlackHoleTheme = dynamic(() => import('@/components/themes/InterstellarBlackHoleTheme'));
+const GlitchTheme = dynamic(() => import('@/components/themes/GlitchTheme'));
+const UserMediaTheme = dynamic(() => import('@/components/themes/UserMediaTheme'));
+const FacebookLikesTheme = dynamic(() => import('@/components/themes/FacebookLikesTheme'));
+const GalaxyImpactTheme = dynamic(() => import('@/components/themes/GalaxyImpactTheme'));
+const SnowfallTheme = dynamic(() => import('@/components/themes/SnowfallTheme'));
+const VampireAestheticTheme = dynamic(() => import('@/components/themes/VampireAestheticTheme'));
+const ChocolateFountainTheme = dynamic(() => import('@/components/themes/ChocolateFountainTheme'));
+const ZodiacWheelTheme = dynamic(() => import('@/components/themes/ZodiacWheelTheme'));
+const CloudSurfingTheme = dynamic(() => import('@/components/themes/CloudSurfingTheme'));
+const MysticEyeTheme = dynamic(() => import('@/components/themes/MysticEyeTheme'));
+
 
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -56,6 +69,17 @@ const themeMap: Record<string, React.FC<any> | null> = {
     'fractal-explorer': FractalExplorerTheme,
     'glitchscape': GlitchscapeTheme,
     'bioluminescent-cave': BioluminescentCaveTheme,
+    'interstellar-black-hole': InterstellarBlackHoleTheme,
+    'glitch': GlitchTheme,
+    'user-media': UserMediaTheme,
+    'facebook-likes': FacebookLikesTheme,
+    'galaxy-impact': GalaxyImpactTheme,
+    'snowfall': SnowfallTheme,
+    'vampire-aesthetic': VampireAestheticTheme,
+    'chocolate-fountain': ChocolateFountainTheme,
+    'zodiac-wheel': ZodiacWheelTheme,
+    'cloud-surfing': CloudSurfingTheme,
+    'mystic-eye': MysticEyeTheme,
 };
 
 export const ThemeManager = () => {

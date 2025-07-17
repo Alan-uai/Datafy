@@ -4,7 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, VenetianMask, Map, Wind, Atom, Mountain, Droplets, BrainCircuit, Signal, Gem, Globe, Flame } from 'lucide-react';
+import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, VenetianMask, Map, Wind, Atom, Mountain, Droplets, BrainCircuit, Signal, Gem, Globe, Flame, Eye, Star, Heart, Cloud, Wind, Chocolate, Aperture, Snowflake } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ThemeName } from '@/lib/types';
 import { Header } from '@/components/shared/Header';
@@ -25,6 +25,15 @@ const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any> }[] 
     { value: 'fractal-explorer', label: 'Fractal Explorer', icon: BrainCircuit },
     { value: 'glitchscape', label: 'Glitchscape', icon: Signal },
     { value: 'bioluminescent-cave', label: 'Bioluminescent Cave', icon: Gem },
+    { value: 'interstellar-black-hole', label: 'Buraco Negro', icon: Aperture },
+    { value: 'facebook-likes', label: 'Reações Flutuantes', icon: Heart },
+    { value: 'galaxy-impact', label: 'Impacto Galáctico', icon: Rocket },
+    { value: 'snowfall', label: 'Neve', icon: Snowflake },
+    { value: 'vampire-aesthetic', label: 'Vampiro', icon: VenetianMask },
+    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Chocolate },
+    { value: 'zodiac-wheel', label: 'Zodíaco', icon: Star },
+    { value: 'cloud-surfing', label: 'Viagem nas Nuvens', icon: Cloud },
+    { value: 'mystic-eye', label: 'Olho Místico', icon: Eye },
 ] as const;
 
 export default function ThemeTesterPage() {
@@ -47,7 +56,7 @@ export default function ThemeTesterPage() {
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {THEME_OPTIONS.map((theme, index) => (
                         <Link href={`/theme-tester/${theme.value}`} key={theme.value} passHref>
                             <motion.div
@@ -57,7 +66,7 @@ export default function ThemeTesterPage() {
                                 whileHover={{ scale: 1.05, y: -5 }}
                                 className="h-full"
                             >
-                                <Card className="bg-card/80 backdrop-blur-sm hover:border-primary/80 transition-all h-full cursor-pointer flex flex-col justify-center items-center p-6">
+                                <Card className="bg-card/80 backdrop-blur-sm hover:border-primary/80 transition-all h-full cursor-pointer flex flex-col justify-center items-center p-6 text-center">
                                     <theme.icon className="w-12 h-12 text-primary mb-4" />
                                     <CardTitle className="text-lg">{theme.label}</CardTitle>
                                 </Card>
