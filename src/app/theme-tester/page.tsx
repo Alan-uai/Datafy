@@ -1,10 +1,11 @@
+
 // src/app/theme-tester/page.tsx
 "use client";
 
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, VenetianMask, Map, Wind, Atom, Mountain, Droplets, BrainCircuit, Signal, Gem, Globe, Flame, Eye, Star, Heart, Cloud, Wind, Chocolate, Aperture, Snowflake } from 'lucide-react';
+import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, VenetianMask, Map, Wind, Atom, Mountain, Droplets, BrainCircuit, Signal, Gem, Globe, Flame, Eye, Star, Heart, Cloud, Aperture, Snowflake } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ThemeName } from '@/lib/types';
 import { Header } from '@/components/shared/Header';
@@ -30,7 +31,7 @@ const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any> }[] 
     { value: 'galaxy-impact', label: 'Impacto Galáctico', icon: Rocket },
     { value: 'snowfall', label: 'Neve', icon: Snowflake },
     { value: 'vampire-aesthetic', label: 'Vampiro', icon: VenetianMask },
-    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Chocolate },
+    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Droplets },
     { value: 'zodiac-wheel', label: 'Zodíaco', icon: Star },
     { value: 'cloud-surfing', label: 'Viagem nas Nuvens', icon: Cloud },
     { value: 'mystic-eye', label: 'Olho Místico', icon: Eye },

@@ -5,7 +5,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock, Waves, Aperture, Signal, Upload, Heart, Rocket, Snowflake, VenetianMask, Chocolate, Star, Cloud, Eye } from 'lucide-react';
+import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock, Waves, Aperture, Signal, Upload, Heart, Rocket, Snowflake, VenetianMask, Star, Cloud, Eye, Droplets } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -29,7 +29,7 @@ const THEME_OPTIONS = [
     { value: 'galaxy-impact', label: 'Impacto Galáctico', icon: Rocket, isPremium: true },
     { value: 'snowfall', label: 'Neve', icon: Snowflake },
     { value: 'vampire-aesthetic', label: 'Vampiro', icon: VenetianMask, isPremium: true },
-    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Chocolate, isPremium: true },
+    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Droplets, isPremium: true },
     { value: 'zodiac-wheel', label: 'Zodíaco', icon: Star, isPremium: true },
     { value: 'cloud-surfing', label: 'Nuvens', icon: Cloud },
     { value: 'mystic-eye', label: 'Olho Místico', icon: Eye, isPremium: true },
