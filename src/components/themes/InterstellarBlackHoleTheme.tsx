@@ -10,6 +10,8 @@ interface Particle {
   yOffset: number; // Vertical position on the disk
   color: string;
   size: number;
+  prevX?: number;
+  prevY?: number;
 }
 
 const InterstellarBlackHoleTheme: React.FC<{ config: Partial<ThemeConfig> }> = ({ config }) => {
@@ -38,7 +40,7 @@ const InterstellarBlackHoleTheme: React.FC<{ config: Partial<ThemeConfig> }> = (
     }, []);
 
     const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number, speedRatio: number, sizeRatio: number) => {
-        ctx.fillStyle = 'black';
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Fading effect for trails
         ctx.fillRect(0, 0, width, height);
 
         const cx = width / 2;
@@ -53,17 +55,23 @@ const InterstellarBlackHoleTheme: React.FC<{ config: Partial<ThemeConfig> }> = (
             // Lensing effect
             const distToCenter = Math.hypot(x - cx, y - cy);
             if (distToCenter < holeRadius && Math.cos(p.theta) > 0) {
-              // This part of the disk is behind the black hole, so we bend it
-              y = cy - (y - cy) * 1.5; // Flip and exaggerate Y
+              y = cy - (y - cy) * 1.5;
             }
 
             // Doppler effect simulation
             const brightness = Math.max(0.3, Math.sin(p.theta) ** 2);
-            ctx.fillStyle = p.color.replace(/(\d\.\d+)\)/, `${parseFloat(RegExp.$1) * brightness})`);
             
-            ctx.beginPath();
-            ctx.arc(x, y, p.size * perspective * sizeRatio, 0, Math.PI * 2);
-            ctx.fill();
+            if (p.prevX !== undefined && p.prevY !== undefined) {
+                ctx.beginPath();
+                ctx.moveTo(p.prevX, p.prevY);
+                ctx.lineTo(x, y);
+                ctx.lineWidth = p.size * perspective * sizeRatio;
+                ctx.strokeStyle = p.color.replace(/(\d\.\d+)\)/, `${parseFloat(RegExp.$1) * brightness})`);
+                ctx.stroke();
+            }
+
+            p.prevX = x;
+            p.prevY = y;
         });
         
         // Draw the black hole itself on top
@@ -72,7 +80,6 @@ const InterstellarBlackHoleTheme: React.FC<{ config: Partial<ThemeConfig> }> = (
         ctx.arc(cx, cy, holeRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Thin line for the part of the disk in front
         ctx.strokeStyle = 'rgba(150, 120, 100, 0.2)';
         ctx.lineWidth = 2 * sizeRatio;
         ctx.beginPath();
@@ -84,7 +91,8 @@ const InterstellarBlackHoleTheme: React.FC<{ config: Partial<ThemeConfig> }> = (
 
     const update = useCallback((width: number, speedRatio: number) => {
         particlesRef.current.forEach(p => {
-            p.theta -= (0.005 / (p.radius / (width * 0.2))) * speedRatio;
+            // Increased speed dramatically
+            p.theta -= (0.025 / (p.radius / (width * 0.2))) * speedRatio;
             if (p.theta < 0) p.theta += Math.PI * 2;
         });
     }, []);
@@ -95,12 +103,14 @@ const InterstellarBlackHoleTheme: React.FC<{ config: Partial<ThemeConfig> }> = (
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const speedRatio = speed / 100;
+        const speedRatio = speed / 10; // Speed multiplier for dramatic effect
         const sizeRatio = size / 100;
 
         const resizeHandler = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0,0, canvas.width, canvas.height);
             setup(canvas.width, canvas.height, 4000 * sizeRatio);
         };
 
