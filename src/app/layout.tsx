@@ -3,28 +3,59 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Providers } from './providers';
 import { MatrixCurtainTrigger } from '@/components/themes/MatrixCurtainTrigger';
-import { Inter, Cinzel_Decorative, MedievalSharp, Emilys_Candy } from 'next/font/google';
+import localFont from 'next/font/local';
 import { cn } from '@/lib/utils';
 
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  src: [
+    {
+      path: '../../public/fonts/Inter-Regular.ttf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Inter-Medium.ttf',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Inter-SemiBold.ttf',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Inter-Bold.ttf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
   variable: '--font-inter',
 });
 
-const cinzel = Cinzel_Decorative({
-  subsets: ['latin'],
-  weight: ['400', '700'],
+const cinzel = localFont({
+  src: [
+    {
+        path: '../../public/fonts/CinzelDecorative-Regular.ttf',
+        weight: '400',
+        style: 'normal',
+    },
+    {
+        path: '../../public/fonts/CinzelDecorative-Bold.ttf',
+        weight: '700',
+        style: 'normal',
+    }
+  ],
   variable: '--font-cinzel',
 });
 
-const medieval = MedievalSharp({
-  subsets: ['latin'],
+const medieval = localFont({
+  src: '../../public/fonts/MedievalSharp-Regular.ttf',
   weight: '400',
   variable: '--font-medieval',
 });
 
-const emilysCandy = Emilys_Candy({
-  subsets: ['latin'],
+const emilysCandy = localFont({
+  src: '../../public/fonts/EmilysCandy-Regular.ttf',
   weight: '400',
   variable: '--font-emilys-candy',
 });
