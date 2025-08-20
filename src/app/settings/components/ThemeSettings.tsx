@@ -3,35 +3,14 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Palette, Bot, Sparkles, Film, SlidersHorizontal, Sun, Moon, Space, Cherry, Text, Ruler, Clock, Waves, Aperture, Signal, Upload, Heart, Rocket, Snowflake, VenetianMask, Star, Cloud, Eye, Droplets } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { THEME_OPTIONS } from '@/lib/themes'; // Import from a centralized place
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { UserPreferences, ThemeName } from '@/lib/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useThemeAnimation } from '@/contexts/ThemeAnimationContext';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter }from 'next/navigation';
-
-const THEME_OPTIONS = [
-    { value: 'padrão', label: 'Padrão', icon: Palette },
-    { value: 'matrix', label: 'Matrix', icon: Bot, isPremium: true },
-    { value: 'verão', label: 'Verão', icon: Waves },
-    { value: 'espaço', label: 'Espaço', icon: Space },
-    { value: 'sakura', label: 'Sakura', icon: Cherry },
-    { value: 'dia-noite', label: 'Dia/Noite', icon: Moon },
-    { value: 'interstellar-black-hole', label: 'Buraco Negro', icon: Aperture, isPremium: true },
-    { value: 'glitch', label: 'Glitch', icon: Signal, isPremium: true },
-    { value: 'facebook-likes', label: 'Reações', icon: Heart, isPremium: true },
-    { value: 'galaxy-impact', label: 'Impacto Galáctico', icon: Rocket, isPremium: true },
-    { value: 'snowfall', label: 'Neve', icon: Snowflake },
-    { value: 'vampire-aesthetic', label: 'Vampiro', icon: VenetianMask, isPremium: true },
-    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Droplets, isPremium: true },
-    { value: 'zodiac-wheel', label: 'Zodíaco', icon: Star, isPremium: true },
-    { value: 'cloud-surfing', label: 'Nuvens', icon: Cloud },
-    { value: 'mystic-eye', label: 'Olho Místico', icon: Eye, isPremium: true },
-    { value: 'user-media', label: 'Personalizado', icon: Upload, isPremium: true },
-] as const;
-
 
 interface ThemeSettingsProps {
     preferences: UserPreferences;
@@ -74,7 +53,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
         <Card>
             <CardHeader>
                 <CardTitle>Seleção Rápida de Tema</CardTitle>
-                <CardDescription>Escolha seu tema visual. Para configurações avançadas, vá para o <a href="/theme-tester" className="underline text-primary">Testador de Temas</a>.</CardDescription>
+                <CardDescription>Escolha seu tema visual. Para configurações avançadas, vá para <a href="/theme-config" className="underline text-primary">Configurações de Tema</a>.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="w-full whitespace-nowrap">

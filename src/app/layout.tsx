@@ -37,7 +37,7 @@ export default function RootLayout({
         royalInfernoFont.variable,
         whoIsHotFont.variable
       )}>
-        <body>
+        <body className="font-body">
             <AuthProvider>
                 <Providers>
                     <MatrixCurtainTrigger />

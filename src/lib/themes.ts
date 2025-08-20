@@ -1,0 +1,37 @@
+
+import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, VenetianMask, Map, Wind, Atom, Mountain, Droplets, BrainCircuit, Signal, Gem, Globe, Flame, Eye, Star, Heart, Cloud, Aperture, Snowflake, Palette, Space, Cherry, Moon } from 'lucide-react';
+import type { ThemeName } from './types';
+
+export const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any>, isPremium?: boolean }[] = [
+    { value: 'padrão', label: 'Padrão', icon: Palette },
+    { value: 'matrix', label: 'Matrix', icon: Bot, isPremium: true },
+    { value: 'verão', label: 'Verão', icon: Waves },
+    { value: 'espaço', label: 'Espaço', icon: Space },
+    { value: 'sakura', label: 'Sakura', icon: Cherry },
+    { value: 'dia-noite', label: 'Dia/Noite', icon: Moon },
+    { value: 'deep-ocean', label: 'Oceano Profundo', icon: Waves },
+    { value: 'enchanted-forest', label: 'Floresta Encantada', icon: Trees },
+    { value: 'starfield-warp', label: 'Dobra Espacial', icon: Rocket },
+    { value: 'galactic-journey', label: 'Jornada Galáctica', icon: Globe },
+    { value: 'floating-lanterns', label: 'Lanternas Flutuantes', icon: Flame },
+    { value: 'chinese-lanterns', label: 'Lanternas Chinesas', icon: VenetianMask },
+    { value: 'cyberpunk-city', label: 'Cidade Cyberpunk', icon: Map },
+    { value: 'cyberpunk-traffic', label: 'Tráfego Cyberpunk', icon: Wind },
+    { value: 'living-organism', label: 'Organismo Vivo', icon: Atom },
+    { value: 'generative-topography', label: 'Topografia Generativa', icon: Mountain },
+    { value: 'dynamic-weather', label: 'Clima Dinâmico', icon: Droplets },
+    { value: 'fractal-explorer', label: 'Explorador de Fractal', icon: BrainCircuit },
+    { value: 'glitchscape', label: 'Paisagem com Glitch', icon: Signal },
+    { value: 'bioluminescent-cave', label: 'Caverna Bioluminescente', icon: Gem },
+    { value: 'interstellar-black-hole', label: 'Buraco Negro', icon: Aperture, isPremium: true },
+    { value: 'glitch', label: 'Glitch', icon: Signal, isPremium: true },
+    { value: 'facebook-likes', label: 'Reações', icon: Heart, isPremium: true },
+    { value: 'galaxy-impact', label: 'Impacto Galáctico', icon: Rocket, isPremium: true },
+    { value: 'snowfall', label: 'Neve', icon: Snowflake },
+    { value: 'vampire-aesthetic', label: 'Vampiro', icon: VenetianMask, isPremium: true },
+    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Droplets, isPremium: true },
+    { value: 'zodiac-wheel', label: 'Zodíaco', icon: Star, isPremium: true },
+    { value: 'cloud-surfing', label: 'Nuvens', icon: Cloud },
+    { value: 'mystic-eye', label: 'Olho Místico', icon: Eye, isPremium: true },
+    { value: 'user-media', label: 'Personalizado', icon: Paintbrush, isPremium: true },
+] as const;

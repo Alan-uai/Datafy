@@ -7,7 +7,7 @@ import { Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppearanceSettings } from './components/AppearanceSettings';
 import { ThemeSettings } from './components/ThemeSettings';
-import type { ThemeConfig, ThemeName } from '@/lib/types';
+import type { ThemeName } from '@/lib/types';
 
 export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
@@ -15,19 +15,6 @@ export default function SettingsPage() {
   if (isLoading || !userProfile) {
     return <LoadingSpinner />;
   }
-
-  const handleThemeConfigChange = (newConfig: Partial<ThemeConfig>) => {
-      if (!userProfile) return;
-      const { activeTheme } = userProfile.preferences;
-      const updatedConfigs = {
-          ...userProfile.preferences.themeConfigs,
-          [activeTheme]: {
-              ...userProfile.preferences.themeConfigs[activeTheme],
-              ...newConfig,
-          }
-      };
-      savePreferences({ themeConfigs: updatedConfigs });
-  };
   
   const handleThemeChange = (themeName: ThemeName) => {
     savePreferences({ activeTheme: themeName });
@@ -65,7 +52,6 @@ export default function SettingsPage() {
             <ThemeSettings 
               preferences={userProfile.preferences}
               onThemeChange={handleThemeChange}
-              onThemeConfigChange={handleThemeConfigChange}
               savePreferences={savePreferences}
             />
           </motion.div>

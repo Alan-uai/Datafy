@@ -1,82 +1,61 @@
-
-// src/app/theme-tester/page.tsx
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Paintbrush, Waves, Sunset, Trees, Rocket, VenetianMask, Map, Wind, Atom, Mountain, Droplets, BrainCircuit, Signal, Gem, Globe, Flame, Eye, Star, Heart, Cloud, Aperture, Snowflake } from 'lucide-react';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { AppearanceSettings } from './components/AppearanceSettings';
+import { ThemeSettings } from './components/ThemeSettings';
 import type { ThemeName } from '@/lib/types';
-import { Header } from '@/components/shared/Header';
 
-const THEME_OPTIONS: { value: ThemeName; label: string; icon: React.FC<any> }[] = [
-    { value: 'matrix', label: 'Matrix', icon: Bot },
-    { value: 'deep-ocean', label: 'Deep Ocean', icon: Waves },
-    { value: 'enchanted-forest', label: 'Enchanted Forest', icon: Trees },
-    { value: 'starfield-warp', label: 'Starfield Warp', icon: Rocket },
-    { value: 'galactic-journey', label: 'Galactic Journey', icon: Globe },
-    { value: 'floating-lanterns', label: 'Floating Lanterns', icon: Flame },
-    { value: 'chinese-lanterns', label: 'Chinese Lanterns', icon: VenetianMask },
-    { value: 'cyberpunk-city', label: 'Cyberpunk City', icon: Map },
-    { value: 'cyberpunk-traffic', label: 'Cyberpunk Traffic', icon: Wind },
-    { value: 'living-organism', label: 'Living Organism', icon: Atom },
-    { value: 'generative-topography', label: 'Generative Topography', icon: Mountain },
-    { value: 'dynamic-weather', label: 'Dynamic Weather', icon: Droplets },
-    { value: 'fractal-explorer', label: 'Fractal Explorer', icon: BrainCircuit },
-    { value: 'glitchscape', label: 'Glitchscape', icon: Signal },
-    { value: 'bioluminescent-cave', label: 'Bioluminescent Cave', icon: Gem },
-    { value: 'interstellar-black-hole', label: 'Buraco Negro', icon: Aperture },
-    { value: 'facebook-likes', label: 'Reações Flutuantes', icon: Heart },
-    { value: 'galaxy-impact', label: 'Impacto Galáctico', icon: Rocket },
-    { value: 'snowfall', label: 'Neve', icon: Snowflake },
-    { value: 'vampire-aesthetic', label: 'Vampiro', icon: VenetianMask },
-    { value: 'chocolate-fountain', label: 'Cascata de Chocolate', icon: Droplets },
-    { value: 'zodiac-wheel', label: 'Zodíaco', icon: Star },
-    { value: 'cloud-surfing', label: 'Viagem nas Nuvens', icon: Cloud },
-    { value: 'mystic-eye', label: 'Olho Místico', icon: Eye },
-] as const;
+export default function SettingsPage() {
+  const { userProfile, savePreferences, isLoading } = useUserProfile();
 
-export default function ThemeTesterPage() {
+  if (isLoading || !userProfile) {
+    return <LoadingSpinner />;
+  }
+  
+  const handleThemeChange = (themeName: ThemeName) => {
+    savePreferences({ activeTheme: themeName });
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
-        <Header />
-        <main className="flex-1 p-4 md:p-6">
-            <div className="max-w-5xl mx-auto">
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-8"
-                >
-                    <div className="flex items-center justify-center gap-3">
-                        <Paintbrush className="w-8 h-8 text-primary" />
-                        <h1 className="text-3xl font-bold">Testador de Temas</h1>
-                    </div>
-                    <p className="text-muted-foreground mt-2">
-                        Selecione um tema para visualizar em tela cheia.
-                    </p>
-                </motion.div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {THEME_OPTIONS.map((theme, index) => (
-                        <Link href={`/theme-tester/${theme.value}`} key={theme.value} passHref>
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.05 * index }}
-                                whileHover={{ scale: 1.05, y: -5 }}
-                                className="h-full"
-                            >
-                                <Card className="bg-card/80 backdrop-blur-sm hover:border-primary/80 transition-all h-full cursor-pointer flex flex-col justify-center items-center p-6 text-center">
-                                    <theme.icon className="w-12 h-12 text-primary mb-4" />
-                                    <CardTitle className="text-lg">{theme.label}</CardTitle>
-                                </Card>
-                            </motion.div>
-                        </Link>
-                    ))}
-                </div>
+      <main className="flex-1 p-4 md:p-6">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <div className="flex items-center gap-3">
+              <Settings className="w-8 h-8 text-primary" />
+              <h1 className="text-3xl font-bold">Configurações</h1>
             </div>
-        </main>
+            <p className="text-muted-foreground">
+              Personalize a aparência e o comportamento do aplicativo.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="space-y-6"
+          >
+            <AppearanceSettings 
+              dashboardScale={userProfile.preferences.dashboardScale} 
+              onScaleChange={(value) => savePreferences({ dashboardScale: value })} 
+            />
+            <ThemeSettings 
+              preferences={userProfile.preferences}
+              onThemeChange={handleThemeChange}
+              savePreferences={savePreferences}
+            />
+          </motion.div>
+        </div>
+      </main>
     </div>
   );
 }
