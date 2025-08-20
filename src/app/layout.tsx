@@ -6,59 +6,24 @@ import { MatrixCurtainTrigger } from '@/components/themes/MatrixCurtainTrigger';
 import localFont from 'next/font/local';
 import { cn } from '@/lib/utils';
 
-const inter = localFont({
-  src: [
-    {
-      path: '../../public/fonts/Inter-Regular.ttf',
-      weight: '400',
-      style: 'normal',
-    },
-    {
-      path: '../../public/fonts/Inter-Medium.ttf',
-      weight: '500',
-      style: 'normal',
-    },
-    {
-      path: '../../public/fonts/Inter-SemiBold.ttf',
-      weight: '600',
-      style: 'normal',
-    },
-    {
-      path: '../../public/fonts/Inter-Bold.ttf',
-      weight: '700',
-      style: 'normal',
-    },
-  ],
-  variable: '--font-inter',
+const datafyFont = localFont({
+  src: '../../public/fonts/Datafy.ttf',
+  display: 'swap',
+  variable: '--font-datafy',
 });
 
-const cinzel = localFont({
-  src: [
-    {
-        path: '../../public/fonts/CinzelDecorative-Regular.ttf',
-        weight: '400',
-        style: 'normal',
-    },
-    {
-        path: '../../public/fonts/CinzelDecorative-Bold.ttf',
-        weight: '700',
-        style: 'normal',
-    }
-  ],
-  variable: '--font-cinzel',
+const royalInfernoFont = localFont({
+  src: '../../public/fonts/RoyalInferno.ttf',
+  display: 'swap',
+  variable: '--font-royal-inferno',
 });
 
-const medieval = localFont({
-  src: '../../public/fonts/MedievalSharp-Regular.ttf',
-  weight: '400',
-  variable: '--font-medieval',
+const whoIsHotFont = localFont({
+  src: '../../public/fonts/WhoIsHot.ttf',
+  display: 'swap',
+  variable: '--font-who-is-hot',
 });
 
-const emilysCandy = localFont({
-  src: '../../public/fonts/EmilysCandy-Regular.ttf',
-  weight: '400',
-  variable: '--font-emilys-candy',
-});
 
 export default function RootLayout({
   children,
@@ -68,10 +33,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={cn(
         'dark',
-        inter.variable,
-        cinzel.variable,
-        medieval.variable,
-        emilysCandy.variable
+        datafyFont.variable,
+        royalInfernoFont.variable,
+        whoIsHotFont.variable
       )}>
         <body>
             <AuthProvider>

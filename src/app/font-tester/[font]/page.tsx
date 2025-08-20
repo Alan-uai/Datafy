@@ -10,15 +10,14 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const fontClassMap: { [key: string]: string } = {
-  inter: 'font-body',
-  'cinzel-decorative': 'font-cinzel',
-  'medieval-sharp': 'font-medieval',
-  'emilys-candy': 'font-emilys-candy',
+  datafy: 'font-body',
+  'royal-inferno': 'font-royal-inferno',
+  'who-is-hot': 'font-who-is-hot',
 };
 
 export default function FontVisualizerPage() {
   const params = useParams();
-  const font = (params.font as string) || 'inter';
+  const font = (params.font as string) || 'datafy';
 
   // Redirect to monogram page if that's the param
   if (font === 'monogram') {

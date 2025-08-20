@@ -11,12 +11,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['var(--font-inter)', 'sans-serif'],
-        headline: ['var(--font-inter)', 'sans-serif'],
-        cinzel: ['var(--font-cinzel)', 'serif'],
-        medieval: ['var(--font-medieval)', 'serif'],
-        'emilys-candy': ['var(--font-emilys-candy)', 'cursive'],
-        code: ['var(--font-roboto-mono)', 'monospace'],
+        body: ['var(--font-datafy)', 'sans-serif'],
+        headline: ['var(--font-datafy)', 'sans-serif'],
+        'royal-inferno': ['var(--font-royal-inferno)', 'serif'],
+        'who-is-hot': ['var(--font-who-is-hot)', 'cursive'],
+        code: ['monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',

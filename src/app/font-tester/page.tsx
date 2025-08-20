@@ -5,16 +5,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Type, PenTool, Sparkles, Wand } from 'lucide-react';
+import { Type, PenTool, Sparkles, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/shared/Header';
 import { cn } from '@/lib/utils';
 
 const FONT_OPTIONS: { value: string; label: string; icon: React.FC<any>; className: string }[] = [
-    { value: 'inter', label: 'Inter', icon: Type, className: 'font-body' },
-    { value: 'cinzel-decorative', label: 'Cinzel', icon: Wand, className: 'font-cinzel' },
-    { value: 'medieval-sharp', label: 'Medieval', icon: PenTool, className: 'font-medieval' },
-    { value: 'emilys-candy', label: 'Emilys Candy', icon: Sparkles, className: 'font-emilys-candy' },
+    { value: 'datafy', label: 'Datafy', icon: Type, className: 'font-body' },
+    { value: 'royal-inferno', label: 'Royal Inferno', icon: Flame, className: 'font-royal-inferno' },
+    { value: 'who-is-hot', label: 'Who Is Hot', icon: Sparkles, className: 'font-who-is-hot' },
 ];
 
 export default function FontTesterPage() {
@@ -37,7 +36,7 @@ export default function FontTesterPage() {
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {FONT_OPTIONS.map((font, index) => (
                         <Link href={`/font-tester/${font.value}`} key={font.value} passHref>
                             <motion.div
