@@ -6,23 +6,22 @@ import { Providers } from './providers';
 import { MatrixCurtainTrigger } from '@/components/themes/MatrixCurtainTrigger';
 import localFont from 'next/font/local';
 import { cn } from '@/lib/utils';
-import { useUserProfile } from '@/hooks/useUserProfile';
 import { useAuth } from '@/contexts/AuthContext';
 
 const datafyFont = localFont({
-  src: '../public/fonts/Datafy.ttf',
+  src: '../../public/fonts/Datafy.ttf',
   display: 'swap',
   variable: '--font-datafy',
 });
 
 const royalInfernoFont = localFont({
-  src: '../public/fonts/RoyalInferno.ttf',
+  src: '../../public/fonts/RoyalInferno.ttf',
   display: 'swap',
   variable: '--font-royal-inferno',
 });
 
 const whoIsHotFont = localFont({
-  src: '../public/fonts/WhoIsHot.ttf',
+  src: '../../public/fonts/WhoIsHot.ttf',
   display: 'swap',
   variable: '--font-who-is-hot',
 });
