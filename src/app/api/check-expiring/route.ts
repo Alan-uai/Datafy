@@ -4,9 +4,9 @@ import admin from 'firebase-admin';
 import type { UserProfile } from '@/services/userService';
 
 // Initialize Firebase Admin SDK only if it's not already initialized and the service account is available.
-if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
