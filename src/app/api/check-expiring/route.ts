@@ -3,10 +3,10 @@ import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import type { UserProfile } from '@/services/userService';
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
+// Initialize Firebase Admin SDK only if it's not already initialized and the service account is available.
+if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '{}');
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
@@ -22,7 +22,7 @@ const fcm = admin.messaging();
 // This is a webhook that should be triggered by an external service like cron-job.org
 export async function GET() {
   if (admin.apps.length === 0) {
-      return NextResponse.json({ ok: false, error: "Firebase Admin not initialized." }, { status: 500 });
+      return NextResponse.json({ ok: false, error: "Firebase Admin not initialized. Check server logs and environment variables." }, { status: 500 });
   }
 
   console.log("Cron job started: checking for expiring products.");
