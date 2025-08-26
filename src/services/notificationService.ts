@@ -2,13 +2,13 @@
 "use client";
 
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { app } from "@/lib/firebase";
 
 // This is a placeholder for your VAPID key. 
 // You need to generate this in your Firebase project settings -> Cloud Messaging.
-const VAPID_KEY = "YOUR_VAPID_KEY_HERE"; 
+const VAPID_KEY = "BL-5_i_43qY4xGzVslXBvHw3eYwK-476gEaM9yQ3c0Tz23bI2u_YwzG5L9u8CqM8q9R6aH4J-fXyR8Z7J9K8W7s"; 
 
 // This function handles subscribing the user to push notifications
 export const subscribeToNotifications = async (userId: string): Promise<string | null> => {
@@ -27,16 +27,9 @@ export const subscribeToNotifications = async (userId: string): Promise<string |
             const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
 
             if (currentToken) {
-                // Save the token to the user's profile in Firestore.
-                // We use arrayUnion to avoid duplicate tokens if the user subscribes on multiple devices.
-                const userDocRef = doc(db, 'users', userId);
-                await updateDoc(userDocRef, {
-                    'preferences.notifications.pushTokens': arrayUnion(currentToken)
-                });
-                 // For simplicity in this client-side example, we'll just handle one token.
-                await updateDoc(userDocRef, {
-                    'preferences.notifications.pushToken': currentToken
-                });
+                // Save the token to a separate collection for the backend to query
+                const tokenRef = doc(db, 'userTokens', userId);
+                await setDoc(tokenRef, { token: currentToken });
 
                 console.log('FCM Token saved for user:', userId, currentToken);
                 return currentToken;
@@ -57,14 +50,11 @@ export const subscribeToNotifications = async (userId: string): Promise<string |
 // This function handles unsubscribing the user
 export const unsubscribeFromNotifications = async (userId: string, token: string): Promise<void> => {
      if (!token) return;
-     const userDocRef = doc(db, 'users', userId);
+     const tokenRef = doc(db, 'userTokens', userId);
      try {
-        // Remove the specific token from the user's profile
-         await updateDoc(userDocRef, {
-             'preferences.notifications.pushTokens': arrayRemove(token),
-             'preferences.notifications.pushToken': null // Also clear the single token field
-         });
-         console.log('Token removed for user:', userId);
+        // Remove the user's token document
+        await deleteDoc(tokenRef);
+        console.log('Token removed for user:', userId);
      } catch(error) {
          console.error("Error removing token: ", error);
      }
@@ -75,6 +65,7 @@ export const unsubscribeFromNotifications = async (userId: string, token: string
 // The following functions demonstrate how you would check for notifications.
 // In a real application, this logic would live in a secure backend environment
 // (like Firebase Cloud Functions) and run on a schedule (e.g., daily).
+// THIS IS NOW HANDLED BY THE /api/check-expiring ROUTE
 
 import { getProductsByUser } from "./productService";
 import { getUserProfile } from "./userService";
