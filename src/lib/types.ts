@@ -46,6 +46,8 @@ export type ThemeName =
   | 'facebook-likes' | 'galaxy-impact' | 'snowfall' | 'vampire-aesthetic'
   | 'chocolate-fountain' | 'zodiac-wheel' | 'cloud-surfing' | 'mystic-eye';
 
+export type FontName = 'datafy' | 'royal-inferno' | 'who-is-hot';
+
 
 export interface ThemeConfig {
     themeAnimation: 'cintilar' | 'girar' | 'nenhuma';
@@ -64,6 +66,7 @@ export interface ThemeConfig {
 
 export interface UserPreferences {
     activeTheme: ThemeName;
+    activeFont: FontName;
     defaultThemeMode: 'light' | 'dark';
     lastCustomTheme: ThemeName;
     themeConfigs: Record<string, Partial<ThemeConfig>>;

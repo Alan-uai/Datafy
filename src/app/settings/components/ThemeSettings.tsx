@@ -27,6 +27,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
     const handleThemeSelection = (value: string) => {
         const selectedOption = THEME_OPTIONS.find(opt => opt.value === value);
         if (selectedOption?.isPremium && !hasPremium) {
+            router.push('/profile'); // Redirect to profile/premium tab
             return;
         }
         
@@ -43,6 +44,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
             onThemeChange(themeName);
             savePreferences({ lastCustomTheme: themeName });
         }
+        router.push(`/theme-config/${themeName}`);
     };
         
     const selectedRadioValue = ['light', 'dark'].includes(preferences.activeTheme)
@@ -53,7 +55,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
         <Card>
             <CardHeader>
                 <CardTitle>Seleção Rápida de Tema</CardTitle>
-                <CardDescription>Escolha seu tema visual. Para configurações avançadas, vá para <a href="/theme-config" className="underline text-primary">Configurações de Tema</a>.</CardDescription>
+                <CardDescription>Escolha seu tema visual. Clique para configurar em detalhes.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="w-full whitespace-nowrap">

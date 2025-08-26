@@ -1,7 +1,7 @@
 
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { UserPreferences, PremiumPlan, ThemeName, ThemeConfig } from '@/lib/types';
+import type { UserPreferences, PremiumPlan, ThemeName, ThemeConfig, FontName } from '@/lib/types';
 
 export interface Achievement {
   id: string;
@@ -78,6 +78,7 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
   notifications: { email: true, push: true, expiryWarnings: true },
   preferences: { 
     activeTheme: 'dark',
+    activeFont: 'datafy',
     defaultThemeMode: 'dark',
     lastCustomTheme: 'matrix',
     themeConfigs: allThemes.reduce((acc, theme) => {

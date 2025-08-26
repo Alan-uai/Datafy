@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,16 +18,21 @@ import { Button } from '@/components/ui/button';
 import { Text, Sparkles, Film, SlidersHorizontal, Ruler, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/shared/Header';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function ThemeVisualizerPage() {
   const params = useParams();
+  const router = useRouter();
   const { userProfile, savePreferences, isLoading } = useUserProfile();
+  const { toast } = useToast();
   const [showCard, setShowCard] = useState(true);
 
   const theme = (params.theme as ThemeName) || 'padrão';
 
   useEffect(() => {
+    // This effect ensures that visiting the page sets the theme for preview.
+    // It does not save it as the final preference yet.
     if (userProfile && userProfile.preferences.activeTheme !== theme) {
       savePreferences({ activeTheme: theme });
     }
@@ -45,6 +50,7 @@ export default function ThemeVisualizerPage() {
       };
       savePreferences({ themeConfigs: updatedConfigs });
   };
+
    const handleDefaultModeToggle = (isLight: boolean) => {
         const newMode = isLight ? 'light' : 'dark';
         savePreferences({ defaultThemeMode: newMode });
@@ -52,7 +58,28 @@ export default function ThemeVisualizerPage() {
         if (userProfile?.preferences.activeTheme === 'light' || userProfile?.preferences.activeTheme === 'dark' || userProfile?.preferences.activeTheme === 'padrão') {
             savePreferences({ activeTheme: newMode });
         }
-    }
+    };
+
+    const handleApplyTheme = () => {
+        if (!userProfile) return;
+        const { activeTheme, defaultThemeMode } = userProfile.preferences;
+        
+        const isStandard = activeTheme === 'light' || activeTheme === 'dark';
+        
+        // If the current preview theme is one of the standard ones, we save the mode (light/dark).
+        // Otherwise, we save the custom theme name.
+        if (isStandard) {
+             savePreferences({ lastCustomTheme: 'padrão' });
+        } else {
+             savePreferences({ lastCustomTheme: activeTheme });
+        }
+        
+        toast({
+            title: "Tema Aplicado!",
+            description: `O tema "${theme.replace(/-/g, ' ')}" foi salvo como seu padrão.`,
+        });
+        router.push('/settings');
+    };
 
 
   if (isLoading || !userProfile) {
@@ -81,7 +108,6 @@ export default function ThemeVisualizerPage() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4">
       <Header />
-      {/* The ThemeManager will render the selected theme's background */}
       <ThemeManager />
 
       <motion.div
@@ -95,7 +121,7 @@ export default function ThemeVisualizerPage() {
             <CardTitle className="capitalize">{theme.replace(/-/g, ' ')}</CardTitle>
             <CardDescription>Ajuste as configurações do tema.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 max-h-[75vh] overflow-y-auto">
+          <CardContent className="space-y-4 max-h-[65vh] overflow-y-auto pr-3">
              <div className="flex items-center space-x-2">
                 <Switch id="show-card-toggle" checked={showCard} onCheckedChange={setShowCard} />
                 <Label htmlFor="show-card-toggle">Mostrar Card de Exemplo</Label>
@@ -230,6 +256,11 @@ export default function ThemeVisualizerPage() {
                 </div>
              </div>
           </CardContent>
+           <CardFooter>
+                <Button onClick={handleApplyTheme} className="w-full">
+                    Aplicar Tema
+                </Button>
+            </CardFooter>
         </Card>
       </motion.div>
 

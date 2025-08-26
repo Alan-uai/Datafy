@@ -3,11 +3,15 @@
 "use client";
 
 import React from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/shared/Header';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useToast } from '@/hooks/use-toast';
+import type { FontName } from '@/lib/types'; // Assuming FontName type exists
 
 const fontClassMap: { [key: string]: string } = {
   datafy: 'font-body',
@@ -17,21 +21,33 @@ const fontClassMap: { [key: string]: string } = {
 
 export default function FontVisualizerPage() {
   const params = useParams();
+  const router = useRouter();
+  const { userProfile, savePreferences } = useUserProfile();
+  const { toast } = useToast();
+  
   const font = (params.font as string) || 'datafy';
 
-  // Redirect to monogram page if that's the param
   if (font === 'monogram') {
-      // This page is handled by /font-tester/monogram/page.tsx
-      // We render a simple loading/redirecting state
       return <div>Carregando...</div>;
   }
 
   const selectedFontClass = fontClassMap[font] || 'font-body';
 
+  const handleApplyFont = () => {
+    if (userProfile) {
+      savePreferences({ activeFont: font as FontName });
+      toast({
+        title: "Fonte Aplicada!",
+        description: `A fonte "${font.replace('-', ' ')}" foi definida como padrão para o site.`,
+      });
+      router.push('/settings');
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
+    <div className={cn("flex flex-col min-h-screen bg-background text-foreground", selectedFontClass)}>
       <Header />
-      <main className={cn("flex-1 p-4 md:p-8 flex items-center justify-center", selectedFontClass)}>
+      <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -67,6 +83,11 @@ export default function FontVisualizerPage() {
                 <pre><code>{`const greeting = "Hello, World!";\nconsole.log(greeting);`}</code></pre>
               </div>
             </CardContent>
+            <CardFooter>
+                <Button onClick={handleApplyFont} className="w-full">
+                    Aplicar Fonte ao Site
+                </Button>
+            </CardFooter>
           </Card>
         </motion.div>
       </main>

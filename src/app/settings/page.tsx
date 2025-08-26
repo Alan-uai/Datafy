@@ -7,7 +7,8 @@ import { Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppearanceSettings } from './components/AppearanceSettings';
 import { ThemeSettings } from './components/ThemeSettings';
-import type { ThemeName } from '@/lib/types';
+import { FontSettings } from './components/FontSettings'; // Import FontSettings
+import type { ThemeName, FontName } from '@/lib/types';
 
 export default function SettingsPage() {
   const { userProfile, savePreferences, isLoading } = useUserProfile();
@@ -18,6 +19,10 @@ export default function SettingsPage() {
   
   const handleThemeChange = (themeName: ThemeName) => {
     savePreferences({ activeTheme: themeName });
+  };
+  
+  const handleFontChange = (fontName: FontName) => {
+    savePreferences({ activeFont: fontName });
   };
 
   return (
@@ -53,6 +58,10 @@ export default function SettingsPage() {
               preferences={userProfile.preferences}
               onThemeChange={handleThemeChange}
               savePreferences={savePreferences}
+            />
+            <FontSettings
+              preferences={userProfile.preferences}
+              onFontChange={handleFontChange}
             />
           </motion.div>
         </div>

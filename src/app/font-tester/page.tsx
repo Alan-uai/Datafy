@@ -9,8 +9,16 @@ import { Type, PenTool, Sparkles, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/shared/Header';
 import { cn } from '@/lib/utils';
+import type { FontName } from '@/lib/types';
 
-const FONT_OPTIONS: { value: string; label: string; icon: React.FC<any>; className: string }[] = [
+interface FontOption {
+    value: FontName;
+    label: string;
+    icon: React.FC<any>;
+    className: string;
+}
+
+const FONT_OPTIONS: FontOption[] = [
     { value: 'datafy', label: 'Datafy', icon: Type, className: 'font-body' },
     { value: 'royal-inferno', label: 'Royal Inferno', icon: Flame, className: 'font-royal-inferno' },
     { value: 'who-is-hot', label: 'Who Is Hot', icon: Sparkles, className: 'font-who-is-hot' },
@@ -48,7 +56,7 @@ export default function FontTesterPage() {
                             >
                                 <Card className="bg-card/80 backdrop-blur-sm hover:border-primary/80 transition-all h-full cursor-pointer flex flex-col justify-center items-center p-6">
                                     <font.icon className="w-12 h-12 text-primary mb-4" />
-                                    <CardTitle className={cn("text-2xl", font.className)}>{font.label}</CardTitle>
+                                    <CardTitle className={cn("text-2xl text-center", font.className)}>{font.label}</CardTitle>
                                 </Card>
                             </motion.div>
                         </Link>
