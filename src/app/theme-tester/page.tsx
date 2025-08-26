@@ -4,8 +4,8 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { AppearanceSettings } from './components/AppearanceSettings';
-import { ThemeSettings } from './components/ThemeSettings';
+import { AppearanceSettings } from '@/app/settings/components/AppearanceSettings';
+import { ThemeSettings } from '@/app/settings/components/ThemeSettings';
 import type { ThemeName } from '@/lib/types';
 
 export default function SettingsPage() {
