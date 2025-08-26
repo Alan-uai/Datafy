@@ -6,7 +6,7 @@ import { Providers } from './providers';
 import { MatrixCurtainTrigger } from '@/components/themes/MatrixCurtainTrigger';
 import localFont from 'next/font/local';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { BodyWithFont } from '@/components/shared/BodyWithFont'; // Correctly import the new client component
 
 const datafyFont = localFont({
   src: '../../public/fonts/Datafy.ttf',
@@ -26,24 +26,10 @@ const whoIsHotFont = localFont({
   variable: '--font-who-is-hot',
 });
 
-// A wrapper component to access user preferences
-const BodyWithFont = ({ children }: { children: React.ReactNode }) => {
-  const { userProfile } = useAuth();
-  const fontClass = userProfile?.preferences.activeFont || 'datafy';
-
-  const fontClassMap: { [key: string]: string } = {
-    datafy: 'font-body',
-    'royal-inferno': 'font-royal-inferno',
-    'who-is-hot': 'font-who-is-hot',
-  };
-
-  return <body className={cn('font-body', fontClassMap[fontClass])}>{children}</body>
-}
-
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.React.Node;
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="pt-BR" className={cn(
@@ -54,12 +40,8 @@ export default function RootLayout({
       )}>
         <head>
           <meta name="google-adsense-account" content="ca-pub-4847787563661282" />
-          <Script
-            async
-            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4847787563661282"
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
+          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4847787563661282"
+     crossOrigin="anonymous"></script>
         </head>
         <AuthProvider>
             <Providers>
