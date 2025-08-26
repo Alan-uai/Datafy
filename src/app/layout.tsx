@@ -39,6 +39,7 @@ export default function RootLayout({
         whoIsHotFont.variable
       )}>
         <head>
+          <meta name="google-adsense-account" content="ca-pub-4847787563661282" />
           <Script
             async
             src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4847787563661282"
