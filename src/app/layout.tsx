@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={cn(
-        'dark',
+        'dark font-body',
         datafyFont.variable,
         royalInfernoFont.variable,
         whoIsHotFont.variable
