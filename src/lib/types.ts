@@ -65,6 +65,7 @@ export interface ThemeConfig {
 }
 
 export interface NotificationPreferences {
+    pushToken: string | null;
     lowStock: {
         enabled: boolean;
         frequency: 'daily' | 'weekly' | 'monthly' | 'custom';

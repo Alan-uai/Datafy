@@ -82,6 +82,7 @@ export default function SettingsPage() {
                <NotificationSettings
                   preferences={userProfile.preferences}
                   onPreferencesChange={savePreferences}
+                  userId={userProfile.uid}
                 />
             </TabsContent>
 

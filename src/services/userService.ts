@@ -67,6 +67,7 @@ const allThemes: ThemeName[] = [
 ];
 
 const defaultNotificationPreferences: NotificationPreferences = {
+    pushToken: null,
     lowStock: {
         enabled: true,
         frequency: 'weekly',
@@ -223,8 +224,12 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
             }
         } else if (key === 'notifications') {
              for (const [section, sectionConfig] of Object.entries(value as object)) {
-                for (const [configKey, configValue] of Object.entries(sectionConfig)) {
-                    updates[`preferences.notifications.${section}.${configKey}`] = configValue;
+                if(section === 'pushToken') {
+                     updates[`preferences.notifications.pushToken`] = sectionConfig;
+                } else {
+                    for (const [configKey, configValue] of Object.entries(sectionConfig)) {
+                        updates[`preferences.notifications.${section}.${configKey}`] = configValue;
+                    }
                 }
             }
         }
@@ -265,8 +270,12 @@ export const updateUserPreferences = async (uid: string, preferences: Partial<Us
             }
         } else if (key === 'notifications') {
              for (const [section, sectionConfig] of Object.entries(value as object)) {
-                for (const [configKey, configValue] of Object.entries(sectionConfig)) {
-                    updates[`preferences.notifications.${section}.${configKey}`] = configValue;
+                if(section === 'pushToken') {
+                    updates[`preferences.notifications.pushToken`] = sectionConfig;
+                } else {
+                    for (const [configKey, configValue] of Object.entries(sectionConfig)) {
+                        updates[`preferences.notifications.${section}.${configKey}`] = configValue;
+                    }
                 }
             }
         }
