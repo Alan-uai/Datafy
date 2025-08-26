@@ -1,4 +1,5 @@
 
+import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Providers } from './providers';
@@ -37,6 +38,14 @@ export default function RootLayout({
         royalInfernoFont.variable,
         whoIsHotFont.variable
       )}>
+        <head>
+          <Script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4847787563661282"
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        </head>
         <body className="font-body">
             <AuthProvider>
                 <Providers>
