@@ -64,6 +64,23 @@ export interface ThemeConfig {
     userMediaUrl?: string;
 }
 
+export interface NotificationPreferences {
+    lowStock: {
+        enabled: boolean;
+        frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+    };
+    expiry: {
+        enabled: boolean;
+        thresholdDays: number;
+        frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+    };
+    achievements: {
+        enabled: boolean;
+        tier: 'any' | 'silver' | 'gold' | 'diamond';
+    };
+}
+
+
 export interface UserPreferences {
     activeTheme: ThemeName;
     activeFont: FontName;
@@ -78,4 +95,5 @@ export interface UserPreferences {
     isEditingWidgets: boolean;
     dashboardScale: 'normal' | 'compact';
     attentionHorizonDays: number;
+    notifications: NotificationPreferences;
 }

@@ -1,7 +1,7 @@
 
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { UserPreferences, PremiumPlan, ThemeName, ThemeConfig, FontName } from '@/lib/types';
+import type { UserPreferences, PremiumPlan, ThemeName, ThemeConfig, FontName, NotificationPreferences } from '@/lib/types';
 
 export interface Achievement {
   id: string;
@@ -30,16 +30,11 @@ export interface UserProfile {
     efficiencyScore: number;
   };
   achievements: Achievement[];
-  notifications: {
-    email: boolean;
-    push: boolean;
-    expiryWarnings: boolean;
-  };
-  preferences: UserPreferences;
   privacy: {
     showEmail: boolean;
     showActivity: boolean;
   };
+  preferences: UserPreferences;
   createdAt: any;
   updatedAt: any;
 }
@@ -71,11 +66,27 @@ const allThemes: ThemeName[] = [
     'zodiac-wheel', 'cloud-surfing', 'mystic-eye'
 ];
 
+const defaultNotificationPreferences: NotificationPreferences = {
+    lowStock: {
+        enabled: true,
+        frequency: 'weekly',
+    },
+    expiry: {
+        enabled: true,
+        thresholdDays: 7,
+        frequency: 'daily',
+    },
+    achievements: {
+        enabled: true,
+        tier: 'any',
+    },
+};
+
+
 export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' | 'photoURL' | 'createdAt' | 'updatedAt'> = {
   premium: null,
   stats: { productsCount: 0, listsCount: 0, daysActive: 0, efficiencyScore: 0 },
   achievements: [],
-  notifications: { email: true, push: true, expiryWarnings: true },
   preferences: { 
     activeTheme: 'dark',
     activeFont: 'datafy',
@@ -101,6 +112,7 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
     isEditingWidgets: false,
     dashboardScale: 'normal',
     attentionHorizonDays: 7,
+    notifications: defaultNotificationPreferences,
   },
   privacy: { showEmail: false, showActivity: true },
 };
@@ -119,13 +131,16 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
     updatedAt: now,
     stats: { ...defaultProfile.stats, ...(data.stats || {}) },
     achievements: data.achievements || defaultProfile.achievements,
-    notifications: { ...defaultProfile.notifications, ...(data.notifications || {}) },
     preferences: { 
         ...defaultProfile.preferences, 
         ...(data.preferences || {}),
         themeConfigs: {
             ...defaultProfile.preferences.themeConfigs,
             ...(data.preferences?.themeConfigs || {}),
+        },
+        notifications: {
+            ...defaultProfile.preferences.notifications,
+            ...(data.preferences?.notifications || {}),
         }
     },
     privacy: { ...defaultProfile.privacy, ...(data.privacy || {}) },
@@ -176,6 +191,10 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
         themeConfigs: {
             ...defaultProfile.preferences.themeConfigs,
             ...(data.preferences?.themeConfigs || {}),
+        },
+        notifications: {
+            ...defaultProfile.preferences.notifications,
+            ...(data.preferences?.notifications || {}),
         }
       },
       stats: {
@@ -202,7 +221,14 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
                     updates[`preferences.themeConfigs.${theme}.${configKey}`] = configValue;
                 }
             }
-        } else {
+        } else if (key === 'notifications') {
+             for (const [section, sectionConfig] of Object.entries(value as object)) {
+                for (const [configKey, configValue] of Object.entries(sectionConfig)) {
+                    updates[`preferences.notifications.${section}.${configKey}`] = configValue;
+                }
+            }
+        }
+        else {
             updates[`preferences.${key}`] = value;
         }
     }
@@ -214,12 +240,7 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
       }
       delete updates.stats;
   }
-  if (data.notifications) {
-      for (const [key, value] of Object.entries(data.notifications)) {
-        updates[`notifications.${key}`] = value;
-      }
-      delete updates.notifications;
-  }
+
   if (data.privacy) {
       for (const [key, value] of Object.entries(data.privacy)) {
         updates[`privacy.${key}`] = value;
@@ -242,7 +263,14 @@ export const updateUserPreferences = async (uid: string, preferences: Partial<Us
                     updates[`preferences.themeConfigs.${theme}.${configKey}`] = configValue;
                 }
             }
-        } else {
+        } else if (key === 'notifications') {
+             for (const [section, sectionConfig] of Object.entries(value as object)) {
+                for (const [configKey, configValue] of Object.entries(sectionConfig)) {
+                    updates[`preferences.notifications.${section}.${configKey}`] = configValue;
+                }
+            }
+        }
+        else {
             updates[`preferences.${key}`] = value;
         }
   }
