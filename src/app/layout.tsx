@@ -37,7 +37,7 @@ const BodyWithFont = ({ children }: { children: React.ReactNode }) => {
     'who-is-hot': 'font-who-is-hot',
   };
 
-  return <body className={cn(fontClassMap[fontClass] || 'font-body')}>{children}</body>
+  return <body className={cn('font-body', fontClassMap[fontClass])}>{children}</body>
 }
 
 export default function RootLayout({
@@ -47,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={cn(
-        'dark', // Removed font-body from here
+        'dark',
         datafyFont.variable,
         royalInfernoFont.variable,
         whoIsHotFont.variable
