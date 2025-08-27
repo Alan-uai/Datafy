@@ -6,7 +6,7 @@ import { Providers } from './providers';
 import { MatrixCurtainTrigger } from '@/components/themes/MatrixCurtainTrigger';
 import localFont from 'next/font/local';
 import { cn } from '@/lib/utils';
-import { BodyWithFont } from '@/components/shared/BodyWithFont'; // Correctly import the new client component
+import { BodyWithFont } from '@/components/shared/BodyWithFont';
 
 const datafyFont = localFont({
   src: '../../public/fonts/Datafy.ttf',
@@ -44,12 +44,12 @@ export default function RootLayout({
      crossOrigin="anonymous"></script>
         </head>
         <AuthProvider>
-            <Providers>
-                <BodyWithFont>
+            <BodyWithFont>
+                <Providers>
                     <MatrixCurtainTrigger />
                     {children}
-                </BodyWithFont>
-            </Providers>
+                </Providers>
+            </BodyWithFont>
         </AuthProvider>
     </html>
   );

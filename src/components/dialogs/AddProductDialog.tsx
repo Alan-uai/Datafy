@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +67,8 @@ type AddProductDialogProps = {
 };
 
 export function AddProductDialog({ children, categories, onSave, open, onOpenChange, editingProduct }: AddProductDialogProps) {
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", brand: "", quantity: 1, price: 0 },
@@ -148,15 +150,30 @@ export function AddProductDialog({ children, categories, onSave, open, onOpenCha
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="expiryDate" render={({ field }) => (
                 <FormItem className="flex flex-col pt-2"><FormLabel className="mb-1">Data de validade</FormLabel>
-                  <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                      {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl></PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} initialFocus locale={ptBR} />
-                  </PopoverContent></Popover><FormMessage />
+                  <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar 
+                        mode="single" 
+                        selected={field.value} 
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setIsCalendarOpen(false);
+                        }} 
+                        disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} 
+                        initialFocus 
+                        locale={ptBR} 
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="category" render={({ field }) => (

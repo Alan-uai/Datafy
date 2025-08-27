@@ -31,8 +31,6 @@ export default function ThemeVisualizerPage() {
   const theme = (params.theme as ThemeName) || 'padrão';
 
   useEffect(() => {
-    // This effect ensures that visiting the page sets the theme for preview.
-    // It does not save it as the final preference yet.
     if (userProfile && userProfile.preferences.activeTheme !== theme) {
       savePreferences({ activeTheme: theme });
     }
@@ -62,13 +60,11 @@ export default function ThemeVisualizerPage() {
 
     const handleApplyTheme = () => {
         if (!userProfile) return;
-        const { activeTheme, defaultThemeMode } = userProfile.preferences;
+        const { activeTheme } = userProfile.preferences;
         
         const isStandard = activeTheme === 'light' || activeTheme === 'dark';
         
-        // If the current preview theme is one of the standard ones, we save the mode (light/dark).
-        // Otherwise, we save the custom theme name.
-        if (isStandard) {
+        if (isStandard || activeTheme === 'padrão') {
              savePreferences({ lastCustomTheme: 'padrão' });
         } else {
              savePreferences({ lastCustomTheme: activeTheme });
@@ -118,21 +114,20 @@ export default function ThemeVisualizerPage() {
       >
         <Card className="bg-card/60 backdrop-blur-lg border-border/50">
           <CardHeader>
-            <CardTitle className="capitalize">{theme.replace(/-/g, ' ')}</CardTitle>
+            <CardTitle className="capitalize text-xl">{theme.replace(/-/g, ' ')}</CardTitle>
             <CardDescription>Ajuste as configurações do tema.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 max-h-[65vh] overflow-y-auto pr-3">
+          <CardContent className="space-y-6 max-h-[calc(100vh-15rem)] overflow-y-auto pr-3">
              <div className="flex items-center space-x-2">
                 <Switch id="show-card-toggle" checked={showCard} onCheckedChange={setShowCard} />
                 <Label htmlFor="show-card-toggle">Mostrar Card de Exemplo</Label>
             </div>
-            <hr className="border-border/50" />
             
-             <AnimatePresence>
+            <AnimatePresence>
                 {preferences.activeTheme === 'padrão' && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                        className="space-y-4"
+                        className="space-y-4 pt-4 border-t border-border/20"
                     >
                         <Label className="text-base font-medium">Modo Padrão</Label>
                          <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -150,108 +145,115 @@ export default function ThemeVisualizerPage() {
                         </div>
                     </motion.div>
                 )}
-                </AnimatePresence>
+            </AnimatePresence>
                 
-            {/* START: Theme Specific Options */}
-                 <AnimatePresence>
-                    {preferences.activeTheme === 'user-media' && (
-                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                            <Label className="text-base font-medium">Tema Personalizado</Label>
-                             <div className="flex items-center gap-2">
-                                <Input 
-                                    placeholder="URL da imagem ou GIF"
-                                    value={userMediaUrl}
-                                    onChange={(e) => handleThemeConfigChange({ userMediaUrl: e.target.value })}
-                                />
-                            </div>
-                            <p className="text-xs text-muted-foreground">Cole a URL de uma imagem (JPG, PNG) ou GIF para usar como fundo.</p>
-                         </motion.div>
-                    )}
-                    {preferences.activeTheme === 'glitch' && (
-                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                            <Label className="text-base font-medium">Tipo de Glitch</Label>
-                            <RadioGroup value={glitchType} onValueChange={(v) => handleThemeConfigChange({ glitchType: v as any })} className="text-sm">
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="classic" id="glitch-classic" /><Label htmlFor="glitch-classic">Clássico</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="rgb-shift" id="glitch-rgb" /><Label htmlFor="glitch-rgb">Deslocamento RGB</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="blocky" id="glitch-blocky" /><Label htmlFor="glitch-blocky">Blocos</Label></div>
-                                 <div className="flex items-center space-x-2"><RadioGroupItem value="invert" id="glitch-invert" /><Label htmlFor="glitch-invert">Inversão</Label></div>
-                                 <div className="flex items-center space-x-2"><RadioGroupItem value="scanlines" id="glitch-scanlines" /><Label htmlFor="glitch-scanlines">Linhas de Varredura</Label></div>
-                            </RadioGroup>
-                         </motion.div>
-                    )}
-                    {preferences.activeTheme === 'snowfall' && (
-                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
-                            <Label className="text-base font-medium">Tipo de Floco</Label>
-                             <RadioGroup value={snowType} onValueChange={(v) => handleThemeConfigChange({ snowType: v as any })}>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="soft" id="snow-soft" /><Label htmlFor="snow-soft">Suave</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="crystal" id="snow-crystal" /><Label htmlFor="snow-crystal">Cristal</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="heavy" id="snow-heavy" /><Label htmlFor="snow-heavy">Pesado</Label></div>
-                             </RadioGroup>
-                         </motion.div>
-                    )}
-                    {preferences.activeTheme === 'chocolate-fountain' && (
-                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-6 border-t space-y-4">
-                            <Label className="text-base font-medium">Tipo de Chocolate</Label>
-                             <RadioGroup value={chocolateType} onValueChange={(v) => handleThemeConfigChange({ chocolateType: v as any })}>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="black" id="choco-black" /><Label htmlFor="choco-black">Amargo</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="white" id="choco-white" /><Label htmlFor="choco-white">Branco</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="colorful" id="choco-colorful" /><Label htmlFor="choco-colorful">Colorido</Label></div>
-                             </RadioGroup>
-                         </motion.div>
-                    )}
-                    {preferences.activeTheme === 'zodiac-wheel' && (
-                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                            <Label className="text-base font-medium">Signo</Label>
-                             <RadioGroup value={zodiacSign} onValueChange={(v) => handleThemeConfigChange({ zodiacSign: v as any })} className="grid grid-cols-3 gap-2 text-sm">
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="zodiac-all" /><Label htmlFor="zodiac-all">Todos</Label></div>
-                                {['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'].map(s => (
-                                    <div key={s} className="flex items-center space-x-2"><RadioGroupItem value={s} id={`zodiac-${s}`} /><Label htmlFor={`zodiac-${s}`} className="capitalize">{s}</Label></div>
-                                ))}
-                             </RadioGroup>
-                         </motion.div>
-                    )}
-                     {preferences.activeTheme === 'mystic-eye' && (
-                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                            <Label className="text-base font-medium">Tipo de Olho</Label>
-                             <RadioGroup value={eyeType} onValueChange={(v) => handleThemeConfigChange({ eyeType: v as any })} className="grid grid-cols-2 gap-2 text-sm">
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="human" id="eye-human" /><Label htmlFor="eye-human">Humano</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="demon" id="eye-demon" /><Label htmlFor="eye-demon">Demoníaco</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="angelic" id="eye-angelic" /><Label htmlFor="eye-angelic">Angelical</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="reptile" id="eye-reptile" /><Label htmlFor="eye-reptile">Reptiliano</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="cybernetic" id="eye-cybernetic" /><Label htmlFor="eye-cybernetic">Cibernético</Label></div>
-                             </RadioGroup>
-                         </motion.div>
-                    )}
-                 </AnimatePresence>
-            {/* END: Theme Specific Options */}
+            <AnimatePresence>
+                {preferences.activeTheme === 'user-media' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 pt-4 border-t border-border/20">
+                        <Label className="text-base font-medium">Tema Personalizado</Label>
+                        <div className="flex items-center gap-2">
+                            <Input 
+                                placeholder="URL da imagem ou GIF"
+                                value={userMediaUrl}
+                                onChange={(e) => handleThemeConfigChange({ userMediaUrl: e.target.value })}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Cole a URL de uma imagem (JPG, PNG) ou GIF para usar como fundo.</p>
+                    </motion.div>
+                )}
+                {preferences.activeTheme === 'glitch' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 pt-4 border-t border-border/20">
+                        <Label className="text-base font-medium">Tipo de Glitch</Label>
+                        <RadioGroup value={glitchType} onValueChange={(v) => handleThemeConfigChange({ glitchType: v as any })} className="text-sm">
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="classic" id="glitch-classic" /><Label htmlFor="glitch-classic">Clássico</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="rgb-shift" id="glitch-rgb" /><Label htmlFor="glitch-rgb">Deslocamento RGB</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="blocky" id="glitch-blocky" /><Label htmlFor="glitch-blocky">Blocos</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="invert" id="glitch-invert" /><Label htmlFor="glitch-invert">Inversão</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="scanlines" id="glitch-scanlines" /><Label htmlFor="glitch-scanlines">Linhas de Varredura</Label></div>
+                        </RadioGroup>
+                    </motion.div>
+                )}
+                {preferences.activeTheme === 'snowfall' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-4 border-t border-border/20 space-y-4">
+                        <Label className="text-base font-medium">Tipo de Floco</Label>
+                        <RadioGroup value={snowType} onValueChange={(v) => handleThemeConfigChange({ snowType: v as any })}>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="soft" id="snow-soft" /><Label htmlFor="snow-soft">Suave</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="crystal" id="snow-crystal" /><Label htmlFor="snow-crystal">Cristal</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="heavy" id="snow-heavy" /><Label htmlFor="snow-heavy">Pesado</Label></div>
+                        </RadioGroup>
+                    </motion.div>
+                )}
+                {preferences.activeTheme === 'chocolate-fountain' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-4 border-t border-border/20 space-y-4">
+                        <Label className="text-base font-medium">Tipo de Chocolate</Label>
+                        <RadioGroup value={chocolateType} onValueChange={(v) => handleThemeConfigChange({ chocolateType: v as any })}>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="black" id="choco-black" /><Label htmlFor="choco-black">Amargo</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="white" id="choco-white" /><Label htmlFor="choco-white">Branco</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="colorful" id="choco-colorful" /><Label htmlFor="choco-colorful">Colorido</Label></div>
+                        </RadioGroup>
+                    </motion.div>
+                )}
+                {preferences.activeTheme === 'zodiac-wheel' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 pt-4 border-t border-border/20">
+                        <Label className="text-base font-medium">Signo</Label>
+                        <RadioGroup value={zodiacSign} onValueChange={(v) => handleThemeConfigChange({ zodiacSign: v as any })} className="grid grid-cols-3 gap-2 text-sm">
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="zodiac-all" /><Label htmlFor="zodiac-all">Todos</Label></div>
+                            {['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'].map(s => (
+                                <div key={s} className="flex items-center space-x-2"><RadioGroupItem value={s} id={`zodiac-${s}`} /><Label htmlFor={`zodiac-${s}`} className="capitalize">{s}</Label></div>
+                            ))}
+                        </RadioGroup>
+                    </motion.div>
+                )}
+                {preferences.activeTheme === 'mystic-eye' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 pt-4 border-t border-border/20">
+                        <Label className="text-base font-medium">Tipo de Olho</Label>
+                        <RadioGroup value={eyeType} onValueChange={(v) => handleThemeConfigChange({ eyeType: v as any })} className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="human" id="eye-human" /><Label htmlFor="eye-human">Humano</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="demon" id="eye-demon" /><Label htmlFor="eye-demon">Demoníaco</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="angelic" id="eye-angelic" /><Label htmlFor="eye-angelic">Angelical</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="reptile" id="eye-reptile" /><Label htmlFor="eye-reptile">Reptiliano</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="cybernetic" id="eye-cybernetic" /><Label htmlFor="eye-cybernetic">Cibernético</Label></div>
+                        </RadioGroup>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            <div className="space-y-4 pt-4 border-t border-border/50">
+            <div className="space-y-4 pt-4 border-t border-border/20">
                 <Label className="text-base font-medium">Animação de Borda</Label>
                 <RadioGroup
                     value={themeAnimation}
                     onValueChange={(value) => handleThemeConfigChange({ themeAnimation: value as any })}
-                    className="flex gap-4"
+                    className="grid grid-cols-3 gap-2"
                 >
-                    <div className="flex-1"><RadioGroupItem value="nenhuma" id="anim-nenhuma" className="peer sr-only" /><Label htmlFor="anim-nenhuma" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 text-center text-xs hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"><Text className="mb-1 h-5 w-5" />Nenhuma</Label></div>
-                    <div className="flex-1"><RadioGroupItem value="cintilar" id="anim-cintilar" className="peer sr-only" /><Label htmlFor="anim-cintilar" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 text-center text-xs hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"><Sparkles className="mb-1 h-5 w-5" />Pulsante</Label></div>
-                    <div className="flex-1"><RadioGroupItem value="girar" id="anim-girar" className="peer sr-only" /><Label htmlFor="anim-girar" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 text-center text-xs hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"><Film className="mb-1 h-5 w-5" />Giratória</Label></div>
+                    <RadioGroupItem value="nenhuma" id="anim-nenhuma" className="peer sr-only" />
+                    <Label htmlFor="anim-nenhuma" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 text-center text-xs hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-20">
+                      <Text className="mb-1 h-5 w-5" />Nenhuma
+                    </Label>
+                    <RadioGroupItem value="cintilar" id="anim-cintilar" className="peer sr-only" />
+                    <Label htmlFor="anim-cintilar" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 text-center text-xs hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-20">
+                      <Sparkles className="mb-1 h-5 w-5" />Pulsante
+                    </Label>
+                    <RadioGroupItem value="girar" id="anim-girar" className="peer sr-only" />
+                    <Label htmlFor="anim-girar" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 text-center text-xs hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-20">
+                      <Film className="mb-1 h-5 w-5" />Giratória
+                    </Label>
                 </RadioGroup>
             </div>
-             <div className="space-y-4">
-                <div className={cn(diurnoMode && preferences.activeTheme === 'dia-noite' ? 'opacity-50 pointer-events-none' : '')}>
+             <div className="space-y-6 pt-4 border-t border-border/20">
+                <div className={cn("space-y-2", diurnoMode && preferences.activeTheme === 'dia-noite' ? 'opacity-50 pointer-events-none' : '')}>
                     <Label htmlFor="speed-slider" className="text-base font-medium">Velocidade da Animação</Label>
-                    <div className="flex items-center gap-2">
-                       <SlidersHorizontal className="h-4 w-4 text-muted-foreground"/>
+                    <div className="flex items-center gap-3">
+                       <SlidersHorizontal className="h-5 w-5 text-muted-foreground"/>
                        <Slider id="speed-slider" min={1} max={200} step={1} value={[themeSpeed]} onValueChange={(v) => handleThemeConfigChange({ themeSpeed: v[0] })} disabled={diurnoMode && preferences.activeTheme === 'dia-noite'} />
-                       <span className="text-sm font-mono w-10 text-center">{themeSpeed}%</span>
+                       <span className="text-sm font-mono w-12 text-center border rounded-md py-1">{themeSpeed}%</span>
                     </div>
                 </div>
-                <div>
+                <div className="space-y-2">
                     <Label htmlFor="size-slider" className="text-base font-medium">Tamanho dos Elementos</Label>
-                    <div className="flex items-center gap-2">
-                       <Ruler className="h-4 w-4 text-muted-foreground"/>
+                    <div className="flex items-center gap-3">
+                       <Ruler className="h-5 w-5 text-muted-foreground"/>
                        <Slider id="size-slider" min={50} max={150} step={1} value={[themeSize]} onValueChange={(v) => handleThemeConfigChange({ themeSize: v[0] })} />
-                       <span className="text-sm font-mono w-10 text-center">{themeSize}%</span>
+                       <span className="text-sm font-mono w-12 text-center border rounded-md py-1">{themeSize}%</span>
                     </div>
                 </div>
              </div>

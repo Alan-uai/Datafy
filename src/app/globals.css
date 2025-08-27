@@ -3,6 +3,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Datafy';
+  src: url('/fonts/Datafy.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'RoyalInferno';
+  src: url('/fonts/RoyalInferno.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'WhoIsHot';
+  src: url('/fonts/WhoIsHot.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @keyframes matrix-rain {
   0% {
     background-position: 0% 0%;
@@ -69,6 +90,10 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --radius: 0.5rem;
+
+    --font-datafy: "Datafy";
+    --font-royal-inferno: "RoyalInferno";
+    --font-who-is-hot: "WhoIsHot";
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -186,6 +211,10 @@
     @apply border-border;
   }
   
+  body {
+    @apply font-body;
+  }
+
   html.dark body {
     @apply bg-background text-foreground;
   }

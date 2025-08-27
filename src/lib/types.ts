@@ -46,7 +46,7 @@ export type ThemeName =
   | 'facebook-likes' | 'galaxy-impact' | 'snowfall' | 'vampire-aesthetic'
   | 'chocolate-fountain' | 'zodiac-wheel' | 'cloud-surfing' | 'mystic-eye';
 
-export type FontName = 'datafy' | 'royal-inferno' | 'who-is-hot';
+export type FontName = 'default' | 'datafy' | 'royal-inferno' | 'who-is-hot';
 
 
 export interface ThemeConfig {

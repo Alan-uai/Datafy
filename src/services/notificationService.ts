@@ -6,46 +6,50 @@ import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { app } from "@/lib/firebase";
 
-// This is a placeholder for your VAPID key. 
-// You need to generate this in your Firebase project settings -> Cloud Messaging.
-const VAPID_KEY = "BL-5_i_43qY4xGzVslXBvHw3eYwK-476gEaM9yQ3c0Tz23bI2u_YwzG5L9u8CqM8q9R6aH4J-fXyR8Z7J9K8W7s"; 
+// IMPORTANT: The VAPID key should be loaded from an environment variable.
+// Make sure you have VAPID_KEY set in your .env file (e.g., VAPID_KEY='your_firebase_vapid_key').
+// If this code runs client-side in Next.js, the variable name in .env might need to be NEXT_PUBLIC_VAPID_KEY
+// to be exposed to the browser. If you encounter issues, try renaming your environment variable to NEXT_PUBLIC_VAPID_KEY.
+const NEXT_PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
 // This function handles subscribing the user to push notifications
 export const subscribeToNotifications = async (userId: string): Promise<string | null> => {
     const supported = await isSupported();
     if (!supported) {
-        console.log("Firebase Messaging is not supported in this browser.");
+        console.warn("Firebase Messaging is not supported in this browser.");
+        throw new Error("As notificações não são suportadas neste navegador.");
+    }
+
+    if (!NEXT_PUBLIC_VAPID_KEY) {
+        console.error("VAPID_KEY is not configured. Please set it in your .env file.");
+        throw new Error("Chave VAPID não configurada. As notificações não funcionarão.");
+    }
+
+    const messaging = getMessaging(app);
+    const permission = await Notification.requestPermission();
+
+    if (permission !== 'granted') {
+        console.warn('Notification permission was not granted.');
         return null;
     }
-    
-    const messaging = getMessaging(app);
 
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            console.log('Notification permission granted.');
-            const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+    console.log('Notification permission granted. Attempting to get token...');
+    // The getToken call will throw if it fails, which will be caught in the component
+    const currentToken = await getToken(messaging, { vapidKey: NEXT_PUBLIC_VAPID_KEY });
 
-            if (currentToken) {
-                // Save the token to a separate collection for the backend to query
-                const tokenRef = doc(db, 'userTokens', userId);
-                await setDoc(tokenRef, { token: currentToken });
+    if (currentToken) {
+        // Save the token to a separate collection for the backend to query
+        const tokenRef = doc(db, 'userTokens', userId);
+        await setDoc(tokenRef, { token: currentToken, subscribedAt: new Date() });
 
-                console.log('FCM Token saved for user:', userId, currentToken);
-                return currentToken;
-            } else {
-                console.log('No registration token available. Request permission to generate one.');
-                return null;
-            }
-        } else {
-            console.log('Unable to get permission to notify.');
-            return null;
-        }
-    } catch (error) {
-        console.error('An error occurred while retrieving token. ', error);
-        return null;
+        console.log('FCM Token saved for user:', userId, currentToken);
+        return currentToken;
+    } else {
+        // This case is unlikely if permission is granted, but good to handle.
+        throw new Error('Não foi possível obter o token de notificação.');
     }
 };
+
 
 // This function handles unsubscribing the user
 export const unsubscribeFromNotifications = async (userId: string, token: string): Promise<void> => {
@@ -113,3 +117,5 @@ export const checkLowStockNotifications = async (userId: string) => {
         // sendPushNotification(profile.preferences.notifications.pushToken, message);
     }
 };
+
+    

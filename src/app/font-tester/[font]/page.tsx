@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { FontName } from '@/lib/types'; // Assuming FontName type exists
 
 const fontClassMap: { [key: string]: string } = {
+  default: 'font-sans',
   datafy: 'font-body',
   'royal-inferno': 'font-royal-inferno',
   'who-is-hot': 'font-who-is-hot',
@@ -25,20 +26,21 @@ export default function FontVisualizerPage() {
   const { userProfile, savePreferences } = useUserProfile();
   const { toast } = useToast();
   
-  const font = (params.font as string) || 'datafy';
+  const font = (params.font as string) || 'default';
 
   if (font === 'monogram') {
       return <div>Carregando...</div>;
   }
 
-  const selectedFontClass = fontClassMap[font] || 'font-body';
+  const selectedFontClass = fontClassMap[font] || 'font-sans';
+  const fontLabel = font === 'default' ? 'Padrão' : font.replace('-', ' ');
 
   const handleApplyFont = () => {
     if (userProfile) {
       savePreferences({ activeFont: font as FontName });
       toast({
         title: "Fonte Aplicada!",
-        description: `A fonte "${font.replace('-', ' ')}" foi definida como padrão para o site.`,
+        description: `A fonte "${fontLabel}" foi definida como padrão para o site.`,
       });
       router.push('/settings');
     }
@@ -56,7 +58,7 @@ export default function FontVisualizerPage() {
         >
           <Card className="bg-card/50">
             <CardHeader>
-              <CardTitle className="text-4xl capitalize">{font.replace('-', ' ')}</CardTitle>
+              <CardTitle className="text-4xl capitalize">{fontLabel}</CardTitle>
               <CardDescription>The quick brown fox jumps over the lazy dog.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 text-lg">

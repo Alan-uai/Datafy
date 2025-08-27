@@ -1,9 +1,10 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 interface CustomNumberInputProps {
@@ -25,6 +26,23 @@ export const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
   className,
   formatValue
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [displayValue, setDisplayValue] = useState(formatValue ? formatValue(value) : value.toString());
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDisplayValue(formatValue ? formatValue(value) : value.toString());
+    } else {
+      // For price, show a clean number for editing
+      if (formatValue && formatValue(value).includes('R$')) {
+        setDisplayValue(value.toFixed(2).replace('.', ','));
+      } else {
+        setDisplayValue(value.toString());
+      }
+    }
+  }, [value, isEditing, formatValue]);
+
+
   const handleDecrement = () => {
     const newValue = Math.max(min, value - step);
     onChange(newValue);
@@ -35,7 +53,22 @@ export const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
     onChange(newValue);
   };
 
-  const formattedValue = formatValue ? formatValue(value) : value.toString();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDisplayValue(e.target.value);
+  };
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    let rawValue = displayValue.replace(/[R$\s]/g, '').replace(',', '.');
+    let parsedValue = step === 1 ? parseInt(rawValue, 10) : parseFloat(rawValue);
+    
+    if (isNaN(parsedValue)) {
+      parsedValue = min;
+    }
+
+    const clampedValue = Math.max(min, Math.min(max, parsedValue));
+    onChange(clampedValue);
+  };
 
   return (
     <div className={cn("flex items-center justify-center gap-2", className)}>
@@ -51,9 +84,14 @@ export const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
         <span className="sr-only">Diminuir</span>
       </Button>
 
-      <div className="flex h-10 w-full items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background md:text-sm">
-        <span className="font-medium">{formattedValue}</span>
-      </div>
+      <Input
+        type="text"
+        className="h-10 w-full text-center text-base md:text-sm font-medium"
+        value={displayValue}
+        onChange={handleInputChange}
+        onFocus={() => setIsEditing(true)}
+        onBlur={handleBlur}
+      />
 
       <Button
         type="button"

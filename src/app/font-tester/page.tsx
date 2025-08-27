@@ -19,6 +19,7 @@ interface FontOption {
 }
 
 const FONT_OPTIONS: FontOption[] = [
+    { value: 'default', label: 'Padrão', icon: PenTool, className: 'font-sans' },
     { value: 'datafy', label: 'Datafy', icon: Type, className: 'font-body' },
     { value: 'royal-inferno', label: 'Royal Inferno', icon: Flame, className: 'font-royal-inferno' },
     { value: 'who-is-hot', label: 'Who Is Hot', icon: Sparkles, className: 'font-who-is-hot' },
@@ -44,7 +45,7 @@ export default function FontTesterPage() {
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {FONT_OPTIONS.map((font, index) => (
                         <Link href={`/font-tester/${font.value}`} key={font.value} passHref>
                             <motion.div

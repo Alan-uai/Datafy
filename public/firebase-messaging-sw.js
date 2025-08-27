@@ -1,12 +1,8 @@
-// DO NOT USE 'import' statements in this file. It's a service worker.
-// This script will be executed in a separate thread by the browser.
+// /public/firebase-messaging-sw.js
+// Scripts for Firebase v9+
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
-// Scripts for Firebase
-self.importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js");
-self.importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js");
-
-// Initialize the Firebase app in the service worker
-// Pass in the messagingSenderId from your project credentials.
 const firebaseConfig = {
   apiKey: "AIzaSyBWLYmeq9qrjaMfAKSBpP46b_CLXMAOWtc",
   authDomain: "datafy-ed69d.firebaseapp.com",
@@ -19,18 +15,19 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-// Retrieve an instance of Firebase Messaging so that it can handle background messages.
+// This is required to receive notifications in the background.
 const messaging = firebase.messaging();
 
+// Optional: You can add a background message handler here if needed
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  
   // Customize notification here
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/icon.png' // Make sure you have an icon in your public folder
+    icon: '/firebase-logo.png' // Optional: path to an icon
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(notificationTitle,
+    notificationOptions);
 });

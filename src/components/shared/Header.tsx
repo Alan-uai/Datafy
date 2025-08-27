@@ -81,7 +81,7 @@ export function Header() {
                 <DropdownMenuContent>
                     <DropdownMenuLabel>Testers</DropdownMenuLabel>
                     <DropdownMenuSeparator/>
-                    <DropdownMenuItem onClick={() => router.push('/theme-tester')}>
+                    <DropdownMenuItem onClick={() => router.push('/theme-config')}>
                         <Paintbrush className="mr-2 h-4 w-4" />
                         <span>Temas</span>
                     </DropdownMenuItem>

@@ -130,7 +130,7 @@ export default function Dashboard() {
     handleProductPointerUp,
     handleProductPointerMove,
     resetSelection,
-  } = useMultiSelect(500); // Changed delay to 500ms to match common long press behavior
+  } = useMultiSelect(800);
 
   const {
     isAddProductDialogOpen,

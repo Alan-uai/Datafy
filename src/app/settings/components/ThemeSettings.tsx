@@ -11,6 +11,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useThemeAnimation } from '@/contexts/ThemeAnimationContext';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter }from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 interface ThemeSettingsProps {
     preferences: UserPreferences;
@@ -21,6 +22,7 @@ interface ThemeSettingsProps {
 export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThemeChange, savePreferences }) => {
     const { userProfile } = useUserProfile();
     const { triggerMatrixAnimation } = useThemeAnimation();
+    const { toast } = useToast();
     const hasPremium = !!userProfile?.premium;
     const router = useRouter();
 
@@ -44,7 +46,11 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
             onThemeChange(themeName);
             savePreferences({ lastCustomTheme: themeName });
         }
-        router.push(`/theme-config/${themeName}`);
+        
+        toast({
+            title: "Tema Aplicado!",
+            description: `O tema "${selectedOption?.label}" foi definido como seu padrão.`,
+        });
     };
         
     const selectedRadioValue = ['light', 'dark'].includes(preferences.activeTheme)
@@ -55,7 +61,7 @@ export const ThemeSettings: React.FC<ThemeSettingsProps> = ({ preferences, onThe
         <Card>
             <CardHeader>
                 <CardTitle>Seleção Rápida de Tema</CardTitle>
-                <CardDescription>Escolha seu tema visual. Clique para configurar em detalhes.</CardDescription>
+                <CardDescription>Escolha seu tema visual. <a href="/theme-config" className="underline text-primary">Clique aqui</a> para configurar em detalhes.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="w-full whitespace-nowrap">

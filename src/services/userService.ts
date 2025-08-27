@@ -90,7 +90,7 @@ export const defaultProfile: Omit<UserProfile, 'uid' | 'displayName' | 'email' |
   achievements: [],
   preferences: { 
     activeTheme: 'dark',
-    activeFont: 'datafy',
+    activeFont: 'default',
     defaultThemeMode: 'dark',
     lastCustomTheme: 'matrix',
     themeConfigs: allThemes.reduce((acc, theme) => {

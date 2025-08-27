@@ -11,16 +11,17 @@ import React from 'react';
 export const BodyWithFont = ({ children }: { children: React.ReactNode }) => {
   const { userProfile } = useAuth();
   
-  // Determine the active font, defaulting to 'datafy' if not set.
-  const activeFont = userProfile?.preferences?.activeFont || 'datafy';
+  // Determine the active font, defaulting to 'default' if not set.
+  const activeFont = userProfile?.preferences?.activeFont || 'default';
 
   const fontClassMap: { [key in FontName]: string } = {
+    default: 'font-sans',
     datafy: 'font-body',
     'royal-inferno': 'font-royal-inferno',
     'who-is-hot': 'font-who-is-hot',
   };
 
-  const bodyFontClass = fontClassMap[activeFont] || 'font-body';
+  const bodyFontClass = fontClassMap[activeFont] || 'font-sans';
 
-  return <body className={cn('font-body', bodyFontClass)}>{children}</body>
+  return <body className={cn('font-sans', bodyFontClass)}>{children}</body>
 };

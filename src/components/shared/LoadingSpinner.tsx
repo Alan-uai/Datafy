@@ -1,8 +1,8 @@
-
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
 import { LayoutDashboard } from "lucide-react";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface LoadingSpinnerProps {
   fullPage?: boolean;
@@ -10,9 +10,12 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullPage = true, text = "CARREGANDO" }) => {
+  const { userProfile } = useUserProfile();
   const containerClasses = fullPage 
     ? "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background"
     : "flex flex-col items-center justify-center py-10";
+
+  const appNameFontClass = userProfile?.preferences?.activeFont === "Datafy" ? "font-datafy" : "";
 
   return (
     <div className={containerClasses}>
@@ -23,7 +26,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullPage = true,
       >
         <div className="flex items-center gap-2 font-bold">
             <LayoutDashboard style={{ width: 40, height: 40 }} className="text-primary" />
-            <h1 className="text-3xl">Datafy</h1>
+            <h1 className={`text-3xl ${appNameFontClass}`}>Datafy</h1>
         </div>
       </motion.div>
       <div className="relative mt-4 w-64 h-8 overflow-hidden">

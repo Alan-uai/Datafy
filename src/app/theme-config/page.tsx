@@ -4,12 +4,16 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Paintbrush } from 'lucide-react';
+import { Paintbrush, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { THEME_OPTIONS } from '@/lib/themes';
 import { Header } from '@/components/shared/Header';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function ThemeConfigPage() {
+  const router = useRouter();
+  
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
         <Header />
@@ -46,6 +50,12 @@ export default function ThemeConfigPage() {
                             </motion.div>
                         </Link>
                     ))}
+                </div>
+                <div className="mt-8 text-center">
+                    <Button variant="outline" onClick={() => router.push('/settings')}>
+                        <ArrowLeft className="mr-2 h-4 w-4"/>
+                        Voltar para Configurações
+                    </Button>
                 </div>
             </div>
         </main>

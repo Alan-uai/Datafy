@@ -11,6 +11,7 @@ import type { UserPreferences, NotificationPreferences } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { subscribeToNotifications, unsubscribeFromNotifications } from '@/services/notificationService';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 
 interface NotificationSettingsProps {
     preferences: UserPreferences;
@@ -20,6 +21,7 @@ interface NotificationSettingsProps {
 
 export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ preferences, onPreferencesChange, userId }) => {
     const { toast } = useToast();
+    const { currentUser } = useAuth(); // Get currentUser from AuthContext
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
 
@@ -32,6 +34,17 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
     const handleSubscriptionToggle = async () => {
         setIsSubscriptionLoading(true);
         try {
+            // Ensure user is authenticated before attempting to subscribe
+            if (!currentUser) {
+                toast({
+                    variant: "destructive",
+                    title: "Não Autenticado",
+                    description: "Você precisa estar logado para gerenciar as notificações.",
+                });
+                setIsSubscriptionLoading(false);
+                return;
+            }
+
             if (isSubscribed) {
                 await unsubscribeFromNotifications(userId, preferences.notifications.pushToken!);
                 onPreferencesChange({
@@ -46,26 +59,44 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                     });
                     toast({ title: "Inscrito para notificações com sucesso!" });
                 } else {
-                     toast({ variant: "destructive", title: "Permissão negada", description: "Você precisa permitir notificações no seu navegador." });
+                    // This case is for when subscribeToNotifications returns null without an error
+                    // which can happen if permission is denied.
+                    toast({
+                        variant: "destructive",
+                        title: "Permissão Negada",
+                        description: "Você precisa permitir notificações nas configurações do seu navegador."
+                    });
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to toggle notification subscription", error);
-            toast({ variant: "destructive", title: "Erro", description: "Não foi possível alterar a inscrição de notificações." });
+            if (error.code === 'messaging/token-subscribe-failed') {
+                toast({
+                    variant: "destructive",
+                    title: "Erro de Configuração",
+                    description: 'A autenticação do FCM falhou. Verifique se a API Firebase Cloud Messaging está ativada no seu projeto do Google Cloud.',
+                    duration: 10000,
+                });
+            } else {
+                 toast({
+                     variant: "destructive",
+                     title: "Erro na Inscrição",
+                     description: error.message || "Não foi possível alterar a inscrição de notificações. Por favor, tente novamente.",
+                });
+            }
         } finally {
             setIsSubscriptionLoading(false);
         }
     };
     
     const handleNotificationChange = (
-        section: keyof NotificationPreferences,
+        section: keyof Omit<NotificationPreferences, 'pushToken'>,
         field: string,
         value: any
     ) => {
-        const newNotifications = {
+        const newNotifications: NotificationPreferences = {
             ...preferences.notifications,
             [section]: {
-                // @ts-ignore
                 ...preferences.notifications[section],
                 [field]: value
             }
@@ -97,7 +128,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                         </Button>
                     </div>
                      <p className="text-sm text-muted-foreground pl-7">
-                        {isSubscribed 
+                        {isSubscribed
                             ? "Você está inscrito para receber notificações neste navegador."
                             : "Inscreva-se para receber alertas sobre seus produtos e conquistas."
                         }
@@ -115,7 +146,6 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                         <Switch
                             id="low-stock-enabled"
                             checked={notifs.lowStock.enabled}
-                            // @ts-ignore
                             onCheckedChange={(checked) => handleNotificationChange('lowStock', 'enabled', checked)}
                         />
                     </div>
@@ -124,7 +154,6 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                             <Label htmlFor="low-stock-frequency">Frequência</Label>
                              <Select
                                 value={notifs.lowStock.frequency}
-                                // @ts-ignore
                                 onValueChange={(value) => handleNotificationChange('lowStock', 'frequency', value)}
                              >
                                 <SelectTrigger id="low-stock-frequency">
@@ -151,7 +180,6 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                         <Switch
                             id="expiry-enabled"
                             checked={notifs.expiry.enabled}
-                            // @ts-ignore
                             onCheckedChange={(checked) => handleNotificationChange('expiry', 'enabled', checked)}
                         />
                     </div>
@@ -161,8 +189,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                                 <Label htmlFor="expiry-threshold">Alertar com</Label>
                                  <Select
                                     value={notifs.expiry.thresholdDays.toString()}
-                                    // @ts-ignore
-                                    onValueChange={(value) => handleNotificationChange('expiry', 'thresholdDays', parseInt(value))}
+                                    onValueChange={(value) => handleNotificationChange('expiry', 'thresholdDays', parseInt(value, 10))}
                                 >
                                     <SelectTrigger id="expiry-threshold">
                                         <SelectValue placeholder="Selecione o tempo..." />
@@ -180,7 +207,6 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                                 <Label htmlFor="expiry-frequency">Frequência</Label>
                                 <Select
                                     value={notifs.expiry.frequency}
-                                    // @ts-ignore
                                     onValueChange={(value) => handleNotificationChange('expiry', 'frequency', value)}
                                 >
                                     <SelectTrigger id="expiry-frequency">
@@ -208,7 +234,6 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                         <Switch
                             id="achievements-enabled"
                             checked={notifs.achievements.enabled}
-                            // @ts-ignore
                             onCheckedChange={(checked) => handleNotificationChange('achievements', 'enabled', checked)}
                         />
                     </div>
@@ -217,7 +242,6 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ pref
                             <Label htmlFor="achievements-tier">Alertar para</Label>
                              <Select
                                 value={notifs.achievements.tier}
-                                // @ts-ignore
                                 onValueChange={(value) => handleNotificationChange('achievements', 'tier', value)}
                              >
                                 <SelectTrigger id="achievements-tier">
